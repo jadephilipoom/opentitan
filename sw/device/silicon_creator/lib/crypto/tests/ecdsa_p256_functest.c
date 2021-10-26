@@ -53,7 +53,7 @@ rom_error_t sign_then_verify_test(void) {
 
   // Generate a signature for the message
   LOG_INFO("Signing...");
-  RETURN_IF_ERROR(ecdsa_p256_sign(&digest, &kPrivateKey, &signature));
+  RETURN_IF_ERROR(ecdsa_p256_sign(&digest, &kPrivateKey, &kPublicKey, &signature));
 
   // Verify the signature
   LOG_INFO("Verifying...");

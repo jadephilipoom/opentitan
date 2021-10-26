@@ -79,11 +79,13 @@ typedef struct ecdsa_p256_message_digest_t {
  *
  * @param message_digest Digest of the message to sign.
  * @param private_key Key to sign the message with.
+ * @param public_key Public key corresponding to the private key.
  * @param result Buffer in which to store the generated signature.
  * @return Result of the operation (OK or error).
  */
 rom_error_t ecdsa_p256_sign(const ecdsa_p256_message_digest_t *digest,
                             const ecdsa_p256_private_key_t *private_key,
+                            const ecdsa_p256_public_key_t *public_key,
                             ecdsa_p256_signature_t *result);
 
 /**

@@ -99,6 +99,7 @@ static rom_error_t setup_data_pointers(otbn_t *otbn) {
 // modified to be non-blocking.
 rom_error_t ecdsa_p256_sign(const ecdsa_p256_message_digest_t *digest,
                             const ecdsa_p256_private_key_t *private_key,
+                            const ecdsa_p256_public_key_t *public_key,
                             ecdsa_p256_signature_t *result) {
   otbn_t otbn;
   otbn_init(&otbn);
@@ -133,8 +134,13 @@ rom_error_t ecdsa_p256_sign(const ecdsa_p256_message_digest_t *digest,
   RETURN_IF_ERROR(otbn_copy_data_from_otbn(&otbn, kP256ScalarNumWords,
                                            kOtbnVarEcdsaS, result->S));
 
-  // TODO: try to verify the signature, and return an error if verification
-  // fails.
+
+  // Try to verify the signature, and return an error if verification fails.
+  hardened_bool_t verificationResult;
+  RETURN_IF_ERROR(ecdsa_p256_verify(result, digest, public_key, &verificationResult));
+  if (verificationResult != kHardenedBoolTrue) {
+    return kErrorUnknown;
+  }
 
   return kErrorOk;
 }
