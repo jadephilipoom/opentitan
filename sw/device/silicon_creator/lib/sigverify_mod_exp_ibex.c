@@ -67,17 +67,21 @@ static uint32_t shift_left(sigverify_rsa_buffer_t *a) {
 }
 
 /**
- * Calculates R^2 mod n, where R = 2^kSigVerifyRsaNumBits.
+ * Calculates (a*R) mod n, where R = 2^kSigVerifyRsaNumBits.
  *
  * @param key An RSA public key.
- * @param[out] result Buffer to write the result to, little-endian.
+ * @param[in] a Buffer that holds `a`, little-endian.
+ * @param[out] result Buffer for the result
  */
-static void calc_r_square(const sigverify_rsa_key_t *key,
+static void to_montgomery(const sigverify_rsa_key_t *key,
+                          const sigverify_rsa_buffer_t *a,
                           sigverify_rsa_buffer_t *result) {
-  memset(result->data, 0, sizeof(result->data));
-  // Since R/2 < n < R, this subtraction ensures that result = R mod n and
-  // fits in `kSigVerifyRsaNumWords` going into the loop.
-  subtract_modulus(key, result);
+  // Set initial result = a
+  memcpy(result->data, a->data, sizeof(a->data));
+  // Subtract n until result < n.
+  while (greater_equal_modulus(key, result)) {
+    subtract_modulus(key, result);
+  }
 
   // Iteratively shift and reduce `result`.
   for (size_t i = 0; i < kSigVerifyRsaNumBits; ++i) {
@@ -158,17 +162,13 @@ rom_error_t sigverify_mod_exp_ibex(const sigverify_rsa_key_t *key,
   sigverify_rsa_buffer_t buf;
 
   if (key->exponent == 3) {
-    // buf = R^2 mod n
-    calc_r_square(key, &buf);
-    // result = sig * R mod n
-    mont_mul(key, sig, &buf, result);
+    // result = (sig * R) mod n
+    to_montgomery(key, sig, result);
     // buf = sig^2 * R mod n
     mont_mul(key, result, result, &buf);
   } else if (key->exponent == 65537) {
-    // result = R^2 mod n
-    calc_r_square(key, result);
-    // buf = sig * R mod n
-    mont_mul(key, sig, result, &buf);
+    // buf = (sig * R) mod n
+    to_montgomery(key, sig, &buf);
     for (size_t i = 0; i < 8; ++i) {
       // result = sig^{2*i+1} * R mod n (sig's exponent: 2, 8, 32, ..., 32768)
       mont_mul(key, &buf, &buf, result);
