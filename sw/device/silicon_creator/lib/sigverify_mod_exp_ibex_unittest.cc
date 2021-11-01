@@ -207,8 +207,10 @@ class ModExp : public testing::TestWithParam<SigTestCase> {};
 
 TEST_P(ModExp, EncMsg) {
   sigverify_rsa_buffer_t res;
-  EXPECT_EQ(sigverify_mod_exp_ibex(&GetParam().key, &GetParam().sig, &res),
-            kErrorOk);
+  for (int i = 0; i < 1000; i++) {
+    EXPECT_EQ(sigverify_mod_exp_ibex(&GetParam().key, &GetParam().sig, &res),
+             kErrorOk);
+  }
   EXPECT_THAT(res.data, ::testing::ElementsAreArray(GetParam().enc_msg->data));
 }
 
