@@ -6,7 +6,6 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "global_mock",
-    testonly = True,
     hdrs = ["global_mock.h"],
 )
 
@@ -17,6 +16,7 @@ cc_library(
         "//sw/device/lib/base:mmio_src",
     ],
     hdrs = [
+        "mock_abs_mmio.h",
         "mock_mmio.h",
         "mock_mmio_test_utils.h",
     ],

@@ -7,7 +7,8 @@
 #include "gtest/gtest.h"
 #include "sw/device/lib/base/multibits.h"
 #include "sw/device/lib/base/testing/mock_mmio_test_utils.h"
-#include "sw/device/silicon_creator/lib/base/mock_abs_mmio.h"
+#include "sw/device/lib/base/testing/mock_abs_mmio.h"
+#include "sw/device/lib/base/testing/mock_abs_mmio.h"
 #include "sw/device/silicon_creator/lib/base/mock_sec_mmio.h"
 #include "sw/device/silicon_creator/lib/drivers/mock_otp.h"
 #include "sw/device/silicon_creator/lib/error.h"
@@ -58,7 +59,7 @@ const std::map<flash_ctrl_info_page_t, InfoPage> &InfoPages() {
 class FlashCtrlTest : public mask_rom_test::MaskRomTest {
  protected:
   uint32_t base_ = TOP_EARLGREY_FLASH_CTRL_CORE_BASE_ADDR;
-  mask_rom_test::MockAbsMmio mmio_;
+  mock_abs_mmio::MockAbsMmio mmio_;
   mask_rom_test::MockSecMmio sec_mmio_;
   mask_rom_test::MockOtp otp_;
 };

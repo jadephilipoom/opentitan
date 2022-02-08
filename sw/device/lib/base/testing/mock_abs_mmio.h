@@ -2,19 +2,19 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef OPENTITAN_SW_DEVICE_SILICON_CREATOR_LIB_BASE_MOCK_ABS_MMIO_H_
-#define OPENTITAN_SW_DEVICE_SILICON_CREATOR_LIB_BASE_MOCK_ABS_MMIO_H_
+#ifndef OPENTITAN_SW_DEVICE_LIB_BASE_TESTING_MOCK_ABS_MMIO_H_
+#define OPENTITAN_SW_DEVICE_LIB_BASE_TESTING_MOCK_ABS_MMIO_H_
 
 #include "sw/device/lib/base/abs_mmio.h"
 #include "sw/device/lib/base/testing/mock_mmio_test_utils.h"
-#include "sw/device/silicon_creator/testing/mask_rom_test.h"
+#include "sw/device/lib/base/testing/global_mock.h"
 
-namespace mask_rom_test {
+namespace mock_abs_mmio {
 namespace internal {
 /**
  * Mock class for abs_mmio.c.
  */
-class MockAbsMmio : public GlobalMock<MockAbsMmio> {
+class MockAbsMmio : public global_mock::GlobalMock<MockAbsMmio> {
  public:
   MOCK_METHOD(uint8_t, Read8, (uint32_t addr));
   MOCK_METHOD(void, Write8, (uint32_t addr, uint8_t value));
@@ -36,7 +36,7 @@ using MockAbsMmio = testing::StrictMock<internal::MockAbsMmio>;
  * data, or a `std::initializer_list<BitField>`.
  */
 #define EXPECT_ABS_READ8(addr, ...)                                  \
-  EXPECT_CALL(::mask_rom_test::MockAbsMmio::Instance(), Read8(addr)) \
+  EXPECT_CALL(::mock_abs_mmio::MockAbsMmio::Instance(), Read8(addr)) \
       .WillOnce(testing::Return(mock_mmio::ToInt<uint8_t>(__VA_ARGS__)))
 
 /**
@@ -47,7 +47,7 @@ using MockAbsMmio = testing::StrictMock<internal::MockAbsMmio>;
  * little-endian data, or a `std::initializer_list<BitField>`.
  */
 #define EXPECT_ABS_WRITE8(addr, ...)                    \
-  EXPECT_CALL(::mask_rom_test::MockAbsMmio::Instance(), \
+  EXPECT_CALL(::mock_abs_mmio::MockAbsMmio::Instance(), \
               Write8(addr, mock_mmio::ToInt<uint8_t>(__VA_ARGS__)));
 
 /**
@@ -59,7 +59,7 @@ using MockAbsMmio = testing::StrictMock<internal::MockAbsMmio>;
  * little-endian data, or a `std::initializer_list<BitField>`.
  */
 #define EXPECT_ABS_WRITE8_SHADOWED(addr, ...)           \
-  EXPECT_CALL(::mask_rom_test::MockAbsMmio::Instance(), \
+  EXPECT_CALL(::mock_abs_mmio::MockAbsMmio::Instance(), \
               Write8Shadowed(addr, mock_mmio::ToInt<uint8_t>(__VA_ARGS__)));
 
 /**
@@ -71,7 +71,7 @@ using MockAbsMmio = testing::StrictMock<internal::MockAbsMmio>;
  * data, or a `std::initializer_list<BitField>`.
  */
 #define EXPECT_ABS_READ32(addr, ...)                                  \
-  EXPECT_CALL(::mask_rom_test::MockAbsMmio::Instance(), Read32(addr)) \
+  EXPECT_CALL(::mock_abs_mmio::MockAbsMmio::Instance(), Read32(addr)) \
       .WillOnce(testing::Return(mock_mmio::ToInt<uint32_t>(__VA_ARGS__)))
 
 /**
@@ -82,7 +82,7 @@ using MockAbsMmio = testing::StrictMock<internal::MockAbsMmio>;
  * little-endian data, or a `std::initializer_list<BitField>`.
  */
 #define EXPECT_ABS_WRITE32(addr, ...)                   \
-  EXPECT_CALL(::mask_rom_test::MockAbsMmio::Instance(), \
+  EXPECT_CALL(::mock_abs_mmio::MockAbsMmio::Instance(), \
               Write32(addr, mock_mmio::ToInt<uint32_t>(__VA_ARGS__)));
 
 /**
@@ -94,7 +94,7 @@ using MockAbsMmio = testing::StrictMock<internal::MockAbsMmio>;
  * little-endian data, or a `std::initializer_list<BitField>`.
  */
 #define EXPECT_ABS_WRITE32_SHADOWED(addr, ...)          \
-  EXPECT_CALL(::mask_rom_test::MockAbsMmio::Instance(), \
+  EXPECT_CALL(::mock_abs_mmio::MockAbsMmio::Instance(), \
               Write32Shadowed(addr, mock_mmio::ToInt<uint32_t>(__VA_ARGS__)));
 
 extern "C" {
@@ -124,6 +124,6 @@ void abs_mmio_write32_shadowed(uint32_t addr, uint32_t value) {
 }
 
 }  // extern "C"
-}  // namespace mask_rom_test
+}  // namespace mock_abs_mmio
 
-#endif  // OPENTITAN_SW_DEVICE_SILICON_CREATOR_LIB_BASE_MOCK_ABS_MMIO_H_
+#endif  // OPENTITAN_SW_DEVICE_LIB_BASE_TESTING_MOCK_ABS_MMIO_H_

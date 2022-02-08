@@ -8,8 +8,9 @@
 #include <limits>
 
 #include "gtest/gtest.h"
-#include "sw/device/silicon_creator/lib/base/mock_abs_mmio.h"
+#include "sw/device/lib/base/testing/mock_abs_mmio.h"
 #include "sw/device/silicon_creator/lib/base/mock_sec_mmio.h"
+#include "sw/device/silicon_creator/testing/mask_rom_test.h"
 #include "sw/device/silicon_creator/lib/error.h"
 
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
@@ -42,7 +43,7 @@ class KeymgrTest : public mask_rom_test::MaskRomTest {
       .binding_value_sealing = {0, 1, 2, 3, 4, 6, 7, 8},
       .binding_value_attestation = {9, 10, 11, 12, 13, 14, 15},
   };
-  mask_rom_test::MockAbsMmio mmio_;
+  mock_abs_mmio::MockAbsMmio mmio_;
   mask_rom_test::MockSecMmio sec_mmio_;
 };
 

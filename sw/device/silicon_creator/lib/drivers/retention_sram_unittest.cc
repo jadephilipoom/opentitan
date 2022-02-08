@@ -6,7 +6,8 @@
 
 #include "gtest/gtest.h"
 #include "sw/device/lib/base/mmio.h"
-#include "sw/device/silicon_creator/lib/base/mock_abs_mmio.h"
+#include "sw/device/lib/base/testing/mock_abs_mmio.h"
+#include "sw/device/silicon_creator/testing/mask_rom_test.h"
 
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
 #include "sram_ctrl_regs.h"  // Generated.
@@ -16,7 +17,7 @@ namespace {
 class RetentionSramTest : public mask_rom_test::MaskRomTest {
  protected:
   uint32_t base_ = TOP_EARLGREY_PINMUX_AON_BASE_ADDR;
-  mask_rom_test::MockAbsMmio mmio_;
+  mock_abs_mmio::MockAbsMmio mmio_;
 };
 
 class ScrambleTest : public RetentionSramTest {};

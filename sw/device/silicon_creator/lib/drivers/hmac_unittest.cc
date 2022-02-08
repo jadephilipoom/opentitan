@@ -9,7 +9,8 @@
 
 #include "gtest/gtest.h"
 #include "sw/device/lib/base/mmio.h"
-#include "sw/device/silicon_creator/lib/base/mock_abs_mmio.h"
+#include "sw/device/lib/base/testing/mock_abs_mmio.h"
+#include "sw/device/silicon_creator/testing/mask_rom_test.h"
 #include "sw/device/silicon_creator/lib/error.h"
 
 #include "hmac_regs.h"  // Generated.
@@ -22,7 +23,7 @@ using ::testing::ElementsAreArray;
 class HmacTest : public mask_rom_test::MaskRomTest {
  protected:
   uint32_t base_ = TOP_EARLGREY_HMAC_BASE_ADDR;
-  mask_rom_test::MockAbsMmio mmio_;
+  mock_abs_mmio::MockAbsMmio mmio_;
 };
 
 class Sha256InitTest : public HmacTest {};
