@@ -25,7 +25,7 @@ typedef enum crypto_status {
   // Status is OK; no errors.
   kCryptoStatusOK = 0x7d3a,
   // Invalid input arguments; Wrong length or invalid type.
-  kCryptoIncorrectInput = 0x6b7f,
+  kCryptoStatusIncorrectInput = 0x6b7f,
   // Inconsistencies when cross-checking results, witness, checksums.
   kCryptoStatusInternalError = 0x4753,
   // An asynchronous operation is still in progress.
@@ -852,23 +852,21 @@ crypto_status_t mac(const crypto_blinded_key_t *key,
 typedef struct hmac_context hmac_context_t;
 
 /**
- * Performs the generic HMAC init operation.
+ * Performs the HMAC-SHA2-256 init operation.
  *
- * Initializes the generic HMAC function. Populates the init, update
- * and final function pointers, and digest, block sizes, by calling
- * the respective init function as requested by `hash_mode` parameter.
+ * Initializes the HMAC-SHA2-256 parameters in the `ctx` context, such
+ * as the init, update, final functions to use and respective digest,
+ * block sizes.
  *
  * @param ctx Pointer to the generic HMAC context struct
  * @param key Pointer to the blinded HMAC key struct
- * @param hash_mode Required hash mode
  * @return crypto_status_t The result of the init operation
  */
-crypto_status_t hmac_init(const hash_context_t *ctx,
-                          const crypto_blinded_key_t *key,
-                          hash_mode_t hash_mode);
+crypto_status_t hmac_init(const hmac_context_t *ctx,
+                          const crypto_blinded_key_t *key);
 
 /**
- * Performs the generic HMAC update operation.
+ * Performs the HMAC-SHA2-256 update operation.
  *
  * The update operation computes the required hash on `input_meaage`
  * blocks. The intermediate digest is stored in the context `ctx`, in
@@ -879,13 +877,13 @@ crypto_status_t hmac_init(const hash_context_t *ctx,
  *
  * @param ctx Pointer to the generic HMAC context struct
  * @param input_message Input message to be hashed
- * @return crypto_status_t The result of the init operation
+ * @return crypto_status_t The result of the update operation
  */
-crypto_status_t hmac_update(const hash_context_t *ctx,
+crypto_status_t hmac_update(const hmac_context_t *ctx,
                             const crypto_uint8_buf_t input_message);
 
 /**
- * Performs the generic HMAC final operation.
+ * Performs the HMAC-SHA2-256 final operation.
  *
  * The final operation computes the hash function on the remaining
  * partial blocks if any, and then computes the final hash, and stores
@@ -897,51 +895,13 @@ crypto_status_t hmac_update(const hash_context_t *ctx,
  * @param digest Output digest after hashing the input blocks
  * @return crypto_status_t The result of the final operation
  */
-crypto_status_t hmac_final(const hash_context_t *ctx,
+crypto_status_t hmac_final(const hmac_context_t *ctx,
                            crypto_uint8_buf_t *digest);
 
 /**
- * Performs the HMAC SHA2-256 init operation.
- *
- * Initializes the HMAC SHA2-256 parameters in the `ctx` context, such
- * as the init, update, final functions to use and respective digest,
- * block sizes.
- *
- * @param ctx Pointer to the generic HMAC context struct
- * @param key Pointer to the blinded HMAC key struct
- * @return crypto_status_t The result of the init operation
+ * DRBG state.
  */
-crypto_status_t hmac_sha256_init(const hash_context_t *ctx,
-                                 const crypto_blinded_key_t *key);
-
-/**
- * Performs the hmac-SHA2-256 update operation.
- *
- * The update operation computes the required hash on `input_meaage`
- * blocks. The intermediate digest is stored in the context `ctx`, in
- * the state parameter. Any partial data is stored back in the context
- * and combined with subsequent bytes after.
- *
- * @param ctx Pointer to the generic HMAC context struct
- * @param input_message Input message to be hashed
- * @return crypto_status_t The result of the update operation
- */
-crypto_status_t hmac_sha256_update(const hash_context_t *ctx,
-                                   const crypto_uint8_buf_t input_message);
-
-/**
- * Performs the hmac-SHA2-256 final operation.
- *
- * The final operation computes the hash function on the remaining
- * partial blocks if any, and then computes the final hash, and stores
- * the result in the `digest` parameter.
- *
- * @param ctx Pointer to the generic HMAC context struct
- * @param digest Output digest after hashing the input blocks
- * @return crypto_status_t The result of the final operation
- */
-crypto_status_t hmac_sha256_final(const hash_context_t *ctx,
-                                  crypto_uint8_buf_t *digest);
+typedef struct drbg_state drbg_state_t;
 
 /**
  * Performs the RSA key generation.
@@ -1192,7 +1152,7 @@ crypto_status_t ed25519_sign(crypto_blinded_key_t *private_key,
  * (Pass/Fail)
  * @return crypto_status_t Return status of the EdDSA verification operation
  */
-crypto_status_t ed25519_verify(edd_public_key_t *public_key,
+crypto_status_t ed25519_verify(ecc_public_key_t *public_key,
                                const crypto_uint8_buf_t input_message,
                                eddsa_sign_mode_t sign_mode,
                                ecc_signature_t *signature,
@@ -1291,14 +1251,9 @@ crypto_status_t ed25519_sign_async(crypto_blinded_key_t *private_key,
  * @return crypto_status_t Return status of the EdDSA verification operation
  */
 crypto_status_t ed25519_verify_async(
-    edd_public_key_t *public_key, const crypto_uint8_buf_t input_message,
+    ecc_public_key_t *public_key, const crypto_uint8_buf_t input_message,
     eddsa_sign_mode_t sign_mode, ecc_signature_t *signature,
     verification_status_t *verification_result);
-
-/**
- * DRBG state.
- */
-typedef struct drbg_state drbg_state_t;
 
 /**
  * Initializes the DRBG.

@@ -49,3 +49,18 @@ otbn_build_depend_files = [
 
 subdir('ecdsa_p256')
 subdir('rsa_3072')
+
+# RSA library.
+sw_lib_crypto_rsa = declare_dependency(
+  link_with: static_library(
+    'sw_lib_crypto_rsa',
+    sources: [
+      'rsa.c',
+    ],
+    dependencies: [
+      sw_lib_crypto_hmac,
+      sw_lib_crypto_otbn,
+      sw_lib_crypto_rsa_3072_verify,
+    ]
+  )
+)

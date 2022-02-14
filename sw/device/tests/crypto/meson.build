@@ -2,6 +2,25 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
+
+# Tests for top-level RSA API
+crypto_rsa_test_lib = declare_dependency(
+  link_with: static_library(
+    'crypto_rsa_test_lib',
+    sources: [
+      'rsa_functest.c',
+      'rsa_3072_verify_testvectors.h'
+    ],
+    dependencies: [
+      sw_lib_crypto_rsa,
+    ],
+  ),
+)
+sw_tests += {
+  'crypto_rsa_test': {
+    'library': crypto_rsa_test_lib,
+  }
+}
 crypto_ecdsa_p256_test_lib = declare_dependency(
   link_with: static_library(
     'crypto_ecdsa_p256_test_lib',

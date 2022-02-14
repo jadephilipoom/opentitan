@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "sw/device/lib/base/macros.h"
 #include "sw/device/lib/crypto/drivers/otbn.h"
 
 #ifdef __cplusplus
@@ -195,6 +196,7 @@ void otbn_init(otbn_t *ctx);
  * @param app The application to load into OTBN.
  * @return The result of the operation.
  */
+OT_WARN_UNUSED_RESULT
 otbn_error_t otbn_load_app(otbn_t *ctx, const otbn_app_t app);
 
 /**
@@ -205,6 +207,7 @@ otbn_error_t otbn_load_app(otbn_t *ctx, const otbn_app_t app);
  * @param ctx The context object.
  * @return The result of the operation.
  */
+OT_WARN_UNUSED_RESULT
 otbn_error_t otbn_execute_app(otbn_t *ctx);
 
 /**
@@ -213,6 +216,7 @@ otbn_error_t otbn_execute_app(otbn_t *ctx);
  * @param ctx The context object.
  * @return The result of the operation.
  */
+OT_WARN_UNUSED_RESULT
 otbn_error_t otbn_busy_wait_for_done(otbn_t *ctx);
 
 /**
@@ -224,6 +228,7 @@ otbn_error_t otbn_busy_wait_for_done(otbn_t *ctx);
  * @param src Source of the data to copy.
  * @return The result of the operation.
  */
+OT_WARN_UNUSED_RESULT
 otbn_error_t otbn_copy_data_to_otbn(otbn_t *ctx, size_t len,
                                     const uint32_t *src, otbn_addr_t dest);
 
@@ -237,6 +242,7 @@ otbn_error_t otbn_copy_data_to_otbn(otbn_t *ctx, size_t len,
  *                  (preallocated).
  * @return The result of the operation.
  */
+OT_WARN_UNUSED_RESULT
 otbn_error_t otbn_copy_data_from_otbn(otbn_t *ctx, size_t len,
                                       const otbn_addr_t src, uint32_t *dest);
 
