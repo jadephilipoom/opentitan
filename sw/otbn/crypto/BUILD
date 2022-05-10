@@ -7,6 +7,23 @@ load("//rules:otbn.bzl", "otbn_binary", "otbn_library", "otbn_sim_test")
 package(default_visibility = ["//visibility:public"])
 
 otbn_library(
+    name = "ed25519_scalar",
+    srcs = [
+        "ed25519_scalar.s",
+    ],
+)
+
+otbn_sim_test(
+    name = "ed25519_scalar_test",
+    srcs = [
+        "ed25519_scalar_test.s",
+    ],
+    deps = [
+        ":ed25519_scalar",
+    ],
+)
+
+otbn_library(
     name = "field25519",
     srcs = [
         "field25519.s",
