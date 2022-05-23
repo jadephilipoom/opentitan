@@ -24,6 +24,17 @@ otbn_binary(
     ],
 )
 
+otbn_sim_test(
+    name = "ed25519_encode_decode_test",
+    srcs = [
+        "ed25519_encode_decode_test.s",
+    ],
+    deps = [
+        ":ed25519",
+        ":field25519",
+    ],
+)
+
 otbn_library(
     name = "ed25519_scalar",
     srcs = [
