@@ -532,14 +532,14 @@ affine_decode_var:
  * Flags: Flags have no meaning beyond the scope of this subroutine.
  *
  * @param[in]   w5: a, scalar input, a < L
- * @param[in]  w19: constant, w19 = 19
- * @param[in]  w30: constant, w30 = (2*d) mod p, d = (-121665/121666) mod p
- * @param[in]  w31: all-zero
- * @param[in]  MOD: p, modulus = 2^255 - 19
  * @param[in]   w6: input X1 (X1 < p)
  * @param[in]   w7: input Y1 (Y1 < p)
  * @param[in]   w8: input Z1 (Z1 < p)
  * @param[in]   w9: input T1 (T1 < p)
+ * @param[in]  w19: constant, w19 = 19
+ * @param[in]  w30: constant, w30 = (2*d) mod p, d = (-121665/121666) mod p
+ * @param[in]  w31: all-zero
+ * @param[in]  MOD: p, modulus = 2^255 - 19
  * @param[out] w10: output X2
  * @param[out] w11: output Y2
  * @param[out] w12: output Z2
@@ -693,7 +693,7 @@ ext_add:
   /* w24 <= w22 = A */
   bn.mov   w24, w22
 
-  /* Compute B = (Y1 + X1) * (Y2  - X2). */
+  /* Compute B = (Y1 + X1) * (Y2 + X2). */
 
   /* w22 <= Y1 + X1 */
   bn.addm  w22, w11, w10
@@ -728,7 +728,7 @@ ext_add:
   /* w22 <= w22 * w23 = Z1*2 */
   jal      x1, fe_mul
   /* w23 <= w16 = Z2 */
-  bn.mov   w22, w16
+  bn.mov   w23, w16
   /* w22 <= w22 * w23 = D */
   jal      x1, fe_mul
   /* w27 <= w22 = D */

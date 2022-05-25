@@ -22,10 +22,11 @@
  *
  * This routine runs in constant time.
  *
+ * @param[in]  w31: all-zero
  * @param[out] [w15:w14]: mu = floor(2^512 / L) (precomputed constant)
  * @param[out] MOD: L, modulus
  *
- * clobbered registers: w14, w15, MOD
+ * clobbered registers: x2, x3, w14, w15, MOD
  * clobbered flag groups: FG0
  */
 .globl sc_init

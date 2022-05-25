@@ -13,7 +13,7 @@ otbn_library(
     ],
 )
 
-otbn_binary(
+otbn_sim_test(
     name = "ed25519_ext_add_test",
     srcs = [
         "ed25519_ext_add_test.s",

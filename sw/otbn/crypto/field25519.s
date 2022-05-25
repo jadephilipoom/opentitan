@@ -8,6 +8,33 @@
  * signature scheme.
  */
 
+/**
+ * Load constants for the field modulo p.
+ *
+ * This routine should run before any other operations in this field are used,
+ * and again if its output is subsequently overwritten.
+ *
+ * This routine runs in constant time.
+ *
+ * @param[in]  w31: all-zero
+ * @param[out] w19: 19, constant
+ * @param[out] MOD: p=2^255-19, modulus
+ *
+ * clobbered registers: x2, x3, w19, MOD
+ * clobbered flag groups: FG0
+ */
+.globl fe_init
+fe_init:
+  /* Load modulus p into the MOD register. */
+  li      x2, 19
+  la      x3, field25519_p
+  bn.lid  x2, 0(x3)
+  bn.wsrw 0x0, w19
+
+  /* Load the constant 19. */
+  bn.addi w19, w31, 19
+
+  ret
 
 /**
  * Fully reduce a 510-bit number modulo p.
@@ -352,3 +379,17 @@ fe_inv:
   jal     x1, fe_mul
 
   ret
+
+.data
+
+/* Modulus p = 2^255 - 19. */
+.balign 32
+field25519_p:
+  .word 0xffffffed
+  .word 0xffffffff
+  .word 0xffffffff
+  .word 0xffffffff
+  .word 0xffffffff
+  .word 0xffffffff
+  .word 0xffffffff
+  .word 0x7fffffff
