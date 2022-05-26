@@ -37,6 +37,7 @@ main:
 
   /* Run tests. */
   jal     x1, run_encode_decode_test
+  jal     x1, run_rfc_decode_test
 
   ecall
 
@@ -80,7 +81,7 @@ run_encode_decode_test:
   li      x2, 0xf77fe650
 
   /* If decoding did not succeed, increment the failure counter and finish. */
-  bne     x20, x2, decode_failed
+  bne     x20, x2, encode_decode_failed
 
   /* Check if the result is equivalent to P.
        w4 <= 1 if [w11:w10] equivalent to P else 0 */
@@ -98,11 +99,73 @@ run_encode_decode_test:
 
   ret
 
-  decode_failed:
+  encode_decode_failed:
   /* Increment failure counter and return. */
   bn.addi  w0, w0, 1
   ret
 
+/**
+ * Decode the public key point from RFC 8032, section 7.1, test 1.
+ *
+ * Increment failure counter if the test fails.
+ *
+ * @param[in]     w19: constant, w19 = 19
+ * @param[in]     MOD: p, modulus = 2^255 - 19
+ * @param[in]     w30: constant, w30 = (2*d) mod p, d = (-121665/121666) mod p
+ * @param[in]     w31: all-zero
+ * @param[in,out] w0:  test failure counter
+ *
+ * clobbered registers: w4 to w6, w10 to w18, w20 to w23, w24 to w27
+ * clobbered flag groups: FG0
+ */
+run_rfc_decode_test:
+  /* Load encoded point.
+       w11 <= dmem[test1_A_enc] */
+  li      x2, 11
+  la      x3, test1_A_enc
+  bn.lid  x2, 0(x3)
+
+  /* Call affine_decode.
+       [w10,w11] <= decode(encode(P))
+       x20 <= SUCCESS or FAILURE */
+  jal     x1, affine_decode_var
+
+  /* Load the SUCCESS magic value. */
+  li      x2, 0xf77fe650
+
+  /* If decoding did not succeed, increment the failure counter and finish. */
+  bne     x20, x2, rfc_decode_failed
+
+  /* Load the expected decoded value.*/
+
+  /* w8 <= dmem[test1_Ax] */
+  li      x2, 8
+  la      x3, test1_Ax
+  bn.lid  x2++, 0(x3)
+  /* w9 <= dmem[test1_Ay] */
+  la      x3, test1_Ay
+  bn.lid  x2, 0(x3)
+
+  /* Check if the resulting point is correct.
+       w4 <= 1 if [w11:w10] equivalent to [w9:w8] else 0 */
+  jal     x1, affine_equal
+
+  /* Invert the single-bit result of the check.
+     w4 <= (~w4) & 1 = 0 if w4 else 1 */
+  bn.not  w4, w4
+  bn.addi w5, w31, 1
+  bn.and  w4, w4, w5
+
+  /* Increment failure counter if the test failed.
+     w0 <= w0 + w4 */
+  bn.add  w0, w0, w4
+
+  ret
+
+  rfc_decode_failed:
+  /* Increment failure counter and return. */
+  bn.addi  w0, w0, 1
+  ret
 
 /**
  * Check if two points in affine coordinates are equal.
@@ -191,3 +254,36 @@ p_y:
   .word 0x35358712
   .word 0xe23a98a7
   .word 0x111d76fb
+
+/* Encoded public key from RFC 8032, section 7.1, test 1. */
+test1_A_enc:
+  .word 0x01985ad7
+  .word 0xb70ab182
+  .word 0xd3fe4bd5
+  .word 0x3a0764c9
+  .word 0xf372e10e
+  .word 0x2523a6da
+  .word 0x681a02af
+  .word 0x1a5107f7
+
+/* Expected decoded y coordinate from test1_A_enc. */
+test1_Ay:
+  .word 0x01985ad7
+  .word 0xb70ab182
+  .word 0xd3fe4bd5
+  .word 0x3a0764c9
+  .word 0xf372e10e
+  .word 0x2523a6da
+  .word 0x681a02af
+  .word 0x1a5107f7
+
+/* Expected recovered x coordinate from test1_A_enc. */
+test1_Ax:
+  .word 0x777645ce
+  .word 0xb12786bd
+  .word 0x53187c24
+  .word 0xc513d472
+  .word 0x60d0f620
+  .word 0x2297e08d
+  .word 0x2b9d3429
+  .word 0x55d0e09a

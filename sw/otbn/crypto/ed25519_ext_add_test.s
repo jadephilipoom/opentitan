@@ -112,8 +112,8 @@ run_ext_add_test:
  */
 run_ext_scmul_zero_test:
   /* Initialize scalar input to 0.
-       w5 <= 0 */
-  bn.mov   w5, w31
+       w28 <= 0 */
+  bn.mov   w28, w31
 
   /* Load test point P into registers w6 to w9. */
 
@@ -176,8 +176,8 @@ run_ext_scmul_zero_test:
  */
 run_ext_scmul_order_test:
   /* Load the scalar value L - 1.
-       w5 <= dmem[L_minus1] = L - 1 */
-  li       x2, 5
+       w28 <= dmem[L_minus1] = L - 1 */
+  li       x2, 28
   la       x3, L_minus1
   bn.lid   x2, 0(x3)
 
@@ -198,7 +198,7 @@ run_ext_scmul_order_test:
   bn.lid   x2++, 0(x3)
 
   /* Call ext_scmul.
-       [w13:w10] <= w5 * [w9:w6] = (L - 1) * P */
+       [w13:w10] <= w28 * [w9:w6] = (L - 1) * P */
   jal      x1, ext_scmul
 
   /* Copy test point P into registers w14 to w17. */

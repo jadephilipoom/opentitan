@@ -40,7 +40,7 @@ sc_init:
   /* Load lower half of precomputed constant mu (260 bits).
        w14 <= mu mod 2^256 */
   la      x3, ed25519_scalar_mu_low
-  bn.lid  x2, 0(x3++)
+  bn.lid  x2, 0(x3)
 
   /* Higher half of mu is very small (15), so we can simply use addi here.
        w15 <= 15 = mu >> 256 */

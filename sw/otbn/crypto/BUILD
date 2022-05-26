@@ -20,6 +20,7 @@ otbn_sim_test(
     ],
     deps = [
         ":ed25519",
+        ":ed25519_scalar",
         ":field25519",
     ],
 )
@@ -31,6 +32,19 @@ otbn_sim_test(
     ],
     deps = [
         ":ed25519",
+        ":ed25519_scalar",
+        ":field25519",
+    ],
+)
+
+otbn_sim_test(
+    name = "ed25519_verify_test",
+    srcs = [
+        "ed25519_verify_test.s",
+    ],
+    deps = [
+        ":ed25519",
+        ":ed25519_scalar",
         ":field25519",
     ],
 )
