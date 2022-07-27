@@ -153,41 +153,66 @@ otp_image = rule(
     },
 )
 
-def _cryptotest_header(ctx):
+def _cryptotest_hjson_external(ctx):
     '''
-    Implementation of the Bazel rule for generating crypto test vectors.
+    Implementation of the Bazel rule for parsing externally-sourced test vectors.
 
-    Test vectors can come in three sources:
-      1. Hard-coded HJSON files
-      2. Random test generation scripts
-      3. External data sources (e.g. wycheproof)
+    Crypto test vectors are represented in a standard HJSON format; for
+    externally-sourced vectors, we need to parse the original data into that
+    format. 
 
-    In cases (2) and (3), we need to do an initial preprocessing step in order
-    to get the standard HJSON format of test vectors (to generate the random
-    tests and to parse the external data, respectively). In all cases, we then
-    run an algorithm-specific script to translate the HJSON file into a C
-    header based on a template.
-
-    Case (1) requires the source HJSON file to be listed in `srcs` as the only
-    .hjson source.
-
-    Case (2) requires the test-generation script to be included as the `parser`
-    attribute.
-
-    Case (3) requires a data-parsing script to be included as the `parser`
-    attribute and the external data source to be included as the
-    `parser_input`.
-
-    Assumes test-parsing scripts (which translate externally-sourced test
-    vectors into HJSON) accept the following syntax:
-      <script> --template <header template> <input file> dst.hjson
+    This rule expects an executable script (the `parser` attribute) and an
+    external data file to pass to this script. It assumes that the parser
+    accepts the following syntax:
+      <script> <input file> dst.hjson
 
     ...where <input file> is the unparsed test data and dst.hjson is the HJSON
     file to which the script writes the test vectors.
+    '''
 
-    ALL CASES must have the script to translate from HJSON to header file
-    included as `test_setter`, and the header template included in `srcs` as
-    the only file with a `.tpl` extension.
+    hjson = ctx.actions.declare_file(ctx.attr.name + ".hjson")
+    infiles = [f for f in ctx.files.deps if f.basename == ctx.attr.parser_input]
+    if len(infiles) != 1:
+      fail("Expected 1 dependency file to match `parser_input`, got: " + str(infiles))
+    parser_input = infiles[0]
+    ctx.actions.run(
+        outputs = [hjson],
+        inputs = ctx.files.srcs + ctx.files.deps + [ctx.executable.parser, parser_input],
+        arguments = [parser_input.path, hjson.path],
+        executable = ctx.executable.parser,
+    )
+
+    return [
+        DefaultInfo(files = depset([hjson])),
+        OutputGroupInfo(
+            hjson = depset([hjson]),
+        ),
+    ]
+
+autogen_cryptotest_hjson_external = rule(
+    implementation = _cryptotest_hjson_external,
+    attrs = {
+        "srcs": attr.label_list(allow_files = True),
+        "deps": attr.label_list(allow_files = True),
+        "parser": attr.label(
+            executable = True,
+            cfg = "exec",
+        ),
+        "parser_input": attr.string(),
+    },
+)
+
+def _cryptotest_header(ctx):
+    '''
+    Implementation of the Bazel rule for generating crypto test vector headers.
+
+    Crypto tests are all represented in a standard HJSON format. This rule runs
+    an algorithm-specific script (provided by the `test_setter` attribute) that
+    reads the HJSON and populates a header template (provided as the `template`
+    attribute).
+
+    The HJSON file should be included in `deps` as the only `.hjson` file in
+    the depset.
 
     Assumes that `test_setter` scripts accept the following syntax:
       <script> tests.hjson dst.h
@@ -195,81 +220,45 @@ def _cryptotest_header(ctx):
     ...where tests.hjson is the file containing the HJSON test vectors and
     dst.h is the header file to which the output will be written.
     '''
+    template = ctx.file.template
+    if not template.basename.endswith(".h.tpl"):
+      fail("Expected file in srcs to have a `.h.tpl` extension, got: " + str(ctx.files.srcs))
+    header = ctx.actions.declare_file(template.basename[:-4])
 
-    # Create HJSON file for test vectors (in the hardcoded case, it will already exist)
-    if ctx.attr.testset == 'random':
-      hjson = ctx.actions.declare_file(ctx.attr.algorithm + "_" + ctx.attr.testset + ".hjson")
-      ctx.actions.run(
-          outputs = [hjson],
-          inputs = ctx.files.srcs + ctx.files.deps + [ctx.executable.parser, ctx.file.template],
-          arguments = ['20', hjson.path],
-          executable = ctx.executable.parser,
-      )
-    elif ctx.attr.testset == 'wycheproof':
-      hjson = ctx.actions.declare_file(ctx.attr.algorithm + "_" + ctx.attr.testset + ".hjson")
-      infiles = [f for f in ctx.files.data if f.basename == ctx.attr.parser_input]
-      if len(infiles) != 1:
-        fail("Expected 1 dependency file to match `parser_input`, got: " + str(infiles))
-      parser_input = infiles[0]
-      ctx.actions.run(
-          outputs = [hjson],
-          inputs = ctx.files.srcs + ctx.files.deps + [ctx.executable.parser, ctx.file.template, parser_input],
-          arguments = ["--template",
-                       ctx.file.template.path,
-                       parser_input.path,
-                       hjson.path],
-          executable = ctx.executable.parser,
-      )
-    elif ctx.attr.testset == 'hardcoded':
-      hjsonfiles = [f for f in ctx.files.srcs if f.extension == "hjson"]
-      if len(hjsonfiles) != 1:
-        fail("For hardcoded test vectors, the cryptotest rule expects a single source HJSON file. Instead, got " + str([f.path for f in ctx.files.srcs]))
-      hjson = hjsonfiles[0]
-    else:
-      fail("Unrecognized test set: " + ctx.attr.testset + " Options are: random, wycheproof, hardcoded")
+    hjson = [f for f in ctx.files.deps if f.extension == "hjson"]
+    if len(hjson) != 1:
+      fail("Expected 1 HJSON file in dependencies, got: " + str(ctx.files.deps))
+    hjson = hjson[0]
 
-    header = ctx.actions.declare_file(ctx.attr.algorithm + "_testvectors.h")
-
+    template_path = ctx.bin_dir.path + "/" + template.path
     ctx.actions.run(
         outputs = [header],
-        inputs = ctx.files.srcs + ctx.files.deps + [ctx.executable.test_setter, hjson],
-        arguments = [hjson.path, header.path],
+        inputs = ctx.files.deps + [ctx.executable.test_setter, template],
+        arguments = ["--template", template.path, hjson.path, header.path],
         executable = ctx.executable.test_setter,
     )
 
-    outs = [header] if ctx.attr.testset == 'hardcoded' else [header, hjson]
     return [
         CcInfo(compilation_context = cc_common.create_compilation_context(
             includes = depset([header.dirname]),
             headers = depset([header]),
         )),
-        DefaultInfo(files = depset(outs)),
+        DefaultInfo(files = depset([header])),
         OutputGroupInfo(
             header = depset([header]),
-            hjson = depset([hjson]),
         ),
     ]
 
 autogen_cryptotest_header = rule(
     implementation = _cryptotest_header,
     attrs = {
-        "srcs": attr.label_list(allow_files = True),
+        "template": attr.label(mandatory = True, allow_single_file = [".tpl"]),
         "deps": attr.label_list(allow_files = True),
-        "data": attr.label_list(allow_files = True),
-        "testset": attr.string(default='hardcoded', values=['hardcoded','random','wycheproof']),
-        "algorithm": attr.string(),
-        "template" : attr.label(
-            allow_single_file = [".tpl"],
-            mandatory = True),
         "test_setter": attr.label(
+            allow_single_file = True,
             executable = True,
             mandatory = True,
             cfg = "exec",
         ),
-        "parser": attr.label(
-            executable = True,
-            cfg = "exec",
-        ),
-        "parser_input": attr.string(),
     },
 )
