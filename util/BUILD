@@ -58,6 +58,11 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "select_crypto_testset",
+    srcs = ["select_crypto_testset.py"],
+)
+
 py_test(
     name = "generate_compilation_db_test",
     srcs = [

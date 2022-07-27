@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 load("//rules:opentitan_test.bzl", "opentitan_functest", "verilator_params")
+load("//rules:autogen.bzl", "autogen_cryptotest_header")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -45,9 +46,23 @@ opentitan_functest(
     ],
 )
 
-cc_library(
-    name = "rsa_3072_verify_testvectors",
-    hdrs = ["rsa_3072_verify_testvectors.h"],
+py_binary(
+    name = "rsa_3072_verify_set_testvectors",
+    srcs = ["rsa_3072_verify_set_testvectors.py"],
+)
+
+
+autogen_cryptotest_header(
+    name = "rsa_3072_verify_testvectors_wycheproof",
+    testset ="wycheproof",
+    algorithm = "rsa_3072_verify",
+    template = "rsa_3072_verify_testvectors.h.tpl",
+    data = [
+        "//sw/vendor/wycheproof/testvectors:rsa_signature",
+    ],
+    parser = "//sw/device/tests/crypto/testvectors/wycheproof:rsa_3072_verify_parse_testvectors",
+    parser_input = "rsa_signature_3072_sha256_test.json",
+    test_setter = ":rsa_3072_verify_set_testvectors",
 )
 
 opentitan_functest(
@@ -57,7 +72,7 @@ opentitan_functest(
         timeout = "long",
     ),
     deps = [
-        ":rsa_3072_verify_testvectors",
+        ":rsa_3072_verify_testvectors_wycheproof",
         "//sw/device/lib/crypto:otbn_util",
         "//sw/device/lib/crypto/drivers:hmac",
         "//sw/device/lib/crypto/drivers:otbn",
