@@ -8,7 +8,21 @@
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
-#include "sw/device/tests/crypto/rsa_3072_verify_testvectors.h"
+
+// TODO(jadep): Understand why you can use this as a bare include.  Delete or
+// rearrange this comment when you understand :)
+//
+// Since the autogen rule places the generated file `rsa_3072_verify_testvectors.h` in
+// its own subdirectory (subdir named after the rule name) and manipulates the include
+// path in the cc_compilation_context to include that directory, the compiler will find
+// this file.
+//
+// There is an assumtion: that you do not need to generate multiple `*_testvectors.h`
+// for a single test.  That seemed like an obvious assumption to me based on the
+// structure of the rules: each test uses the same `.c` file to define the test
+// itself, but includes separate instances of the `.h` files to define exactly what
+// the test will be doing.
+#include "rsa_3072_verify_testvectors.h"
 
 bool rsa_3072_verify_test(const rsa_3072_verify_test_vector_t *testvec) {
   // Encode message
@@ -51,6 +65,13 @@ bool test_main(void) {
   // Stays true only if all tests pass.
   bool result = true;
 
+  // TODO(jadep): more hints:
+  // The definition of `RULE_NAME` also comes from the autogen rule.  Similarly
+  // to manipulating the include path, we also manipulate the defines which
+  // are then available to dependent rules.  You don't really _need_ (nor the
+  // `defines=<stuff>` in the rule definition), but I thought it might be
+  // helpful to make it obvious in the test output exactly what was executing.
+  LOG_INFO("Starting rsa_3072_verify_test:%s", RULE_NAME);
   for (uint32_t i = 0; i < RSA_3072_VERIFY_NUM_TESTS; i++) {
     LOG_INFO("Starting rsa_3072_verify_test on test vector %d of %d...", i + 1,
              RSA_3072_VERIFY_NUM_TESTS);
@@ -73,6 +94,7 @@ bool test_main(void) {
     }
     result &= local_result;
   }
+  LOG_INFO("Finished rsa_3072_verify_test:%s", RULE_NAME);
 
   return result;
 }

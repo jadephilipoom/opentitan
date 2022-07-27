@@ -223,7 +223,7 @@ def _cryptotest_header(ctx):
     template = ctx.file.template
     if not template.basename.endswith(".h.tpl"):
       fail("Expected file in srcs to have a `.h.tpl` extension, got: " + str(ctx.files.srcs))
-    header = ctx.actions.declare_file(template.basename[:-4])
+    header = ctx.actions.declare_file("{}/{}".format(ctx.label.name, template.basename[:-4]))
 
     hjson = [f for f in ctx.files.deps if f.extension == "hjson"]
     if len(hjson) != 1:
@@ -242,6 +242,7 @@ def _cryptotest_header(ctx):
         CcInfo(compilation_context = cc_common.create_compilation_context(
             includes = depset([header.dirname]),
             headers = depset([header]),
+            defines = depset(["RULE_NAME=\"{}\"".format(ctx.label.name)]),
         )),
         DefaultInfo(files = depset([header])),
         OutputGroupInfo(
