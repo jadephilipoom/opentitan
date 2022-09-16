@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-load("//rules:otbn.bzl", "otbn_binary")
+load("//rules:otbn.bzl", "otbn_library", "otbn_binary")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -59,5 +59,22 @@ otbn_binary(
     name = "randomness",
     srcs = [
         "randomness.s",
+    ],
+)
+
+otbn_library(
+    name = "calc_montgomery_consts",
+    srcs = [
+        "calc_montgomery_consts.s",
+    ],
+)
+
+otbn_binary(
+    name = "calc_montgomery_consts_test",
+    srcs = [
+        "calc_montgomery_consts_test.s",
+    ],
+    deps = [
+        ":calc_montgomery_consts"
     ],
 )
