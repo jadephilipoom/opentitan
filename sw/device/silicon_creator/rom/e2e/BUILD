@@ -52,6 +52,8 @@ MSG_MANIFEST_BAD_ENTRY_POINT = _BFV_TEMPLATE.format("014d410d")
 
 MSG_MANIFEST_BAD_CODE_REGION = _BFV_TEMPLATE.format("024d410d")
 
+MSG_ROM_BOOT_FAILED = _BFV_TEMPLATE.format("014d5209")
+
 SLOTS = {
     "a": "0x0",
     "b": "0x80000",
@@ -167,6 +169,40 @@ opentitan_functest(
         "//sw/device/lib/testing:keymgr_testutils",
         "//sw/device/lib/testing:otp_ctrl_testutils",
         "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
+opentitan_functest(
+    name = "rom_e2e_c_init",
+    srcs = ["rom_e2e_c_init_test.c"],
+    signed = True,
+    targets = [
+        "dv",
+        "cw310_rom",
+        "verilator",
+    ],
+    cw310 = cw310_params(
+        exit_failure = MSG_INSTRUCTION_ACCESS_FAULT,
+        exit_success = MSG_ROM_BOOT_FAILED,
+    ),
+    dv = dv_params(
+        rom = "//sw/device/silicon_creator/rom",
+    ),
+    verilator = verilator_params(
+        timeout = "eternal",
+        exit_failure = MSG_INSTRUCTION_ACCESS_FAULT,
+        exit_success = MSG_ROM_BOOT_FAILED,
+        rom = "//sw/device/silicon_creator/rom",
+    ),
+    deps = [
+      "//hw/top_earlgrey/ip/pinmux/data/autogen:pinmux_regs",
+      "//hw/ip/uart/data:uart_regs",
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/silicon_creator/lib:manifest_def",
+        "//sw/device/silicon_creator/lib/base:static_critical_boot_measurements",
+        "//sw/device/silicon_creator/lib/base:static_critical_epmp_state",
+        "//sw/device/silicon_creator/lib/base:static_critical_sec_mmio",
+        "//sw/device/silicon_creator/lib/drivers:otp",
     ],
 )
 
