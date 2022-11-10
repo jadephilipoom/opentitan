@@ -1,5 +1,6 @@
 #define str(s) #s
 #define xstr(s) str(s)
 
-#include xstr(params/params-PARAMS.h)
+// TODO: come up with some way to reinstate the PARAMS env variable here.
+#include xstr(params/params-sphincs-shake-128f.h)
 

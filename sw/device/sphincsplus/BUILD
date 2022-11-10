@@ -1,3 +1,9 @@
+# Copyright lowRISC contributors.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+package(default_visibility = ["//visibility:public"])
+
 load("//rules:opentitan.bzl", "OPENTITAN_CPU")
 load(
     "//rules:opentitan_test.bzl",
@@ -13,6 +19,7 @@ opentitan_functest(
     ),
     deps = [
         ":api",
+        ":test_params",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/base:mmio",
         "//sw/device/lib/runtime:log",
@@ -57,8 +64,6 @@ cc_library(
     name = "fips202",
     srcs = ["fips202.c"],
     hdrs = ["fips202.h"],
-    deps = [
-    ],
 )
 
 cc_library(
@@ -103,7 +108,11 @@ cc_library(
 cc_library(
     name = "params",
     srcs = [],
-    hdrs = ["params.h"],
+    hdrs = ["params.h",
+      ":shake_offsets.h",
+      "//sw/device/sphincsplus/params:params-sphincs-shake-128f.h",
+    ],
+
 )
 
 cc_library(
@@ -146,6 +155,9 @@ cc_library(
     name = "utils",
     srcs = ["utils.c"],
     hdrs = ["utils.h"],
+    deps = [
+      ":context",
+    ]
 )
 
 cc_library(
@@ -165,6 +177,7 @@ cc_library(
     srcs = ["utilsx1.c"],
     hdrs = ["utilsx1.h"],
     deps = [
+      ":context",
       ":params",
       ":thash",
       ":address",
@@ -177,6 +190,7 @@ cc_library(
     srcs = ["wots.c"],
     hdrs = ["wots.h"],
     deps = [
+      ":context",
       ":params",
       ":hash",
       ":thash",

@@ -5,6 +5,7 @@ This code was taken from the SPHINCS reference implementation and is public doma
 #include "randombytes.h"
 
 #include "sw/device/lib/base/hardened.h"
+#include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
 
 void randombytes(unsigned char *x, unsigned long xlen)

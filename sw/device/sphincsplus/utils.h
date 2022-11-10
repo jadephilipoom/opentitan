@@ -31,3 +31,5 @@ void u32_to_bytes(unsigned char *out, uint32_t in);
  */
 #define bytes_to_ull SPX_NAMESPACE(bytes_to_ull)
 unsigned long long bytes_to_ull(const unsigned char *in, unsigned int inlen);
+
+#endif
