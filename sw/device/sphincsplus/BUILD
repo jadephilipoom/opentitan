@@ -80,7 +80,6 @@ cc_library(
     hdrs = ["hash.h"],
     deps = [
       ":params",
-      ":hash",
       ":address",
       ":utils",
       ":fips202",
@@ -139,16 +138,20 @@ cc_library(
     deps = [
       ":params",
       ":address",
-      ":utils",
       ":fips202",
     ],
 )
-
 
 cc_library(
     name = "utils",
     srcs = ["utils.c"],
     hdrs = ["utils.h"],
+)
+
+cc_library(
+    name = "utils2",
+    srcs = ["utils2.c"],
+    hdrs = ["utils2.h"],
     deps = [
       ":params",
       ":hash",
@@ -190,7 +193,6 @@ cc_library(
     hdrs = ["wotsx1.h"],
     deps = [
       ":params",
-      ":wots",
       ":hash",
       ":thash",
       ":address",

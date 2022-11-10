@@ -4,7 +4,6 @@
 #include "utils.h"
 #include "hash.h"
 #include "thash.h"
-#include "wots.h"
 #include "wotsx1.h"
 #include "address.h"
 #include "params.h"
