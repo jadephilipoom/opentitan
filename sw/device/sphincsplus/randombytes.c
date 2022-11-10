@@ -6,6 +6,7 @@ This code was taken from the SPHINCS reference implementation and is public doma
 
 #include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/base/memory.h"
+#include "sw/device/lib/runtime/hart.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
 
 void randombytes(unsigned char *x, unsigned long xlen)
@@ -15,10 +16,10 @@ void randombytes(unsigned char *x, unsigned long xlen)
   entropy_seed_material_t empty_seed = {
     .len = 0,
     .data = {0},
-  }
+  };
 
   // If x is not word-aligned, write random bytes until it is.
-  size_t offset = x % sizeof(uint32_t);
+  size_t offset = misalignment32_of((uintptr_t)x);
   if (offset != 0) {
     uint32_t rnd_data;
     // Note: CSRNG must be initialized before now.

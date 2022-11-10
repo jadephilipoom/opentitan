@@ -1,6 +1,5 @@
-#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
-#include <stdlib.h>
 
 #include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/status.h"
@@ -16,9 +15,8 @@
 
 OTTF_DEFINE_TEST_CONFIG();
 
-bool test_main()
-{
-  unsigned uint8_t mout[SPX_SMLEN];
+bool test_main() {
+  unsigned char mout[SPX_SMLEN];
   unsigned long long mlen;
   bool ret = 0;
 
@@ -26,7 +24,7 @@ bool test_main()
   entropy_seed_material_t empty_seed = {
     .len = 0,
     .data = {0},
-  }
+  };
   status_t status = entropy_csrng_instantiate(kHardenedBoolFalse,
       &empty_seed);
   CHECK(status_ok(status));

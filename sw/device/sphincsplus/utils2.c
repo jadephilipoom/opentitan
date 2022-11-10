@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "sw/device/lib/base/memory.h"
+#include "utils.h"
 #include "params.h"
 #include "hash.h"
 #include "thash.h"

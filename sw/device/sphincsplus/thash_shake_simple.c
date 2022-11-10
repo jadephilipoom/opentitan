@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "utils.h"
 #include "thash.h"
 #include "address.h"
 #include "params.h"

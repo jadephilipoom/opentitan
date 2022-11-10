@@ -14,20 +14,25 @@ load(
 opentitan_functest(
     name = "verify_test",
     srcs = ["verify.c"],
+    targets = ["verilator", "cw310_test_rom"],
     verilator = verilator_params(
         timeout = "eternal",
     ),
     deps = [
         ":api",
+        ":message_keys",
         ":test_params",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/base:mmio",
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing/test_framework:ottf_main",
     ],
-    data = [
-      "message_keys.inc",
-    ],
+)
+
+cc_library(
+    name = "message_keys",
+    srcs = [],
+    hdrs = ["message_keys.inc"],
 )
 
 cc_library(
@@ -127,6 +132,7 @@ cc_library(
     deps = [
       "//sw/device/lib/base:hardened",
       "//sw/device/lib/base:memory",
+      "//sw/device/lib/runtime:hart",
       "//sw/device/lib/crypto/drivers:entropy",
     ],
 )
@@ -153,6 +159,7 @@ cc_library(
       ":params",
       ":address",
       ":fips202",
+      ":utils",
     ],
 )
 
@@ -171,6 +178,7 @@ cc_library(
     hdrs = ["utils2.h"],
     deps = [
       "//sw/device/lib/base:memory",
+      ":utils",
       ":params",
       ":hash",
       ":thash",
