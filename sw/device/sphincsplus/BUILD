@@ -25,6 +25,9 @@ opentitan_functest(
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing/test_framework:ottf_main",
     ],
+    data = [
+      "message_keys.inc",
+    ],
 )
 
 cc_library(
@@ -50,6 +53,7 @@ cc_library(
       ":address",
       ":randombytes",
       ":utils",
+      ":utils2",
       ":merkle",
     ],
 )
@@ -75,6 +79,7 @@ cc_library(
       ":thash",
       ":address",
       ":utils",
+      ":utils2",
       ":utilsx1",
     ],
 )
@@ -165,6 +170,7 @@ cc_library(
     srcs = ["utils2.c"],
     hdrs = ["utils2.h"],
     deps = [
+      "//sw/device/lib/base:memory",
       ":params",
       ":hash",
       ":thash",

@@ -11,6 +11,7 @@
 #include "address.h"
 #include "randombytes.h"
 #include "utils.h"
+#include "utils2.h"
 #include "merkle.h"
 
 /*
