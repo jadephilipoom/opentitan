@@ -82,12 +82,14 @@ static void shake256_inc_squeeze_once_aligned(uint8_t *output, size_t outlen, sh
   if (outlen_words > 0) {
     shake256_inc_squeezeblocks((uint32_t *)output, outlen_words, s_inc);
     outlen -= outlen_words * sizeof(uint32_t);
+    output += outlen_words * sizeof(uint32_t);
   }
 
   // Squeeze remaining bytes (if any).
   if (outlen > 0) {
       uint32_t buf;
       shake256_inc_squeezeblocks(&buf, 1, s_inc);
+      LOG_INFO("Last word: 0x%08x", buf);
       memcpy(output, &buf, outlen);
   }
 
@@ -100,9 +102,11 @@ static void shake256_inc_squeeze_once_aligned(uint8_t *output, size_t outlen, sh
 
 void shake256_inc_squeeze_once(uint8_t *output, size_t outlen, shake256_inc_state_t *s_inc) {
   if (misalignment32_of((uintptr_t) output) == 0) {
+    LOG_INFO("Output is aligned.");
     // Output buffer is aligned; use it directly. 
     shake256_inc_squeeze_once_aligned(output, outlen, s_inc);
   } else {
+    LOG_INFO("Output is NOT aligned.");
     // Output buffer is misaligned; write to an aligned buffer and later copy.
     size_t outlen_words = outlen / sizeof(uint32_t);
     if (outlen % sizeof(uint32_t) != 0) {

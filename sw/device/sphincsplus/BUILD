@@ -29,6 +29,19 @@ opentitan_functest(
     ],
 )
 
+opentitan_functest(
+    name = "shake_test",
+    srcs = ["shake_test.c"],
+    verilator = verilator_params(
+        timeout = "long",
+    ),
+    deps = [
+        ":fips202",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
 cc_library(
     name = "message_keys",
     srcs = [],
