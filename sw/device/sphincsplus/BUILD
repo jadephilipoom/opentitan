@@ -14,7 +14,6 @@ load(
 opentitan_functest(
     name = "verify_test",
     srcs = ["verify.c"],
-    targets = ["verilator", "cw310_test_rom"],
     verilator = verilator_params(
         timeout = "eternal",
     ),
@@ -26,6 +25,7 @@ opentitan_functest(
         "//sw/device/lib/base:mmio",
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/lib/testing:entropy_testutils",
     ],
 )
 
@@ -60,6 +60,7 @@ cc_library(
       ":utils",
       ":utils2",
       ":merkle",
+      "//sw/device/lib/runtime:log", # TODO: remove
     ],
 )
 
