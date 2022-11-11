@@ -67,8 +67,8 @@ void hash_message(unsigned char *digest, uint64_t *tree, uint32_t *leaf_idx,
 #define SPX_LEAF_BYTES ((SPX_LEAF_BITS + 7) / 8)
 #define SPX_DGST_BYTES (SPX_FORS_MSG_BYTES + SPX_TREE_BYTES + SPX_LEAF_BYTES)
 
-    unsigned char buf[SPX_DGST_BYTES];
-    unsigned char *bufp = buf;
+    uint32_t buf[SPX_DGST_BYTES / sizeof(uint32_t)];
+    unsigned char *bufp = (unsigned char *)buf;
     shake256_inc_state_t s_inc;
 
     shake256_inc_init(&s_inc);
@@ -77,7 +77,7 @@ void hash_message(unsigned char *digest, uint64_t *tree, uint32_t *leaf_idx,
     shake256_inc_absorb(&s_inc, m, mlen);
     // KMAC hardware will automatically finalize once we start squeezing.
     // shake256_inc_finalize(&s_inc);
-    shake256_inc_squeeze_once(buf, SPX_DGST_BYTES, &s_inc);
+    shake256_inc_squeeze_once((unsigned char *)buf, SPX_DGST_BYTES, &s_inc);
 
     memcpy(digest, bufp, SPX_FORS_MSG_BYTES);
     bufp += SPX_FORS_MSG_BYTES;
