@@ -56,9 +56,23 @@ void shake256_inc_absorb(shake256_inc_state_t *s_inc, const uint8_t *input, size
       "shake256: error during KMAC absorb.");
 }
 
-void shake256_inc_squeeze_once(uint8_t *output, size_t outlen, shake256_inc_state_t *s_inc) {
+/**
+ * Squeeze full words from KMAC.
+ */
+static void shake256_inc_squeezeblocks(uint32_t *output, size_t outlen_words, shake256_inc_state_t *s_inc) {
+  ABORT_IF_ERROR(
+      dif_kmac_squeeze(&s_inc->kmac, &s_inc->kmac_operation_state,
+        output, outlen_words, NULL),
+      "shake256: error during KMAC squeeze");
+}
+
+/**
+ * Variant of `shake256_inc_squeeze_once` that strictly requires its output
+ * buffer to be 32b aligned.
+ */
+static void shake256_inc_squeeze_once_aligned(uint8_t *output, size_t outlen, shake256_inc_state_t *s_inc) {
   if (misalignment32_of((uintptr_t) output) != 0) {
-    LOG_ERROR("shake256: output misaligned.");
+    LOG_ERROR("shake256: output misaligned. %u %u", output, (uintptr_t) output);
     abort();
   }
 
@@ -66,20 +80,14 @@ void shake256_inc_squeeze_once(uint8_t *output, size_t outlen, shake256_inc_stat
   // bytes.
   size_t outlen_words = outlen / sizeof(uint32_t);
   if (outlen_words > 0) {
-    ABORT_IF_ERROR(
-        dif_kmac_squeeze(&s_inc->kmac, &s_inc->kmac_operation_state,
-          (uint32_t *)output, outlen_words, NULL),
-          "shake256: error during KMAC squeeze.");
+    shake256_inc_squeezeblocks((uint32_t *)output, outlen_words, s_inc);
     outlen -= outlen_words * sizeof(uint32_t);
   }
 
   // Squeeze remaining bytes (if any).
   if (outlen > 0) {
       uint32_t buf;
-      ABORT_IF_ERROR(
-          dif_kmac_squeeze(&s_inc->kmac, &s_inc->kmac_operation_state,
-            &buf, 1, NULL),
-            "shake256: error during KMAC squeeze for last few bytes.");
+      shake256_inc_squeezeblocks(&buf, 1, s_inc);
       memcpy(output, &buf, outlen);
   }
 
@@ -88,6 +96,26 @@ void shake256_inc_squeeze_once(uint8_t *output, size_t outlen, shake256_inc_stat
   ABORT_IF_ERROR(
       dif_kmac_end(&s_inc->kmac, &s_inc->kmac_operation_state),
       "shake256: error during KMAC end.");
+}
+
+void shake256_inc_squeeze_once(uint8_t *output, size_t outlen, shake256_inc_state_t *s_inc) {
+  if (misalignment32_of((uintptr_t) output) == 0) {
+    // Output buffer is aligned; use it directly. 
+    shake256_inc_squeeze_once_aligned(output, outlen, s_inc);
+  } else {
+    // Output buffer is misaligned; write to an aligned buffer and later copy.
+    size_t outlen_words = outlen / sizeof(uint32_t);
+    if (outlen % sizeof(uint32_t) != 0) {
+      outlen_words++;
+    }
+    uint32_t aligned_output[outlen_words];
+    shake256_inc_squeeze_once_aligned((uint8_t *)aligned_output, outlen, s_inc);
+
+    // TODO: consider ways to avoid this copying, e.g. adjusting the KMAC
+    // driver to handle misaligned input buffers internally or changing a lot
+    // of byte buffers to word buffers everywhere.
+    memcpy(output, aligned_output, outlen);
+  }
 }
 
 
