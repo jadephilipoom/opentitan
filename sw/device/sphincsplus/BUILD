@@ -74,6 +74,14 @@ cc_library(
     name = "fips202",
     srcs = ["fips202.c"],
     hdrs = ["fips202.h"],
+    deps = [
+      "//sw/device/lib/base:memory",
+      "//sw/device/lib/base:mmio",
+      "//sw/device/lib/dif:kmac",
+      "//sw/device/lib/runtime:log", # TODO: remove, this is for debugging
+      "//sw/device/lib/runtime:hart",
+      "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+    ]
 )
 
 cc_library(
