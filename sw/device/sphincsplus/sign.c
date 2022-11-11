@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "sw/device/lib/base/memory.h"
 #include "api.h"
 #include "params.h"
 #include "wots.h"
@@ -282,7 +283,9 @@ int crypto_sign_open(unsigned char *m, unsigned long long *mlen,
     }
 
     /* If verification was successful, move the message to the right place. */
-    memmove(m, sm + SPX_BYTES, *mlen);
+    // XXX: memmove was changed to memmcpy here for OpenTitan, but that adds
+    // the restriction that m and sm must not overlap.
+    memcpy(m, sm + SPX_BYTES, *mlen);
 
     return 0;
 }

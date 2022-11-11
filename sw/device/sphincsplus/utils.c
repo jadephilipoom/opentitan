@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "utils.h"
+
 /**
  * Converts the value of 'in' to 'outlen' bytes in big-endian byte order.
  */

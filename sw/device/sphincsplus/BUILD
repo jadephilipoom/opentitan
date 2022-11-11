@@ -169,6 +169,7 @@ cc_library(
     hdrs = ["utils.h"],
     deps = [
       ":context",
+      ":params",
     ]
 )
 
