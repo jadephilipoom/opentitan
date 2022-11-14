@@ -13,7 +13,7 @@
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
 #include "test_params.h"
 
-#include "message_keys.inc"
+#include xstr(PARAMS/message_keys.inc)
 
 static const char params[] = xstr(PARAMS);
 static const char thash[] = xstr(THASH);
