@@ -13,10 +13,9 @@
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
 #include "test_params.h"
 
-#include xstr(PARAMS/message_keys.inc)
+#include xstr(TESTNAME/message_keys.inc)
 
-static const char params[] = xstr(PARAMS);
-static const char thash[] = xstr(THASH);
+static const char testname[] = xstr(TESTNAME);
 
 OTTF_DEFINE_TEST_CONFIG();
 
@@ -41,7 +40,7 @@ bool test_main() {
   unsigned char mout[SPX_SMLEN];
   uint64_t mlen;
 
-  LOG_INFO("Starting SPHINCS+ verify test for parameter set %s-%s...", params, thash);
+  LOG_INFO("Starting SPHINCS+ verify test for parameter set %s...", testname);
 
   // Initialize the CSRNG (using only TRNG, no sw seed material).
   entropy_seed_material_t empty_seed = {

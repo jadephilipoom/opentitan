@@ -5,6 +5,7 @@
 package(default_visibility = ["//visibility:public"])
 
 load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+load("@bazel_skylib//lib:selects.bzl", "selects")
 load("//rules:opentitan.bzl", "OPENTITAN_CPU")
 load(
     "//rules:opentitan_test.bzl",
@@ -15,83 +16,79 @@ load(
 # Custom flag for specifying the SPHINCS+ parameter set.
 string_flag(
   name = "spx_params",
-  build_setting_default = "shake_128f")
+  build_setting_default = "shake_128f_simple")
 config_setting(
-  name = "shake_128f",
-  flag_values = { ":spx_params" : "shake_128f" },
+  name = "shake_128f_simple",
+  flag_values = { ":spx_params" : "shake_128f_simple" },
 )
 config_setting(
-  name = "shake_128s",
-  flag_values = { ":spx_params" : "shake_128s" },
+  name = "shake_128s_simple",
+  flag_values = { ":spx_params" : "shake_128s_simple" },
 )
 config_setting(
-  name = "shake_192f",
-  flag_values = { ":spx_params" : "shake_192f" },
+  name = "shake_192f_simple",
+  flag_values = { ":spx_params" : "shake_192f_simple" },
 )
 config_setting(
-  name = "shake_192s",
-  flag_values = { ":spx_params" : "shake_192s" },
+  name = "shake_192s_simple",
+  flag_values = { ":spx_params" : "shake_192s_simple" },
 )
 config_setting(
-  name = "shake_256f",
-  flag_values = { ":spx_params" : "shake_256f" },
+  name = "shake_256f_simple",
+  flag_values = { ":spx_params" : "shake_256f_simple" },
 )
 config_setting(
-  name = "shake_256s",
-  flag_values = { ":spx_params" : "shake_256s" },
+  name = "shake_256s_simple",
+  flag_values = { ":spx_params" : "shake_256s_simple" },
+)
+config_setting(
+  name = "shake_128f_robust",
+  flag_values = { ":spx_params" : "shake_128f_robust" },
+)
+config_setting(
+  name = "shake_128s_robust",
+  flag_values = { ":spx_params" : "shake_128s_robust" },
+)
+config_setting(
+  name = "shake_192f_robust",
+  flag_values = { ":spx_params" : "shake_192f_robust" },
+)
+config_setting(
+  name = "shake_192s_robust",
+  flag_values = { ":spx_params" : "shake_192s_robust" },
+)
+config_setting(
+  name = "shake_256f_robust",
+  flag_values = { ":spx_params" : "shake_256f_robust" },
+)
+config_setting(
+  name = "shake_256s_robust",
+  flag_values = { ":spx_params" : "shake_256s_robust" },
 )
 
-# Custom flag for the SPHINCS+ thash setting (simple/robust).
-string_flag(name = "spx_thash", build_setting_default = "simple")
-config_setting(
+# Setting groups for the SPHINCS+ thash setting (simple/robust).
+selects.config_setting_group(
   name = "thash_simple",
-  flag_values = { ":spx_thash" : "simple" },
+  match_any = [
+    ":shake_128f_simple",
+    ":shake_128s_simple",
+    ":shake_192f_simple",
+    ":shake_192s_simple",
+    ":shake_256f_simple",
+    ":shake_256s_simple",
+  ],
 )
-config_setting(
+
+selects.config_setting_group(
   name = "thash_robust",
-  flag_values = { ":spx_thash" : "robust" },
-)
-
-opentitan_functest(
-    name = "verify_test",
-    srcs = ["verify.c"],
-    verilator = verilator_params(
-        timeout = "eternal",
-    ),
-    # Add the THASH setting as a local define for helpful printouts.
-    local_defines = select({
-      ":thash_simple" : ["THASH=simple"],
-      ":thash_robust" : ["THASH=robust"],
-    }),
-    deps = [
-        ":api",
-        ":message_keys",
-        ":test_params",
-        "//sw/device/lib/base:memory",
-        "//sw/device/lib/base:mmio",
-        "//sw/device/lib/runtime:ibex",
-        "//sw/device/lib/testing/test_framework:ottf_main",
-        "//sw/device/lib/testing:entropy_testutils",
-    ],
-)
-
-opentitan_functest(
-    name = "shake_test",
-    srcs = ["shake_test.c"],
-    verilator = verilator_params(
-        timeout = "long",
-    ),
-    deps = [
-        ":fips202",
-        "//sw/device/lib/runtime:log",
-        "//sw/device/lib/testing/test_framework:ottf_main",
-    ],
-)
-
-cc_library(
-    name = "message_keys",
-    srcs = [],
-    hdrs = ["message_keys.inc"],
+  match_any = [
+    ":shake_128f_robust",
+    ":shake_128s_robust",
+    ":shake_192f_robust",
+    ":shake_192s_robust",
+    ":shake_256f_robust",
+    ":shake_256s_robust",
+  ],
 )
 
 cc_library(
@@ -186,12 +183,18 @@ cc_library(
     name = "params",
     defines =
       select({
-        ":shake_128f":["PARAMS=sphincs-shake-128f"],
-        ":shake_128s":["PARAMS=sphincs-shake-128s"],
-        ":shake_192f":["PARAMS=sphincs-shake-192f"],
-        ":shake_192s":["PARAMS=sphincs-shake-192s"],
-        ":shake_256f":["PARAMS=sphincs-shake-256f"],
-        ":shake_256s":["PARAMS=sphincs-shake-256s"],
+        ":shake_128f_simple":["PARAMS=sphincs-shake-128f"],
+        ":shake_128s_simple":["PARAMS=sphincs-shake-128s"],
+        ":shake_192f_simple":["PARAMS=sphincs-shake-192f"],
+        ":shake_192s_simple":["PARAMS=sphincs-shake-192s"],
+        ":shake_256f_simple":["PARAMS=sphincs-shake-256f"],
+        ":shake_256s_simple":["PARAMS=sphincs-shake-256s"],
+        ":shake_128f_robust":["PARAMS=sphincs-shake-128f"],
+        ":shake_128s_robust":["PARAMS=sphincs-shake-128s"],
+        ":shake_192f_robust":["PARAMS=sphincs-shake-192f"],
+        ":shake_192s_robust":["PARAMS=sphincs-shake-192s"],
+        ":shake_256f_robust":["PARAMS=sphincs-shake-256f"],
+        ":shake_256s_robust":["PARAMS=sphincs-shake-256s"],
       }),
     hdrs = [
       "params.h",
@@ -221,12 +224,6 @@ cc_library(
     name = "shake_offsets",
     srcs = [],
     hdrs = ["shake_offsets.h"],
-)
-
-cc_library(
-    name = "test_params",
-    srcs = [],
-    hdrs = ["test_params.h"],
 )
 
 cc_library(

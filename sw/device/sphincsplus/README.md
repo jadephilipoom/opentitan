@@ -9,16 +9,14 @@
 ### Bazel command for benchmarks
 
 To run the verification benchmark on Verilator, write the following and replace
-`shake_128s` and `simple` with the desired parameter set. The defaults are
-`shake_128f` and `simple`.
+`shake_128s_simple` with the desired parameter set.
 
 ```
 bazel test \
  --test_output=streamed \
  --disk_cache=~/bazel_cache \
  --//hw:verilator_options=--threads,8 \
- --//sw/device/sphincsplus:spx_params=shake_128s \
- --//sw/device/sphincsplus:spx_thash=simple \
+ --//sw/device/sphincsplus:spx_params=shake_128s_simple \
  //sw/device/sphincsplus/test:verify_test_sim_verilator
 ```
 

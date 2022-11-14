@@ -5,6 +5,7 @@
 package(default_visibility = ["//visibility:public"])
 
 load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+load("@bazel_skylib//lib:selects.bzl", "selects")
 load("//rules:opentitan.bzl", "OPENTITAN_CPU")
 load(
     "//rules:opentitan_test.bzl",
@@ -63,9 +64,10 @@ config_setting(
 config_setting(
   name = "shake_256s_robust",
   flag_values = { ":spx_params" : "shake_256s_robust" },
+)
 
 # Setting groups for the SPHINCS+ thash setting (simple/robust).
-config_setting_group(
+selects.config_setting_group(
   name = "thash_simple",
   match_any = [
     ":shake_128f_simple",
@@ -74,8 +76,10 @@ config_setting_group(
     ":shake_192s_simple",
     ":shake_256f_simple",
     ":shake_256s_simple",
+  ],
 )
-config_setting_group(
+
+selects.config_setting_group(
   name = "thash_robust",
   match_any = [
     ":shake_128f_robust",
@@ -84,6 +88,7 @@ config_setting_group(
     ":shake_192s_robust",
     ":shake_256f_robust",
     ":shake_256s_robust",
+  ],
 )
 
 opentitan_functest(
@@ -92,10 +97,20 @@ opentitan_functest(
     verilator = verilator_params(
         timeout = "eternal",
     ),
-    # Add the THASH setting as a local define for helpful printouts.
+    # Add the full parameters as a local define for helpful printouts.
     local_defines = select({
-      "//sw/device/sphincsplus:thash_simple" : ["THASH=simple"],
-      "//sw/device/sphincsplus:thash_robust" : ["THASH=robust"],
+      "//sw/device/sphincsplus:shake_128f_simple" : ["TESTNAME=sphincs-shake-128f-simple"],
+      "//sw/device/sphincsplus:shake_128s_simple" : ["TESTNAME=sphincs-shake-128s-simple"],
+      "//sw/device/sphincsplus:shake_192f_simple" : ["TESTNAME=sphincs-shake-192f-simple"],
+      "//sw/device/sphincsplus:shake_192s_simple" : ["TESTNAME=sphincs-shake-192s-simple"],
+      "//sw/device/sphincsplus:shake_256f_simple" : ["TESTNAME=sphincs-shake-256f-simple"],
+      "//sw/device/sphincsplus:shake_256s_simple" : ["TESTNAME=sphincs-shake-256s-simple"],
+      "//sw/device/sphincsplus:shake_128f_robust" : ["TESTNAME=sphincs-shake-128f-robust"],
+      "//sw/device/sphincsplus:shake_128s_robust" : ["TESTNAME=sphincs-shake-128s-robust"],
+      "//sw/device/sphincsplus:shake_192f_robust" : ["TESTNAME=sphincs-shake-192f-robust"],
+      "//sw/device/sphincsplus:shake_192s_robust" : ["TESTNAME=sphincs-shake-192s-robust"],
+      "//sw/device/sphincsplus:shake_256f_robust" : ["TESTNAME=sphincs-shake-256f-robust"],
+      "//sw/device/sphincsplus:shake_256s_robust" : ["TESTNAME=sphincs-shake-256s-robust"],
     }),
     deps = [
         ":test_params",
