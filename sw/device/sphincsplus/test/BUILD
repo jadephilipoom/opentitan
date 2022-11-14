@@ -15,41 +15,75 @@ load(
 # Custom flag for specifying the SPHINCS+ parameter set.
 string_flag(
   name = "spx_params",
-  build_setting_default = "shake_128f")
+  build_setting_default = "shake_128f_simple")
 config_setting(
-  name = "shake_128f",
-  flag_values = { ":spx_params" : "shake_128f" },
+  name = "shake_128f_simple",
+  flag_values = { ":spx_params" : "shake_128f_simple" },
 )
 config_setting(
-  name = "shake_128s",
-  flag_values = { ":spx_params" : "shake_128s" },
+  name = "shake_128s_simple",
+  flag_values = { ":spx_params" : "shake_128s_simple" },
 )
 config_setting(
-  name = "shake_192f",
-  flag_values = { ":spx_params" : "shake_192f" },
+  name = "shake_192f_simple",
+  flag_values = { ":spx_params" : "shake_192f_simple" },
 )
 config_setting(
-  name = "shake_192s",
-  flag_values = { ":spx_params" : "shake_192s" },
+  name = "shake_192s_simple",
+  flag_values = { ":spx_params" : "shake_192s_simple" },
 )
 config_setting(
-  name = "shake_256f",
-  flag_values = { ":spx_params" : "shake_256f" },
+  name = "shake_256f_simple",
+  flag_values = { ":spx_params" : "shake_256f_simple" },
 )
 config_setting(
-  name = "shake_256s",
-  flag_values = { ":spx_params" : "shake_256s" },
+  name = "shake_256s_simple",
+  flag_values = { ":spx_params" : "shake_256s_simple" },
 )
+config_setting(
+  name = "shake_128f_robust",
+  flag_values = { ":spx_params" : "shake_128f_robust" },
+)
+config_setting(
+  name = "shake_128s_robust",
+  flag_values = { ":spx_params" : "shake_128s_robust" },
+)
+config_setting(
+  name = "shake_192f_robust",
+  flag_values = { ":spx_params" : "shake_192f_robust" },
+)
+config_setting(
+  name = "shake_192s_robust",
+  flag_values = { ":spx_params" : "shake_192s_robust" },
+)
+config_setting(
+  name = "shake_256f_robust",
+  flag_values = { ":spx_params" : "shake_256f_robust" },
+)
+config_setting(
+  name = "shake_256s_robust",
+  flag_values = { ":spx_params" : "shake_256s_robust" },
 
-# Custom flag for the SPHINCS+ thash setting (simple/robust).
-string_flag(name = "spx_thash", build_setting_default = "simple")
-config_setting(
+# Setting groups for the SPHINCS+ thash setting (simple/robust).
+config_setting_group(
   name = "thash_simple",
-  flag_values = { ":spx_thash" : "simple" },
+  match_any = [
+    ":shake_128f_simple",
+    ":shake_128s_simple",
+    ":shake_192f_simple",
+    ":shake_192s_simple",
+    ":shake_256f_simple",
+    ":shake_256s_simple",
 )
-config_setting(
+config_setting_group(
   name = "thash_robust",
-  flag_values = { ":spx_thash" : "robust" },
+  match_any = [
+    ":shake_128f_robust",
+    ":shake_128s_robust",
+    ":shake_192f_robust",
+    ":shake_192s_robust",
+    ":shake_256f_robust",
+    ":shake_256s_robust",
 )
 
 opentitan_functest(
@@ -72,23 +106,41 @@ opentitan_functest(
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/lib/testing:entropy_testutils",
     ] + select({
-      "//sw/device/sphincsplus:shake_128f": [
-          "//sw/device/sphincsplus/test/sphincs-shake-128f:message_keys"
+      "//sw/device/sphincsplus:shake_128f_simple": [
+          "//sw/device/sphincsplus/test/sphincs-shake-128f-simple:message_keys"
       ],
-      "//sw/device/sphincsplus:shake_128s": [
-          "//sw/device/sphincsplus/test/sphincs-shake-128s:message_keys"
+      "//sw/device/sphincsplus:shake_128s_simple": [
+          "//sw/device/sphincsplus/test/sphincs-shake-128s-simple:message_keys"
       ],
-      "//sw/device/sphincsplus:shake_192f": [
-          "//sw/device/sphincsplus/test/sphincs-shake-192f:message_keys"
+      "//sw/device/sphincsplus:shake_192f_simple": [
+          "//sw/device/sphincsplus/test/sphincs-shake-192f-simple:message_keys"
       ],
-      "//sw/device/sphincsplus:shake_192s": [
-          "//sw/device/sphincsplus/test/sphincs-shake-192s:message_keys"
+      "//sw/device/sphincsplus:shake_192s_simple": [
+          "//sw/device/sphincsplus/test/sphincs-shake-192s-simple:message_keys"
       ],
-      "//sw/device/sphincsplus:shake_256f": [
-          "//sw/device/sphincsplus/test/sphincs-shake-256f:message_keys"
+      "//sw/device/sphincsplus:shake_256f_simple": [
+          "//sw/device/sphincsplus/test/sphincs-shake-256f-simple:message_keys"
       ],
-      "//sw/device/sphincsplus:shake_256s": [
-          "//sw/device/sphincsplus/test/sphincs-shake-256s:message_keys"
+      "//sw/device/sphincsplus:shake_256s_simple": [
+          "//sw/device/sphincsplus/test/sphincs-shake-256s-simple:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_128f_robust": [
+          "//sw/device/sphincsplus/test/sphincs-shake-128f-robust:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_128s_robust": [
+          "//sw/device/sphincsplus/test/sphincs-shake-128s-robust:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_192f_robust": [
+          "//sw/device/sphincsplus/test/sphincs-shake-192f-robust:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_192s_robust": [
+          "//sw/device/sphincsplus/test/sphincs-shake-192s-robust:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_256f_robust": [
+          "//sw/device/sphincsplus/test/sphincs-shake-256f-robust:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_256s_robust": [
+          "//sw/device/sphincsplus/test/sphincs-shake-256s-robust:message_keys"
       ],
     }),
 )
