@@ -4,11 +4,52 @@
 
 package(default_visibility = ["//visibility:public"])
 
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 load("//rules:opentitan.bzl", "OPENTITAN_CPU")
 load(
     "//rules:opentitan_test.bzl",
     "opentitan_functest",
     "verilator_params",
+)
+
+# Custom flag for specifying the SPHINCS+ parameter set.
+string_flag(
+  name = "spx_params",
+  build_setting_default = "shake_128f")
+config_setting(
+  name = "shake_128f",
+  flag_values = { ":spx_params" : "shake_128f" },
+)
+config_setting(
+  name = "shake_128s",
+  flag_values = { ":spx_params" : "shake_128s" },
+)
+config_setting(
+  name = "shake_192f",
+  flag_values = { ":spx_params" : "shake_192f" },
+)
+config_setting(
+  name = "shake_192s",
+  flag_values = { ":spx_params" : "shake_192s" },
+)
+config_setting(
+  name = "shake_256f",
+  flag_values = { ":spx_params" : "shake_256f" },
+)
+config_setting(
+  name = "shake_256s",
+  flag_values = { ":spx_params" : "shake_256s" },
+)
+
+# Custom flag for the SPHINCS+ thash setting (simple/robust).
+string_flag(name = "spx_thash", build_setting_default = "simple")
+config_setting(
+  name = "thash_simple",
+  flag_values = { ":spx_thash" : "simple" },
+)
+config_setting(
+  name = "thash_robust",
+  flag_values = { ":spx_thash" : "robust" },
 )
 
 opentitan_functest(
@@ -17,13 +58,18 @@ opentitan_functest(
     verilator = verilator_params(
         timeout = "eternal",
     ),
+    # Add the THASH setting as a local define for helpful printouts.
+    local_defines = select({
+      ":thash_simple" : ["THASH=simple"],
+      ":thash_robust" : ["THASH=robust"],
+    }),
     deps = [
         ":api",
         ":message_keys",
         ":test_params",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/base:mmio",
-        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/lib/testing:entropy_testutils",
     ],
@@ -73,7 +119,6 @@ cc_library(
       ":utils",
       ":utils2",
       ":merkle",
-      "//sw/device/lib/runtime:log", # TODO: remove
     ],
 )
 
@@ -91,8 +136,8 @@ cc_library(
       "//sw/device/lib/base:memory",
       "//sw/device/lib/base:mmio",
       "//sw/device/lib/dif:kmac",
-      "//sw/device/lib/runtime:log", # TODO: remove, this is for debugging
       "//sw/device/lib/runtime:hart",
+      "//sw/device/lib/runtime:log",
       "//hw/top_earlgrey/sw/autogen:top_earlgrey",
     ]
 )
@@ -139,12 +184,25 @@ cc_library(
 
 cc_library(
     name = "params",
-    srcs = [],
-    hdrs = ["params.h",
+    defines =
+      select({
+        ":shake_128f":["PARAMS=sphincs-shake-128f"],
+        ":shake_128s":["PARAMS=sphincs-shake-128s"],
+        ":shake_192f":["PARAMS=sphincs-shake-192f"],
+        ":shake_192s":["PARAMS=sphincs-shake-192s"],
+        ":shake_256f":["PARAMS=sphincs-shake-256f"],
+        ":shake_256s":["PARAMS=sphincs-shake-256s"],
+      }),
+    hdrs = [
+      "params.h",
       ":shake_offsets.h",
       "//sw/device/sphincsplus/params:params-sphincs-shake-128f.h",
+      "//sw/device/sphincsplus/params:params-sphincs-shake-128s.h",
+      "//sw/device/sphincsplus/params:params-sphincs-shake-192f.h",
+      "//sw/device/sphincsplus/params:params-sphincs-shake-192s.h",
+      "//sw/device/sphincsplus/params:params-sphincs-shake-256f.h",
+      "//sw/device/sphincsplus/params:params-sphincs-shake-256s.h",
     ],
-
 )
 
 cc_library(
@@ -173,9 +231,10 @@ cc_library(
 
 cc_library(
     name = "thash",
-    # Change source file below to switch between robust/simple thash
-    # implementation.
-    srcs = ["thash_shake_simple.c"],
+    srcs = select({
+      "thash_simple": ["thash_shake_simple.c"],
+      "thash_robust": ["thash_shake_robust.c"],
+    }),
     hdrs = ["thash.h"],
     deps = [
       ":params",

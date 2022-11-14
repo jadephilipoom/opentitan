@@ -3,7 +3,6 @@
 #include <stdint.h>
 
 #include "sw/device/lib/base/memory.h"
-#include "sw/device/lib/runtime/log.h" // TODO: remove, for debugging/tracking test progress
 #include "api.h"
 #include "params.h"
 #include "wots.h"
@@ -96,7 +95,6 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
 
     /* For each subtree.. */
     for (i = 0; i < SPX_D; i++) {
-        LOG_INFO("Starting subtree %d of %d.", i, SPX_D);
         set_layer_addr(tree_addr, i);
         set_tree_addr(tree_addr, tree);
 
