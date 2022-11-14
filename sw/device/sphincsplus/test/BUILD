@@ -75,6 +75,21 @@ opentitan_functest(
       "//sw/device/sphincsplus:shake_128f": [
           "//sw/device/sphincsplus/test/sphincs-shake-128f:message_keys"
       ],
+      "//sw/device/sphincsplus:shake_128s": [
+          "//sw/device/sphincsplus/test/sphincs-shake-128s:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_192f": [
+          "//sw/device/sphincsplus/test/sphincs-shake-192f:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_192s": [
+          "//sw/device/sphincsplus/test/sphincs-shake-192s:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_256f": [
+          "//sw/device/sphincsplus/test/sphincs-shake-256f:message_keys"
+      ],
+      "//sw/device/sphincsplus:shake_256s": [
+          "//sw/device/sphincsplus/test/sphincs-shake-256s:message_keys"
+      ],
     }),
 )
 
