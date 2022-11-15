@@ -3,6 +3,7 @@
 
 #include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/status.h"
+#include "sw/device/lib/dif/dif_kmac.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/runtime/ibex.h"
@@ -54,6 +55,21 @@ bool test_main() {
 
   LOG_INFO("CSRNG initialized/instantiated successfully.");
 
+  // Intialize KMAC hardware.
+  dif_kmac_t kmac;
+  CHECK(dif_kmac_init(mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
+        &kmac) == kDifOk);
+
+  // Configure KMAC hardware using software entropy.
+  dif_kmac_config_t config = (dif_kmac_config_t){
+      .entropy_mode = kDifKmacEntropyModeEdn,
+      .entropy_seed = {0},
+      .entropy_fast_process = kDifToggleEnabled,
+  };
+  CHECK(dif_kmac_configure(&kmac, config) == kDifOk);
+
+  LOG_INFO("KMAC initialized/instantiated successfully.");
+
   // Test if signature is valid.
   uint64_t t_start = profile_start();
   int result = crypto_sign_open(mout, &mlen, sm, SPX_SMLEN, pk);
@@ -64,7 +80,7 @@ bool test_main() {
 
   // Test if the correct message was recovered.
   CHECK(mlen == SPX_MLEN, "  X mlen incorrect [%u != %u]!\n", mlen, SPX_MLEN);
-  LOG_INFO("    mlen as expected [%u].", mlen);
+  LOG_INFO("    mlen as expected [%u].", (uint32_t)mlen);
   CHECK(memcmp(m, mout, SPX_MLEN) == 0, "  X output message incorrect!");
   LOG_INFO("    output message as expected.");
 

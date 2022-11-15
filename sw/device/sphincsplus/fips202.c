@@ -23,22 +23,10 @@
   }
 
 void shake256_inc_init(shake256_inc_state_t *s_inc) {
-  // Intialize KMAC hardware.
   ABORT_IF_ERROR(
       dif_kmac_init(mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
         &s_inc->kmac),
       "shake256: error during KMAC init.");
-
-  // Configure KMAC hardware using software entropy.
-  dif_kmac_config_t config = (dif_kmac_config_t){
-      .entropy_mode = kDifKmacEntropyModeEdn,
-      .entropy_seed = {0},
-      .entropy_fast_process = kDifToggleEnabled,
-  };
-  ABORT_IF_ERROR(
-      dif_kmac_configure(&s_inc->kmac, config),
-      "shake256: error during KMAC config.");
-
   ABORT_IF_ERROR(
       dif_kmac_mode_shake_start(&s_inc->kmac, &s_inc->kmac_operation_state,
         kDifKmacModeShakeLen256),
