@@ -67,33 +67,24 @@ void hash_message(unsigned char *digest, uint64_t *tree, uint32_t *leaf_idx,
 #define SPX_LEAF_BYTES ((SPX_LEAF_BITS + 7) / 8)
 #define SPX_DGST_BYTES (SPX_FORS_MSG_BYTES + SPX_TREE_BYTES + SPX_LEAF_BYTES)
 
-    size_t digest_nwords = SPX_DGST_BYTES / sizeof(uint32_t);
-    if (SPX_DGST_BYTES % sizeof(uint32_t) != 0) {
-      digest_nwords++;
-    }
-    uint32_t buf[digest_nwords];
-    unsigned char *bufp = (unsigned char *)buf;
     shake256_inc_state_t s_inc;
-
     shake256_inc_init(&s_inc);
     shake256_inc_absorb(&s_inc, R, SPX_N);
     shake256_inc_absorb(&s_inc, pk, SPX_PK_BYTES);
     shake256_inc_absorb(&s_inc, m, mlen);
     // KMAC hardware will automatically finalize once we start squeezing.
     // shake256_inc_finalize(&s_inc);
-    shake256_inc_squeeze_once((uint8_t *)buf, SPX_DGST_BYTES, &s_inc);
-
-    memcpy(digest, bufp, SPX_FORS_MSG_BYTES);
-    bufp += SPX_FORS_MSG_BYTES;
+    shake256_inc_squeeze_once(digest, SPX_FORS_MSG_BYTES, &s_inc);
+    digest += SPX_FORS_MSG_BYTES;
 
 #if SPX_TREE_BITS > 64
     #error For given height and depth, 64 bits cannot represent all subtrees
 #endif
 
-    *tree = bytes_to_ull(bufp, SPX_TREE_BYTES);
+    *tree = bytes_to_ull(digest, SPX_TREE_BYTES);
     *tree &= (~(uint64_t)0) >> (64 - SPX_TREE_BITS);
-    bufp += SPX_TREE_BYTES;
+    digest += SPX_TREE_BYTES;
 
-    *leaf_idx = (uint32_t)bytes_to_ull(bufp, SPX_LEAF_BYTES);
+    *leaf_idx = (uint32_t)bytes_to_ull(digest, SPX_LEAF_BYTES);
     *leaf_idx &= (~(uint32_t)0) >> (32 - SPX_LEAF_BITS);
 }
