@@ -14,6 +14,7 @@ To run the verification benchmark on Verilator, write the following and replace
 ```
 bazel test \
  --test_output=streamed \
+ --test_timeout=100000 \
  --disk_cache=~/bazel_cache \
  --//hw:verilator_options=--threads,8 \
  --//sw/device/sphincsplus:spx_params=shake_128s_simple \
