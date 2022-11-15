@@ -173,6 +173,22 @@ opentitan_functest(
     ],
 )
 
+opentitan_functest(
+    name = "thash_test",
+    srcs = ["thash_test.c"],
+    verilator = verilator_params(
+        timeout = "long",
+    ),
+    deps = [
+        "//sw/device/sphincsplus:context",
+        "//sw/device/sphincsplus:thash",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/base:memory",
+        "//sw/device/lib/runtime:ibex",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
 cc_library(
     name = "test_params",
     hdrs = ["test_params.h"],
