@@ -14,8 +14,6 @@
 void thash(unsigned char *out, const unsigned char *in, unsigned int inblocks,
            const spx_ctx *ctx, uint32_t addr[8])
 {
-    SPX_VLA(uint8_t, buf, SPX_N + SPX_ADDR_BYTES + inblocks*SPX_N);
-
     shake256_inc_state_t s_inc;
     shake256_inc_init(&s_inc);
     shake256_inc_absorb(&s_inc, ctx->pub_seed, SPX_N);

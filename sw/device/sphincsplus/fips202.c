@@ -46,12 +46,8 @@ void shake256_inc_init(shake256_inc_state_t *s_inc) {
 }
 
 void shake256_inc_absorb(shake256_inc_state_t *s_inc, const uint8_t *input, size_t inlen) {
-  if (misalignment32_of((uintptr_t) input) != 0) {
-    LOG_ERROR("shake256: input misaligned.");
-    abort();
-  }
   ABORT_IF_ERROR(
-      dif_kmac_absorb(&s_inc->kmac, &s_inc->kmac_operation_state, (uint32_t *)input,
+      dif_kmac_absorb(&s_inc->kmac, &s_inc->kmac_operation_state, input,
           inlen, NULL),
       "shake256: error during KMAC absorb.");
 }
