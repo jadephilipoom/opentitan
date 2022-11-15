@@ -56,7 +56,7 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
 {
     spx_ctx ctx;
     const unsigned char *pub_root = pk + SPX_N;
-    unsigned char mhash[SPX_FORS_MSG_BYTES];
+    unsigned char mhash[SPX_FORS_MSG_BYTES] __attribute__((aligned(sizeof(uint32_t))));
     unsigned char wots_pk[SPX_WOTS_BYTES] __attribute__((aligned(sizeof(uint32_t))));
     unsigned char root[SPX_N] __attribute__((aligned(sizeof(uint32_t))));
     unsigned char leaf[SPX_N] __attribute__((aligned(sizeof(uint32_t))));
