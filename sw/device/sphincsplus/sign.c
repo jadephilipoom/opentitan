@@ -4,6 +4,7 @@
 
 #include "sw/device/lib/base/memory.h"
 #include "api.h"
+#include "fips202.h"
 #include "params.h"
 #include "wots.h"
 #include "fors.h"
@@ -72,6 +73,9 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
     }
 
     memcpy(ctx.pub_seed, pk, SPX_N);
+
+    /* Set up the hardware to run SHAKE-256. */
+    shake256_setup(),
 
     /* This hook allows the hash function instantiation to do whatever
        preparation or computation it needs, based on the public seed. */

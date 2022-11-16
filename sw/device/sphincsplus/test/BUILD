@@ -186,6 +186,8 @@ opentitan_functest(
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/lib/testing:entropy_testutils",
+        "//sw/device/lib/crypto/drivers:entropy",
     ],
 )
 
