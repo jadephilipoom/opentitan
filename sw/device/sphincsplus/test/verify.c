@@ -12,6 +12,7 @@
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
 
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
+#include "../fips202.h"
 #include "test_params.h"
 
 #include xstr(TESTNAME/message_keys.inc)
@@ -67,6 +68,9 @@ bool test_main() {
       .entropy_fast_process = kDifToggleEnabled,
   };
   CHECK(dif_kmac_configure(&kmac, config) == kDifOk);
+
+  /* Set up the hardware to run SHAKE-256. */
+  shake256_setup();
 
   LOG_INFO("KMAC initialized/instantiated successfully.");
 
