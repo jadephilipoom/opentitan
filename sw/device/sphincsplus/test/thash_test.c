@@ -21,14 +21,14 @@ static const spx_ctx test_ctx __attribute__((aligned(sizeof(uint32_t)))) = {
   .sk_seed = {0},
 };
 
-// Values for chain length 3
+// Values for chain length 3 (thash simple)
 static const size_t chain_len = 3;
 static const uint8_t exp_result[SPX_N] = {
   0x7d, 0x61, 0x27, 0x2f, 0xd8, 0x14, 0x33, 0x7a, 0x62, 0xcd, 0x80,
   0x7b, 0x2a, 0x96, 0x4d, 0x10
 };
 
-// Values for chain length 10
+// Values for chain length 10 (thash simple)
 /*
 static const size_t chain_len = 10;
 static const uint8_t exp_result[SPX_N] = {
