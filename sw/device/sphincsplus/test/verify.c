@@ -69,7 +69,13 @@ bool test_main() {
   };
   CHECK(dif_kmac_configure(&kmac, config) == kDifOk);
 
-  /* Set up the hardware to run SHAKE-256. */
+  /* Set up the hardware to run SHAKE-256.
+   *
+   * NOTE: this is redundant, since the setup also happens within the signature
+   * verification. Its purpose here is to ensure the KMAC block is ready to
+   * receive commands, since it needs to fetch some entropy at startup and this
+   * lag otherwise interferes heavily with benchmarks.
+  */
   shake256_setup();
 
   LOG_INFO("KMAC initialized/instantiated successfully.");
