@@ -55,18 +55,13 @@ static void shake256_inc_squeezeblocks(uint32_t *output, size_t outlen_words, sh
  * buffer to be 32b aligned.
  */
 static void shake256_inc_squeeze_once_aligned(uint8_t *output, size_t outlen, shake256_inc_state_t *s_inc) {
-  if (misalignment32_of((uintptr_t) output) != 0) {
-    LOG_ERROR("shake256: output misaligned. %u %u", output, (uintptr_t) output);
-    abort();
-  }
-
   // `dif_kmac_squeeze()` provides output at the granularity of 32b words, not
   // bytes.
   size_t outlen_words = outlen / sizeof(uint32_t);
   if (outlen_words > 0) {
     shake256_inc_squeezeblocks((uint32_t *)output, outlen_words, s_inc);
-    outlen -= outlen_words * sizeof(uint32_t);
     output += outlen_words * sizeof(uint32_t);
+    outlen = outlen_words % sizeof(uint32_t);
   }
 
   // Squeeze remaining bytes (if any).
