@@ -6,7 +6,10 @@
 | shake-128s-simple | ec56fa |  3 737 997 |
 | shake-128s-simple | 1116e1 |  3 010 390 |
 | shake-128s-simple | a4b000 |  2 639 232 |
+| shake-128s-simple | 6381ad |  2 611 144 |
+| shake-128s-simple | 47c9f1 |  1 612 383 |
 | shake-128s-robust | 26861b |  6 681 864 |
+| shake-128s-robust | ba2abf |  4 817 560 |
 | shake-128f-simple | 611485 | 10 330 971 |
 | shake-128f-robust | 75b246 | 17 612 392 |
 | shake-192s-simple | 75b246 |  6 253 183 |
