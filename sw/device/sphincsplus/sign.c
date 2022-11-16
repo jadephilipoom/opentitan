@@ -75,7 +75,7 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
     memcpy(ctx.pub_seed, pk, SPX_N);
 
     /* Set up the hardware to run SHAKE-256. */
-    shake256_setup(),
+    shake256_setup();
 
     /* This hook allows the hash function instantiation to do whatever
        preparation or computation it needs, based on the public seed. */

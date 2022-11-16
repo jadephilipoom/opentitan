@@ -12,7 +12,6 @@
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
 
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
-#include "../api.h"
 #include "test_params.h"
 
 #include xstr(TESTNAME/message_keys.inc)

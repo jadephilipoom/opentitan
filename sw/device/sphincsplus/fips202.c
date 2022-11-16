@@ -25,13 +25,6 @@
     abort();                             \
   }
 
-// This "state" type is required by the DIF interface but is really just a
-// struct holding a constant, so we're just going to use a constant value here.
-// Technically we should treat this type as opaque, but realistically we
-// wouldn't be using the DIF as a driver anyway, so it's OK for this
-// experiment.
-static dif_kmac_t kmac;
-
 // Copied from dif_kmac.c
 static bool is_state_idle(const dif_kmac_t *kmac) {
   uint32_t reg = mmio_region_read32(kmac->base_addr, KMAC_STATUS_REG_OFFSET);
@@ -82,7 +75,7 @@ static dif_result_t kmac_start(const dif_kmac_t *kmac, dif_kmac_operation_state_
   }
   operation_state->squeezing = false;
   operation_state->append_d = false;
-  operation_state->r = SHAKE256_RATE / 32;
+  operation_state->r = (1600 - (2 * 256)) / 32;
   operation_state->d = 0;  // Zero indicates variable digest length.
   operation_state->offset = 0;
 
@@ -95,15 +88,16 @@ static dif_result_t kmac_start(const dif_kmac_t *kmac, dif_kmac_operation_state_
 }
 
 void shake256_inc_init(shake256_inc_state_t *s_inc) {
-  ABORT_IF_ERROR(poll_state(&kmac, KMAC_STATUS_SHA3_IDLE_BIT),
-      "sha256: error while polling for KMAC idle before init");
-  ABORT_IF_ERROR(kmac_start(&kmac, &s_inc->kmac_operation_state),
+  s_inc->kmac = (dif_kmac_t) {
+    .base_addr = mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
+  };
+  ABORT_IF_ERROR(kmac_start(&s_inc->kmac, &s_inc->kmac_operation_state),
       "sha256: error during KMAC start");
 }
 
 void shake256_inc_absorb(shake256_inc_state_t *s_inc, const uint8_t *input, size_t inlen) {
   ABORT_IF_ERROR(
-      dif_kmac_absorb(&kmac, &s_inc->kmac_operation_state, input,
+      dif_kmac_absorb(&s_inc->kmac, &s_inc->kmac_operation_state, input,
           inlen, NULL),
       "shake256: error during KMAC absorb.");
 }
@@ -113,7 +107,7 @@ void shake256_inc_absorb(shake256_inc_state_t *s_inc, const uint8_t *input, size
  */
 static void shake256_inc_squeezeblocks(uint32_t *output, size_t outlen_words, shake256_inc_state_t *s_inc) {
   ABORT_IF_ERROR(
-      dif_kmac_squeeze(&kmac, &s_inc->kmac_operation_state,
+      dif_kmac_squeeze(&s_inc->kmac, &s_inc->kmac_operation_state,
         output, outlen_words, NULL),
       "shake256: error during KMAC squeeze");
 }
@@ -142,7 +136,7 @@ static void shake256_inc_squeeze_once_aligned(uint8_t *output, size_t outlen, sh
   // XXX: this will not work for repeated squeezing! It just so happens that we
   // only ever squeeze once here.
   ABORT_IF_ERROR(
-      dif_kmac_end(&kmac, &s_inc->kmac_operation_state),
+      dif_kmac_end(&s_inc->kmac, &s_inc->kmac_operation_state),
       "shake256: error during KMAC end.");
 }
 
@@ -167,12 +161,12 @@ void shake256_inc_squeeze_once(uint8_t *output, size_t outlen, shake256_inc_stat
 }
 
 void shake256_setup(void) {
-  kmac = (dif_kmac_t) {
+  shake256_inc_state_t s_inc;
+  s_inc.kmac = (dif_kmac_t) {
     .base_addr = mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
   };
-  shake256_inc_state_t s_inc;
   ABORT_IF_ERROR(
-      dif_kmac_mode_shake_start(&kmac, &s_inc.kmac_operation_state,
+      dif_kmac_mode_shake_start(&s_inc.kmac, &s_inc.kmac_operation_state,
         kDifKmacModeShakeLen256),
       "sha256: error during hardware initial setup");
   // The above command configured KMAC hardware and also started a hashing
