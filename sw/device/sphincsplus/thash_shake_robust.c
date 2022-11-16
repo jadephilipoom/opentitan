@@ -14,18 +14,24 @@
 void thash(unsigned char *out, const unsigned char *in, unsigned int inblocks,
            const spx_ctx *ctx, uint32_t addr[8])
 {
-    SPX_VLA(uint8_t, buf, SPX_N + SPX_ADDR_BYTES + inblocks*SPX_N);
-    SPX_VLA(uint8_t, bitmask, inblocks * SPX_N);
+    uint8_t bitmask[inblocks * SPX_N];
     unsigned int i;
+    shake256_inc_state_t s_inc;
 
-    memcpy(buf, ctx->pub_seed, SPX_N);
-    memcpy(buf + SPX_N, addr, SPX_ADDR_BYTES);
-
-    shake256(bitmask, inblocks * SPX_N, buf, SPX_N + SPX_ADDR_BYTES);
+    // Compute bitmask.
+    shake256_inc_init(&s_inc);
+    shake256_inc_absorb(&s_inc, ctx->pub_seed, SPX_N);
+    shake256_inc_absorb(&s_inc, (unsigned char *)addr, SPX_ADDR_BYTES);
+    shake256_inc_squeeze_once(bitmask, inblocks * SPX_N, &s_inc);
 
     for (i = 0; i < inblocks * SPX_N; i++) {
-        buf[SPX_N + SPX_ADDR_BYTES + i] = in[i] ^ bitmask[i];
+        bitmask[i] ^= in[i];
     }
 
-    shake256(out, SPX_N, buf, SPX_N + SPX_ADDR_BYTES + inblocks*SPX_N);
+    // Compute output.
+    shake256_inc_init(&s_inc);
+    shake256_inc_absorb(&s_inc, ctx->pub_seed, SPX_N);
+    shake256_inc_absorb(&s_inc, (unsigned char *)addr, SPX_ADDR_BYTES);
+    shake256_inc_absorb(&s_inc, bitmask, inblocks * SPX_N);
+    shake256_inc_squeeze_once(out, SPX_N, &s_inc);
 }

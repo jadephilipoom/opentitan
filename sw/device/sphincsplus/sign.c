@@ -4,7 +4,6 @@
 
 #include "sw/device/lib/base/memory.h"
 #include "api.h"
-#include "fips202.h"
 #include "params.h"
 #include "wots.h"
 #include "fors.h"
