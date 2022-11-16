@@ -61,7 +61,7 @@ bool test_main() {
   CHECK(dif_kmac_init(mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
         &kmac) == kDifOk);
 
-  // Configure KMAC hardware using software entropy.
+  // Configure KMAC hardware using EDN entropy.
   dif_kmac_config_t config = (dif_kmac_config_t){
       .entropy_mode = kDifKmacEntropyModeEdn,
       .entropy_seed = {0},

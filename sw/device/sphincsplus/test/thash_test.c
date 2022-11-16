@@ -81,7 +81,7 @@ static void test_setup(void) {
 
   // Configure KMAC hardware using software entropy.
   dif_kmac_config_t config = (dif_kmac_config_t){
-      .entropy_mode = kDifKmacEntropyModeEdn,
+      .entropy_mode = kDifKmacEntropyModeSoftware,
       .entropy_seed = {0},
       .entropy_fast_process = kDifToggleEnabled,
   };
