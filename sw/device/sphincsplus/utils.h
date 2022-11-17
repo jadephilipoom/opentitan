@@ -2,11 +2,12 @@
 #define SPX_UTILS_H
 
 #include <stdint.h>
-#include "params.h"
+
 #include "context.h"
+#include "params.h"
 
 // Always define arrays on the stack, never with malloc.
-# define SPX_VLA(__t,__x,__s) __t __x[__s]
+#define SPX_VLA(__t, __x, __s) __t __x[__s]
 
 /**
  * Converts the value of 'in' to 'outlen' bytes in big-endian byte order.

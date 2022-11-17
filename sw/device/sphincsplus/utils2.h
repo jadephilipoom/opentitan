@@ -2,8 +2,9 @@
 #define SPX_UTILS2_H
 
 #include <stdint.h>
-#include "params.h"
+
 #include "context.h"
+#include "params.h"
 
 /**
  * Computes a root node given a leaf and an auth path.
@@ -24,14 +25,12 @@ void compute_root(unsigned char *root, const unsigned char *leaf,
  * it is possible to continue counting indices across trees.
  */
 #define treehash SPX_NAMESPACE(treehash)
-void treehash(unsigned char *root, unsigned char *auth_path,
-              const spx_ctx* ctx,
+void treehash(unsigned char *root, unsigned char *auth_path, const spx_ctx *ctx,
               uint32_t leaf_idx, uint32_t idx_offset, uint32_t tree_height,
-              void (*gen_leaf)(
-                 unsigned char* /* leaf */,
-                 const spx_ctx* ctx /* ctx */,
-                 uint32_t /* addr_idx */, const uint32_t[8] /* tree_addr */),
+              void (*gen_leaf)(unsigned char * /* leaf */,
+                               const spx_ctx *ctx /* ctx */,
+                               uint32_t /* addr_idx */,
+                               const uint32_t[8] /* tree_addr */),
               uint32_t tree_addr[8]);
-
 
 #endif

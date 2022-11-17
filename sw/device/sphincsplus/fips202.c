@@ -5,18 +5,19 @@
  * from https://twitter.com/tweetfips202
  * by Gilles Van Assche, Daniel J. Bernstein, and Peter Schwabe */
 
+#include "fips202.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
-#include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/bitfield.h"
+#include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/mmio.h"
+#include "sw/device/lib/dif/dif_kmac.h"
 #include "sw/device/lib/runtime/hart.h"
 #include "sw/device/lib/runtime/log.h"
-#include "sw/device/lib/dif/dif_kmac.h"
-#include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
-#include "fips202.h"
 
+#include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
 #include "kmac_regs.h"
 
 #define ABORT_IF_ERROR(_dif_result, msg) \
@@ -68,7 +69,8 @@ static dif_result_t poll_state(const dif_kmac_t *kmac, uint32_t flag) {
  * Callers must use `shake256_setup` first to configure the KMAC hardware for
  * SHA-256.
  */
-static dif_result_t kmac_start(const dif_kmac_t *kmac, dif_kmac_operation_state_t *operation_state) {
+static dif_result_t kmac_start(const dif_kmac_t *kmac,
+                               dif_kmac_operation_state_t *operation_state) {
   // Hardware must be idle to start an operation.
   if (!is_state_idle(kmac)) {
     return kDifError;
@@ -88,35 +90,36 @@ static dif_result_t kmac_start(const dif_kmac_t *kmac, dif_kmac_operation_state_
 }
 
 void shake256_inc_init(shake256_inc_state_t *s_inc) {
-  s_inc->kmac = (dif_kmac_t) {
-    .base_addr = mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
+  s_inc->kmac = (dif_kmac_t){
+      .base_addr = mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
   };
   ABORT_IF_ERROR(kmac_start(&s_inc->kmac, &s_inc->kmac_operation_state),
-      "sha256: error during KMAC start");
+                 "sha256: error during KMAC start");
 }
 
-void shake256_inc_absorb(shake256_inc_state_t *s_inc, const uint8_t *input, size_t inlen) {
-  ABORT_IF_ERROR(
-      dif_kmac_absorb(&s_inc->kmac, &s_inc->kmac_operation_state, input,
-          inlen, NULL),
-      "shake256: error during KMAC absorb.");
+void shake256_inc_absorb(shake256_inc_state_t *s_inc, const uint8_t *input,
+                         size_t inlen) {
+  ABORT_IF_ERROR(dif_kmac_absorb(&s_inc->kmac, &s_inc->kmac_operation_state,
+                                 input, inlen, NULL),
+                 "shake256: error during KMAC absorb.");
 }
 
 /**
  * Squeeze full words from KMAC.
  */
-static void shake256_inc_squeezeblocks(uint32_t *output, size_t outlen_words, shake256_inc_state_t *s_inc) {
-  ABORT_IF_ERROR(
-      dif_kmac_squeeze(&s_inc->kmac, &s_inc->kmac_operation_state,
-        output, outlen_words, NULL),
-      "shake256: error during KMAC squeeze");
+static void shake256_inc_squeezeblocks(uint32_t *output, size_t outlen_words,
+                                       shake256_inc_state_t *s_inc) {
+  ABORT_IF_ERROR(dif_kmac_squeeze(&s_inc->kmac, &s_inc->kmac_operation_state,
+                                  output, outlen_words, NULL),
+                 "shake256: error during KMAC squeeze");
 }
 
 /**
  * Variant of `shake256_inc_squeeze_once` that strictly requires its output
  * buffer to be 32b aligned.
  */
-static void shake256_inc_squeeze_once_aligned(uint8_t *output, size_t outlen, shake256_inc_state_t *s_inc) {
+static void shake256_inc_squeeze_once_aligned(uint8_t *output, size_t outlen,
+                                              shake256_inc_state_t *s_inc) {
   // `dif_kmac_squeeze()` provides output at the granularity of 32b words, not
   // bytes.
   size_t outlen_words = outlen / sizeof(uint32_t);
@@ -128,21 +131,21 @@ static void shake256_inc_squeeze_once_aligned(uint8_t *output, size_t outlen, sh
 
   // Squeeze remaining bytes (if any).
   if (outlen > 0) {
-      uint32_t buf;
-      shake256_inc_squeezeblocks(&buf, 1, s_inc);
-      memcpy(output, &buf, outlen);
+    uint32_t buf;
+    shake256_inc_squeezeblocks(&buf, 1, s_inc);
+    memcpy(output, &buf, outlen);
   }
 
   // XXX: this will not work for repeated squeezing! It just so happens that we
   // only ever squeeze once here.
-  ABORT_IF_ERROR(
-      dif_kmac_end(&s_inc->kmac, &s_inc->kmac_operation_state),
-      "shake256: error during KMAC end.");
+  ABORT_IF_ERROR(dif_kmac_end(&s_inc->kmac, &s_inc->kmac_operation_state),
+                 "shake256: error during KMAC end.");
 }
 
-void shake256_inc_squeeze_once(uint8_t *output, size_t outlen, shake256_inc_state_t *s_inc) {
-  if (misalignment32_of((uintptr_t) output) == 0) {
-    // Output buffer is aligned; use it directly. 
+void shake256_inc_squeeze_once(uint8_t *output, size_t outlen,
+                               shake256_inc_state_t *s_inc) {
+  if (misalignment32_of((uintptr_t)output) == 0) {
+    // Output buffer is aligned; use it directly.
     shake256_inc_squeeze_once_aligned(output, outlen, s_inc);
   } else {
     // Output buffer is misaligned; write to an aligned buffer and later copy.
@@ -162,19 +165,18 @@ void shake256_inc_squeeze_once(uint8_t *output, size_t outlen, shake256_inc_stat
 
 void shake256_setup(void) {
   shake256_inc_state_t s_inc;
-  s_inc.kmac = (dif_kmac_t) {
-    .base_addr = mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
+  s_inc.kmac = (dif_kmac_t){
+      .base_addr = mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
   };
   ABORT_IF_ERROR(
       dif_kmac_mode_shake_start(&s_inc.kmac, &s_inc.kmac_operation_state,
-        kDifKmacModeShakeLen256),
+                                kDifKmacModeShakeLen256),
       "sha256: error during hardware initial setup");
   // The above command configured KMAC hardware and also started a hashing
   // operation, so we now need to pretend to finish the hashing operation.
   uint8_t output = 0;
   shake256_inc_squeeze_once(&output, 1, &s_inc);
 }
-
 
 /*************************************************
  * Name:        shake256
@@ -186,11 +188,10 @@ void shake256_setup(void) {
  *              - const uint8_t *input: pointer to input
  *              - size_t inlen: length of input in bytes
  **************************************************/
-void shake256(uint8_t *output, size_t outlen,
-              const uint8_t *input, size_t inlen) {
+void shake256(uint8_t *output, size_t outlen, const uint8_t *input,
+              size_t inlen) {
   shake256_inc_state_t s_inc;
   shake256_inc_init(&s_inc);
   shake256_inc_absorb(&s_inc, input, inlen);
   shake256_inc_squeeze_once(output, outlen, &s_inc);
 }
-

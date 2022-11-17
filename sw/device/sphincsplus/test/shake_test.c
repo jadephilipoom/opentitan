@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "../fips202.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
-#include "../fips202.h"
 
 OTTF_DEFINE_TEST_CONFIG();
 

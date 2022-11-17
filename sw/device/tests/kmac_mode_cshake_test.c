@@ -6,8 +6,8 @@
 #include "sw/device/lib/base/macros.h"
 #include "sw/device/lib/base/mmio.h"
 #include "sw/device/lib/dif/dif_kmac.h"
-#include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/runtime/ibex.h"
+#include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
 
@@ -32,7 +32,6 @@ static uint32_t profile_end(uint64_t t_start) {
   return (uint32_t)cycles;
 }
 
-
 bool test_main(void) {
   LOG_INFO("Running KMAC DIF cSHAKE test...");
 
@@ -56,17 +55,16 @@ bool test_main(void) {
 
   /* 8kiB test */
   CHECK_DIF_OK(dif_kmac_mode_shake_start(&kmac, &kmac_operation_state,
-        kDifKmacModeShakeLen256));
+                                         kDifKmacModeShakeLen256));
 
   uint32_t input[128] = {0};
   for (size_t i = 0; i < 64; i++) {
-    CHECK_DIF_OK(dif_kmac_absorb(&kmac, &kmac_operation_state, input,
-          128, NULL));
+    CHECK_DIF_OK(
+        dif_kmac_absorb(&kmac, &kmac_operation_state, input, 128, NULL));
   }
 
   uint32_t out[8];
-  CHECK_DIF_OK(dif_kmac_squeeze(&kmac, &kmac_operation_state, out,
-        8, NULL));
+  CHECK_DIF_OK(dif_kmac_squeeze(&kmac, &kmac_operation_state, out, 8, NULL));
   CHECK_DIF_OK(dif_kmac_end(&kmac, &kmac_operation_state));
 
   uint32_t cycles = profile_end(t_start);
@@ -79,11 +77,10 @@ bool test_main(void) {
 
   for (size_t i = 0; i < 64; i++) {
     CHECK_DIF_OK(dif_kmac_mode_shake_start(&kmac, &kmac_operation_state,
-          kDifKmacModeShakeLen256));
-    CHECK_DIF_OK(dif_kmac_absorb(&kmac, &kmac_operation_state, input,
-          128, NULL));
-    CHECK_DIF_OK(dif_kmac_squeeze(&kmac, &kmac_operation_state, out,
-          8, NULL));
+                                           kDifKmacModeShakeLen256));
+    CHECK_DIF_OK(
+        dif_kmac_absorb(&kmac, &kmac_operation_state, input, 128, NULL));
+    CHECK_DIF_OK(dif_kmac_squeeze(&kmac, &kmac_operation_state, out, 8, NULL));
     CHECK_DIF_OK(dif_kmac_end(&kmac, &kmac_operation_state));
   }
 

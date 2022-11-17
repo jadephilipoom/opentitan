@@ -11,7 +11,7 @@
 #define CRYPTO_SECRETKEYBYTES SPX_SK_BYTES
 #define CRYPTO_PUBLICKEYBYTES SPX_PK_BYTES
 #define CRYPTO_BYTES SPX_BYTES
-#define CRYPTO_SEEDBYTES 3*SPX_N
+#define CRYPTO_SEEDBYTES 3 * SPX_N
 
 /*
  * Returns the length of a secret key, in bytes
@@ -36,8 +36,8 @@ unsigned long long crypto_sign_seedbytes(void);
 /**
  * Verifies a detached signature and message under a given public key.
  */
-int crypto_sign_verify(const uint8_t *sig, size_t siglen,
-                       const uint8_t *m, size_t mlen, const uint8_t *pk);
+int crypto_sign_verify(const uint8_t *sig, size_t siglen, const uint8_t *m,
+                       size_t mlen, const uint8_t *pk);
 
 /**
  * Verifies a given signature-message pair under a given public key.

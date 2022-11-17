@@ -1,21 +1,21 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "../fips202.h"
 #include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/status.h"
-#include "sw/device/lib/dif/dif_kmac.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
-#include "sw/device/lib/runtime/log.h"
+#include "sw/device/lib/dif/dif_kmac.h"
 #include "sw/device/lib/runtime/ibex.h"
+#include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/entropy_testutils.h"
 #include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
-
-#include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
-#include "../fips202.h"
 #include "test_params.h"
 
-#include xstr(TESTNAME/message_keys.inc)
+#include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
+
+#include xstr(TESTNAME / message_keys.inc)
 
 static const char testname[] = xstr(TESTNAME);
 
@@ -46,12 +46,11 @@ bool test_main() {
 
   // Initialize the CSRNG (using only TRNG, no sw seed material).
   entropy_seed_material_t empty_seed = {
-    .len = 0,
-    .data = {0},
+      .len = 0,
+      .data = {0},
   };
   entropy_testutils_auto_mode_init();
-  status_t status = entropy_csrng_instantiate(kHardenedBoolFalse,
-      &empty_seed);
+  status_t status = entropy_csrng_instantiate(kHardenedBoolFalse, &empty_seed);
   CHECK(status_ok(status));
 
   LOG_INFO("CSRNG initialized/instantiated successfully.");
@@ -59,7 +58,7 @@ bool test_main() {
   // Intialize KMAC hardware.
   dif_kmac_t kmac;
   CHECK(dif_kmac_init(mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
-        &kmac) == kDifOk);
+                      &kmac) == kDifOk);
 
   // Configure KMAC hardware (using software entropy).
   // TODO: Check that software entropy is OK here; should be because there are
@@ -77,7 +76,7 @@ bool test_main() {
    * verification. Its purpose here is to ensure the KMAC block is ready to
    * receive commands, since it needs to fetch some entropy at startup and this
    * lag otherwise interferes heavily with benchmarks.
-  */
+   */
   shake256_setup();
 
   LOG_INFO("KMAC initialized/instantiated successfully.");

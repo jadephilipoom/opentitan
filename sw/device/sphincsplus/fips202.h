@@ -18,11 +18,13 @@ void shake256_setup(void);
 
 // Incremental hashing interface.
 void shake256_inc_init(shake256_inc_state_t *s_inc);
-void shake256_inc_absorb(shake256_inc_state_t *s_inc, const uint8_t *input, size_t inlen);
-void shake256_inc_squeeze_once(uint8_t *output, size_t outlen, shake256_inc_state_t *s_inc);
+void shake256_inc_absorb(shake256_inc_state_t *s_inc, const uint8_t *input,
+                         size_t inlen);
+void shake256_inc_squeeze_once(uint8_t *output, size_t outlen,
+                               shake256_inc_state_t *s_inc);
 
 // One-shot hashing interface.
-void shake256(uint8_t *output, size_t outlen,
-              const uint8_t *input, size_t inlen);
+void shake256(uint8_t *output, size_t outlen, const uint8_t *input,
+              size_t inlen);
 
 #endif

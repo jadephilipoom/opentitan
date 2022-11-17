@@ -1,21 +1,21 @@
 /*
-This code was taken from the SPHINCS reference implementation and is public domain.
+This code was taken from the SPHINCS reference implementation and is public
+domain.
 */
 
 #include "randombytes.h"
 
 #include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/base/memory.h"
-#include "sw/device/lib/runtime/hart.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
+#include "sw/device/lib/runtime/hart.h"
 
-void randombytes(unsigned char *x, unsigned long xlen)
-{
+void randombytes(unsigned char *x, unsigned long xlen) {
   // Empty CSRNG seed material; we are not providing additional seed material
   // to CSRNG here.
   entropy_seed_material_t empty_seed = {
-    .len = 0,
-    .data = {0},
+      .len = 0,
+      .data = {0},
   };
 
   // If x is not word-aligned, write random bytes until it is.
