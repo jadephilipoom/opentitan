@@ -16,6 +16,7 @@
 #include "sw/device/lib/dif/dif_kmac.h"
 #include "sw/device/lib/runtime/hart.h"
 #include "sw/device/lib/runtime/log.h"
+#include "sw/device/sphincsplus/drivers/kmac.h"
 
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
 #include "kmac_regs.h"
@@ -164,18 +165,10 @@ void shake256_inc_squeeze_once(uint8_t *output, size_t outlen,
 }
 
 void shake256_setup(void) {
-  shake256_inc_state_t s_inc;
-  s_inc.kmac = (dif_kmac_t){
-      .base_addr = mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
-  };
-  ABORT_IF_ERROR(
-      dif_kmac_mode_shake_start(&s_inc.kmac, &s_inc.kmac_operation_state,
-                                kDifKmacModeShakeLen256),
-      "sha256: error during hardware initial setup");
-  // The above command configured KMAC hardware and also started a hashing
-  // operation, so we now need to pretend to finish the hashing operation.
-  uint8_t output = 0;
-  shake256_inc_squeeze_once(&output, 1, &s_inc);
+  if (kmac_shake256_configure() != kKmacErrorOk) {
+    LOG_ERROR("Error during KMAC configuration.");
+    abort();
+  }
 }
 
 /*************************************************

@@ -1,7 +1,10 @@
 #if !defined(WOTSX1_H_)
 #define WOTSX1_H_
 
+#include <stdint.h>
 #include <string.h>
+
+#include "context.h"
 
 /*
  * This is here to provide an interface to the internal wots_gen_leafx1

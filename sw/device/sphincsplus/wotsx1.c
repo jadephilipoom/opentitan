@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "address.h"
+#include "context.h"
 #include "hash.h"
 #include "params.h"
 #include "thash.h"

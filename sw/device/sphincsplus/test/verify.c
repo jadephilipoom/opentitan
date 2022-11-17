@@ -15,7 +15,9 @@
 
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
 
-#include xstr(TESTNAME / message_keys.inc)
+// clang-format off
+#include xstr(TESTNAME/message_keys.inc)
+// clang-format on
 
 static const char testname[] = xstr(TESTNAME);
 

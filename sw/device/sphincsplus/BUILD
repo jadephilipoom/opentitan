@@ -149,6 +149,7 @@ cc_library(
         "//sw/device/lib/dif:kmac",
         "//sw/device/lib/runtime:hart",
         "//sw/device/lib/runtime:log",
+        "//sw/device/sphincsplus/drivers:kmac",
     ],
 )
 
