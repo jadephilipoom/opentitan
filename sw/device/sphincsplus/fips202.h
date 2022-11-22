@@ -5,12 +5,12 @@
 #include <stdint.h>
 
 #include "sw/device/lib/dif/dif_kmac.h"
-
-#define SHAKE256_RATE 136
+#include "sw/device/sphincsplus/drivers/kmac.h"
 
 typedef struct shake256_inc_state {
   dif_kmac_t kmac;
   dif_kmac_operation_state_t kmac_operation_state;
+  kmac_squeeze_context_t squeeze_ctx;
 } shake256_inc_state_t;
 
 // Call this once to set up the hardware for SHAKE-256.

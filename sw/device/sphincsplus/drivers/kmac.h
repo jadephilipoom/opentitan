@@ -18,13 +18,13 @@ extern "C" {
 #endif  // __cplusplus
 
 typedef enum kmac_error {
-  kKmacErrorOk = 0,
+  kKmacOk = 0,
   kKmacErrorUnknown = 1,
 } kmac_error_t;
 
 typedef struct kmac_squeeze_context {
   /**
-   * Offset within the current Keccak state, in bytes.
+   * Offset within the current Keccak state, in words.
    */
   size_t state_offset;
 } kmac_squeeze_context_t;
@@ -46,7 +46,7 @@ kmac_error_t kmac_shake256_configure(void);
  * Must be called after `kmac_shake256_configure()`. Will block until KMAC
  * hardware is idle.
  *
- * This driver supports SHAKE-256 hashing with the following pattern: 
+ * This driver supports SHAKE-256 hashing with the following pattern:
  * - Exactly one call to `kmac_shake256_start`
  * - Zero or more calls to `kmac_shake256_absorb`
  * - Zero or more calls to `kmac_shake256_squeeze`
@@ -54,7 +54,7 @@ kmac_error_t kmac_shake256_configure(void);
  *
  * There is no need to append the `1111` padding in the SHAKE-256 specification
  * to the input; this will happen automatically when squeeze() is called for
- * the first time. 
+ * the first time.
  *
  * @return Error code indicating if the operation succeeded.
  */
@@ -62,7 +62,7 @@ OT_WARN_UNUSED_RESULT
 kmac_error_t kmac_shake256_start(void);
 
 /**
- * Absorb more input for a SHAKE-256 hashing operation. 
+ * Absorb more input for a SHAKE-256 hashing operation.
  *
  * The caller is responsible for calling `kmac_shake256_start()` first.
  *
@@ -76,27 +76,41 @@ kmac_error_t kmac_shake256_start(void);
  * @return Error code indicating if the operation succeeded.
  */
 OT_WARN_UNUSED_RESULT
-kmac_error_t kmac_shake256_absorb(uint8_t *in, size_t inlen);
+kmac_error_t kmac_shake256_absorb(const uint8_t *in, size_t inlen);
 
 /**
- * Squeeze output from a SHAKE-256 hashing operation. 
+ * Begin the squeezing phase of a SHAKE-256 hashing operation.
+ *
+ * This function will move from `absorb` to `squeeze` state and append the
+ * SHAKE-256 suffix to the message. It will also initialize the internal
+ * context object.
  *
  * The caller is responsible for calling `kmac_shake256_start()` first.
  *
- * Blocks until the all output is written.
- *
- * For best performance, `out` should be 32b-aligned, although this function
- * does handle unaligned buffers.
- *
- * @param out Output buffer
- * @param outlen Desired length of output (bytes)
+ * @param ctx KMAC squeezing context, initialized by this function
  * @return Error code indicating if the operation succeeded.
  */
 OT_WARN_UNUSED_RESULT
-kmac_error_t kmac_shake256_squeeze(uint8_t *out, size_t outlen, kmac_squeeze_context_t *ctx);
+kmac_error_t kmac_shake256_squeeze_start(kmac_squeeze_context_t *ctx);
 
 /**
- * Finish a SHAKE-256 hashing operation. 
+ * Squeeze output from a SHAKE-256 hashing operation.
+ *
+ * The caller is responsible for calling `kmac_shake256_squeeze_start()` first.
+ *
+ * Blocks until all output is written.
+ *
+ * @param out Output buffer
+ * @param outlen Desired length of output (in words)
+ * @param ctx KMAC squeezing context
+ * @return Error code indicating if the operation succeeded.
+ */
+OT_WARN_UNUSED_RESULT
+kmac_error_t kmac_shake256_squeeze(uint32_t *out, size_t outlen,
+                                   kmac_squeeze_context_t *ctx);
+
+/**
+ * Finish a SHAKE-256 hashing operation.
  *
  * The caller is responsible for calling this after every hashing operation is
  * complete.

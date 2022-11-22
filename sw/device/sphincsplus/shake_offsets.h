@@ -6,12 +6,14 @@
  * the Sphincs+ hash function
  */
 
-#define SPX_OFFSET_LAYER 3 /* The byte used to specify the Merkle tree layer \
-                            */
+#define SPX_OFFSET_LAYER                              \
+  3 /* The byte used to specify the Merkle tree layer \
+     */
 #define SPX_OFFSET_TREE \
   8 /* The start of the 8 byte field used to specify the tree */
-#define SPX_OFFSET_TYPE 19 /* The byte used to specify the hash type (reason) \
-                            */
+#define SPX_OFFSET_TYPE                                 \
+  19 /* The byte used to specify the hash type (reason) \
+      */
 #define SPX_OFFSET_KP_ADDR2                                                   \
   22 /* The high byte used to specify the key pair (which one-time signature) \
       */
