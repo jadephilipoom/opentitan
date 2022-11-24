@@ -13,7 +13,6 @@
 #include "sw/device/lib/base/bitfield.h"
 #include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/mmio.h"
-#include "sw/device/lib/dif/dif_kmac.h"
 #include "sw/device/lib/runtime/hart.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/sphincsplus/drivers/kmac.h"

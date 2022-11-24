@@ -5,7 +5,6 @@
 #include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/status.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
-#include "sw/device/lib/dif/dif_kmac.h"
 #include "sw/device/lib/runtime/ibex.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/entropy_testutils.h"
@@ -56,30 +55,6 @@ bool test_main() {
   CHECK(status_ok(status));
 
   LOG_INFO("CSRNG initialized/instantiated successfully.");
-
-  // Intialize KMAC hardware.
-  dif_kmac_t kmac;
-  CHECK(dif_kmac_init(mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
-                      &kmac) == kDifOk);
-
-  // Configure KMAC hardware (using software entropy).
-  // TODO: Check that software entropy is OK here; should be because there are
-  // no secret inputs.
-  dif_kmac_config_t config = (dif_kmac_config_t){
-      .entropy_mode = kDifKmacEntropyModeSoftware,
-      .entropy_seed = {0},
-      .entropy_fast_process = kDifToggleEnabled,
-  };
-  CHECK(dif_kmac_configure(&kmac, config) == kDifOk);
-
-  /* Set up the hardware to run SHAKE-256.
-   *
-   * NOTE: this is redundant, since the setup also happens within the signature
-   * verification. Its purpose here is to ensure the KMAC block is ready to
-   * receive commands, since it needs to fetch some entropy at startup and this
-   * lag otherwise interferes heavily with benchmarks.
-   */
-  shake256_setup();
 
   LOG_INFO("KMAC initialized/instantiated successfully.");
 

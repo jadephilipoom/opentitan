@@ -6,8 +6,6 @@
 #include "../context.h"
 #include "../fips202.h"
 #include "sw/device/lib/base/memory.h"
-#include "sw/device/lib/crypto/drivers/entropy.h"
-#include "sw/device/lib/dif/dif_kmac.h"
 #include "sw/device/lib/runtime/ibex.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/entropy_testutils.h"
@@ -23,11 +21,17 @@ static const spx_ctx test_ctx __attribute__((aligned(sizeof(uint32_t)))) = {
     .sk_seed = {0},
 };
 
+/*
 // Values for chain length 3 (thash simple)
 static const size_t chain_len = 3;
 static const uint8_t exp_result[SPX_N] = {0x7d, 0x61, 0x27, 0x2f, 0xd8, 0x14,
                                           0x33, 0x7a, 0x62, 0xcd, 0x80, 0x7b,
                                           0x2a, 0x96, 0x4d, 0x10};
+*/
+
+// Values for chain length 3 (thash robust)
+static const size_t chain_len = 3;
+static const uint8_t exp_result[SPX_N] = {0xef, 0x68, 0xeb, 0x85, 0xfb, 0x68, 0xef, 0x3c, 0xa5, 0xd6, 0xa0, 0x4f, 0x2a, 0x6e, 0xbc, 0xb7};
 
 // Values for chain length 10 (thash simple)
 /*
@@ -65,28 +69,6 @@ static void chain_test(uint8_t *out, uint32_t addr[8]) {
 }
 
 static void test_setup(void) {
-  // Initialize the CSRNG (using only TRNG, no sw seed material).
-  entropy_seed_material_t empty_seed = {
-      .len = 0,
-      .data = {0},
-  };
-  entropy_testutils_auto_mode_init();
-  status_t status = entropy_csrng_instantiate(kHardenedBoolFalse, &empty_seed);
-  CHECK(status_ok(status));
-
-  // Intialize KMAC hardware.
-  dif_kmac_t kmac;
-  CHECK(dif_kmac_init(mmio_region_from_addr(TOP_EARLGREY_KMAC_BASE_ADDR),
-                      &kmac) == kDifOk);
-
-  // Configure KMAC hardware using software entropy.
-  dif_kmac_config_t config = (dif_kmac_config_t){
-      .entropy_mode = kDifKmacEntropyModeSoftware,
-      .entropy_seed = {0},
-      .entropy_fast_process = kDifToggleEnabled,
-  };
-  CHECK(dif_kmac_configure(&kmac, config) == kDifOk);
-
   // Set the configuration to SHAKE-256.
   shake256_setup();
 }

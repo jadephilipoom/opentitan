@@ -146,7 +146,6 @@ cc_library(
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/base:mmio",
-        "//sw/device/lib/dif:kmac",
         "//sw/device/lib/runtime:hart",
         "//sw/device/lib/runtime:log",
         "//sw/device/sphincsplus/drivers:kmac",
