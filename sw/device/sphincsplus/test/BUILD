@@ -180,6 +180,7 @@ opentitan_functest(
         timeout = "long",
     ),
     deps = [
+        "//sw/device/lib/base:macros",
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/sphincsplus:fips202",
