@@ -9,8 +9,10 @@
 | shake-128s-simple | 6381ad |  2 611 144 |
 | shake-128s-simple | 47c9f1 |  1 612 383 |
 | shake-128s-simple | 7aa10f |  1 447 174 |
+| shake-128s-simple | 0694b7 |  1 372 591 |
 | shake-128s-robust | 26861b |  6 681 864 |
 | shake-128s-robust | ba2abf |  4 817 560 |
+| shake-128s-simple | 0694b7 |  3 102 582 |
 | shake-128f-simple | 611485 | 10 330 971 |
 | shake-128f-robust | 75b246 | 17 612 392 |
 | shake-192s-simple | 75b246 |  6 253 183 |
@@ -18,8 +20,9 @@
 
 ### Bazel command for benchmarks
 
-To run the verification benchmark on Verilator, write the following and replace
-`shake_128s_simple` with the desired parameter set.
+To run the verification benchmark on Verilator, write the following and replace `shake_128s_simple` with the desired parameter set.
+To run on FPGA, replace `verify_test_sim_verilator` with `verify_test_fpga_cw310_test_rom`.
+Note that cycle counts on FPGA may be slightly different (currently under investigation).
 
 ```
 bazel test \
@@ -47,5 +50,5 @@ I00008 ottf_main.c:100] Finished sw/device/sphincsplus/test/verify.c
 I00008 status.c:28] PASS!
 ```
 
-Small tests take around five minutes on Verilator on a laptop; larger tests
-will take significantly longer.
+The smallest tests take around ten minutes on Verilator on a laptop.
+Larger tests will take significantly longer, approximately in proportion to the cycle counts.
