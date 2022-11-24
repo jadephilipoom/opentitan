@@ -123,20 +123,17 @@ static inline void msg_fifo_write(const uint8_t *in, size_t len) {
 /**
  * Read `len` words from the KMAC block's state registers.
  *
- * If `len` is greater than the number of bytes available (as determined from
- * `offset` and the SHAKE-256 Keccak rate), then this function will read the
- * remaining available bytes into `out` and return the number of words read.
+ * The caller should ensure that KMAC is in the "squeeze" state and that `len +
+ * ctx->state_offset` is less than or equal to the SHAKE256 rate (i.e. that
+ * there are enough bytes left in the state to read).
  *
  * @param out Output buffer
  * @param len Desired length of output (in words)
  * @param ctx KMAC squeeze context
- * @returns Number of words read into `out`
  */
-static size_t kmac_state_read(uint32_t *out, size_t len,
-                              kmac_squeeze_context_t *ctx) {
-  const size_t max_len = kShake256KeccakRateWords - ctx->state_offset;
-  size_t read_len = (max_len < len) ? max_len : len;
-  for (size_t i = 0; i < read_len; ++i) {
+static void kmac_state_read(uint32_t *out, size_t len,
+                            kmac_squeeze_context_t *ctx) {
+  for (size_t i = 0; i < len; i++) {
     // Read both shares from state register and combine using XOR.
     uint32_t share0 = abs_mmio_read32(kAddrStateShare0 +
                                       ctx->state_offset * sizeof(uint32_t));
@@ -145,7 +142,6 @@ static size_t kmac_state_read(uint32_t *out, size_t len,
     out[i] = share0 ^ share1;
     ctx->state_offset++;
   }
-  return read_len;
 }
 
 /**
@@ -242,14 +238,15 @@ kmac_error_t kmac_shake256_absorb(const uint8_t *in, size_t inlen) {
   // Block until KMAC hardware is in the `absorb` state.
   RETURN_IF_ERROR(poll_state(KMAC_STATUS_SHA3_ABSORB_BIT));
 
-  while (0 < inlen) {
+  size_t idx = 0;
+  while (idx < inlen) {
     uint32_t status = abs_mmio_read32(kBase + KMAC_STATUS_REG_OFFSET);
     uint32_t fifo_depth =
         bitfield_field32_read(status, KMAC_STATUS_FIFO_DEPTH_FIELD);
     size_t max_len = KMAC_MSG_FIFO_SIZE_BYTES - fifo_depth;
-    size_t write_len = (inlen < max_len) ? inlen : max_len;
-    msg_fifo_write(in, write_len);
-    inlen -= write_len;
+    size_t write_len = ((inlen - idx) < max_len) ? (inlen - idx) : max_len;
+    msg_fifo_write(&in[idx], write_len);
+    idx += write_len;
   }
 
   return kKmacOk;
@@ -270,13 +267,17 @@ kmac_error_t kmac_shake256_squeeze_start(kmac_squeeze_context_t *ctx) {
 
 kmac_error_t kmac_shake256_squeeze(uint32_t *out, size_t outlen,
                                    kmac_squeeze_context_t *ctx) {
-  while (outlen > 0) {
+  size_t idx = 0;
+  while (idx < outlen) {
     // Poll the status register until in the 'squeeze' state.
     RETURN_IF_ERROR(poll_state(KMAC_STATUS_SHA3_SQUEEZE_BIT));
 
     // Read words from the state registers (either `outlen` or the maximum
     // number of words available).
-    outlen -= kmac_state_read(out, outlen, ctx);
+    const size_t max_len = kShake256KeccakRateWords - ctx->state_offset;
+    size_t read_len = (max_len < (outlen - idx)) ? max_len : (outlen - idx);
+    kmac_state_read(&out[idx], read_len, ctx);
+    idx += read_len;
 
     // If the context now indicates we're at the end of the usable state, issue
     // `CMD.RUN` to generate more state.

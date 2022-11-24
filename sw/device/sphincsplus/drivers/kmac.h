@@ -49,12 +49,12 @@ kmac_error_t kmac_shake256_configure(void);
  * This driver supports SHAKE-256 hashing with the following pattern:
  * - Exactly one call to `kmac_shake256_start`
  * - Zero or more calls to `kmac_shake256_absorb`
+ * - Exactly one call to `kmac_shake256_squeeze_start`
  * - Zero or more calls to `kmac_shake256_squeeze`
  * - Exactly one call to `kmac_shake256_end`
  *
  * There is no need to append the `1111` padding in the SHAKE-256 specification
- * to the input; this will happen automatically when squeeze() is called for
- * the first time.
+ * to the input; this will happen automatically in squeeze_start().
  *
  * @return Error code indicating if the operation succeeded.
  */
