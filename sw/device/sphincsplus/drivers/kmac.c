@@ -131,16 +131,12 @@ static inline void msg_fifo_write(const uint8_t *in, size_t len) {
  * @param len Desired length of output (in words)
  * @param ctx KMAC squeeze context
  */
-static void kmac_state_read(uint32_t *out, size_t len,
-                            kmac_squeeze_context_t *ctx) {
+static void kmac_state_read(uint32_t *out, size_t len, size_t offset) {
   for (size_t i = 0; i < len; i++) {
     // Read both shares from state register and combine using XOR.
-    uint32_t share0 = abs_mmio_read32(kAddrStateShare0 +
-                                      ctx->state_offset * sizeof(uint32_t));
-    uint32_t share1 = abs_mmio_read32(kAddrStateShare1 +
-                                      ctx->state_offset * sizeof(uint32_t));
+    uint32_t share0 = abs_mmio_read32(kAddrStateShare0 + (offset + i) * sizeof(uint32_t));
+    uint32_t share1 = abs_mmio_read32(kAddrStateShare1 + (offset + i) * sizeof(uint32_t));
     out[i] = share0 ^ share1;
-    ctx->state_offset++;
   }
 }
 
@@ -274,14 +270,15 @@ kmac_error_t kmac_shake256_squeeze(uint32_t *out, size_t outlen,
 
     // Read words from the state registers (either `outlen` or the maximum
     // number of words available).
-    const size_t max_len = kShake256KeccakRateWords - ctx->state_offset;
+    size_t max_len = kShake256KeccakRateWords - ctx->state_offset;
     size_t read_len = (max_len < (outlen - idx)) ? max_len : (outlen - idx);
-    kmac_state_read(&out[idx], read_len, ctx);
+    kmac_state_read(&out[idx], read_len, ctx->state_offset);
     idx += read_len;
+    ctx->state_offset += read_len;
 
-    // If the context now indicates we're at the end of the usable state, issue
-    // `CMD.RUN` to generate more state.
-    if (ctx->state_offset == kShake256KeccakRateWords) {
+    // If we read all the remaining words, issue `CMD.RUN` to generate more
+    // state.
+    if (read_len == max_len) {
       issue_command(KMAC_CMD_CMD_VALUE_RUN);
       ctx->state_offset = 0;
     }

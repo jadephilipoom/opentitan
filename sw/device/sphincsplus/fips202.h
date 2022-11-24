@@ -6,9 +6,7 @@
 
 #include "sw/device/sphincsplus/drivers/kmac.h"
 
-typedef struct shake256_inc_state {
-  kmac_squeeze_context_t squeeze_ctx;
-} shake256_inc_state_t;
+typedef kmac_squeeze_context_t shake256_inc_state_t;
 
 // Call this once to set up the hardware for SHAKE-256.
 void shake256_setup(void);

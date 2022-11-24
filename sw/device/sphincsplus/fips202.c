@@ -42,7 +42,7 @@ void shake256_inc_absorb(shake256_inc_state_t *s_inc, const uint8_t *input,
 static void shake256_inc_squeezeblocks(uint32_t *output, size_t outlen_words,
                                        shake256_inc_state_t *s_inc) {
   ABORT_IF_ERROR(
-      kmac_shake256_squeeze(output, outlen_words, &s_inc->squeeze_ctx),
+      kmac_shake256_squeeze(output, outlen_words, s_inc),
       "shake256: error during squeeze.");
 }
 
@@ -53,21 +53,20 @@ static void shake256_inc_squeezeblocks(uint32_t *output, size_t outlen_words,
 static void shake256_inc_squeeze_once_aligned(uint8_t *output, size_t outlen,
                                               shake256_inc_state_t *s_inc) {
   // Start squeezing stage.
-  ABORT_IF_ERROR(kmac_shake256_squeeze_start(&s_inc->squeeze_ctx),
+  ABORT_IF_ERROR(kmac_shake256_squeeze_start(s_inc),
                  "shake256: error during squeeze start.");
 
   size_t outlen_words = outlen / sizeof(uint32_t);
   if (outlen_words > 0) {
     shake256_inc_squeezeblocks((uint32_t *)output, outlen_words, s_inc);
-    output += outlen_words * sizeof(uint32_t);
-    outlen = outlen_words % sizeof(uint32_t);
+    outlen = outlen % sizeof(uint32_t);
   }
 
   // Squeeze remaining bytes (if any).
   if (outlen > 0) {
     uint32_t buf;
     shake256_inc_squeezeblocks(&buf, 1, s_inc);
-    memcpy(output, &buf, outlen);
+    memcpy(&output[outlen_words * sizeof(uint32_t)], &buf, outlen);
   }
 
   // XXX: this will not work for repeated squeezing! It just so happens that we
@@ -81,18 +80,8 @@ void shake256_inc_squeeze_once(uint8_t *output, size_t outlen,
     // Output buffer is aligned; use it directly.
     shake256_inc_squeeze_once_aligned(output, outlen, s_inc);
   } else {
-    // Output buffer is misaligned; write to an aligned buffer and later copy.
-    size_t outlen_words = outlen / sizeof(uint32_t);
-    if (outlen % sizeof(uint32_t) != 0) {
-      outlen_words++;
-    }
-    uint32_t aligned_output[outlen_words];
-    shake256_inc_squeeze_once_aligned((uint8_t *)aligned_output, outlen, s_inc);
-
-    // TODO: consider ways to avoid this copying, e.g. adjusting the KMAC
-    // driver to handle misaligned input buffers internally or changing a lot
-    // of byte buffers to word buffers everywhere.
-    memcpy(output, aligned_output, outlen);
+    LOG_ERROR("sha256: error: output misaligned.");
+    abort();
   }
 }
 
