@@ -28,7 +28,7 @@ static __attribute__((noinline)) uint32_t profile_end(uint64_t t_start) {
 static __attribute__((noinline)) uint32_t add_test(const uint32_t a, const uint32_t b, uint32_t *res) {
   uint64_t t_start = profile_start();
   *res = a + b;
-  return launder32(profile_end(t_start));
+  return profile_end(t_start);
 }
 
 /**
