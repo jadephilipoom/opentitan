@@ -1,6 +1,5 @@
 #include <stdint.h>
 
-#include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/runtime/ibex.h"
 #include "sw/device/lib/runtime/print.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
@@ -40,10 +39,8 @@ static __attribute__((noinline)) void print_cycles(const char *name, const uint3
 }
 
 bool test_main() {
-  uint32_t a = launder32(5678);
-  uint32_t b = launder32(1234);
-  barrier32(a);
-  barrier32(b);
+  uint32_t a = 5678;
+  uint32_t b = 1234;
 
   uint32_t sum;
   uint32_t add_cycles = add_test(a, b, &sum);
