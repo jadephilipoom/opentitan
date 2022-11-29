@@ -24,10 +24,8 @@ static __attribute__((noinline)) uint32_t profile_end(uint64_t t_start) {
   return (uint32_t)cycles;
 }
 
-static __attribute__((noinline)) uint32_t add_test(const uint32_t a, const uint32_t b, uint32_t *res) {
-  uint64_t t_start = profile_start();
-  *res = a + b;
-  return profile_end(t_start);
+static __attribute__((noinline)) uint32_t add32(const uint32_t a, const uint32_t b) {
+  return a + b;
 }
 
 /**
@@ -42,8 +40,9 @@ bool test_main() {
   uint32_t a = 5678;
   uint32_t b = 1234;
 
-  uint32_t sum;
-  uint32_t add_cycles = add_test(a, b, &sum);
+  uint64_t t_start = profile_start();
+  uint32_t sum = add32(a, b);
+  uint32_t add_cycles = profile_end(t_start);
 
   print_cycles("add", add_cycles);
 
