@@ -31,6 +31,10 @@ static __attribute__((noinline)) uint32_t add_test(const uint32_t a, const uint3
   return launder32(profile_end(t_start));
 }
 
+/**
+ * Custom noinline function instead of LOG_INFO to prevent printing from being
+ * inlined/reordered with other instructions.
+ */
 static __attribute__((noinline)) void print_cycles(const char *name, const uint32_t cycles) {
   base_printf("  %s took %u cycles\n", name, cycles);
 }
@@ -43,9 +47,6 @@ bool test_main() {
 
   uint32_t sum;
   uint32_t add_cycles = add_test(a, b, &sum);
-
-  uint64_t rem;
-  udiv64_slow(a, b, &rem);
 
   print_cycles("add", add_cycles);
 

@@ -1952,7 +1952,7 @@ opentitan_functest(
     srcs = ["timing_test.c"],
     deps = [
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
-        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/runtime:print",
         "//sw/device/lib/testing/test_framework:check",
         "//sw/device/lib/testing/test_framework:ottf_main",
     ],
