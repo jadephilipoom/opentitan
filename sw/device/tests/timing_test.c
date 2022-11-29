@@ -4,36 +4,27 @@
 #include "sw/device/lib/base/csr.h"
 #include "sw/device/lib/runtime/ibex.h"
 #include "sw/device/lib/runtime/print.h"
+#include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
 
 OTTF_DEFINE_TEST_CONFIG();
 
-/**
- * Start a cycle-count timing profile.
- */
-static __attribute__((noinline)) uint64_t profile_start() {
+static __attribute__((noinline)) uint64_t mcycle_read() {
   return ibex_mcycle_read();
-}
-
-/**
- * End a cycle-count timing profile.
- *
- * Call `profile_start()` first.
- */
-static __attribute__((noinline)) uint32_t profile_end(uint64_t t_start) {
-  uint64_t t_end = ibex_mcycle_read();
-  uint64_t cycles = t_end - t_start;
-  return (uint32_t)cycles;
 }
 
 /**
  * Custom noinline function instead of LOG_INFO to prevent printing from being
  * inlined/reordered with other instructions.
  */
-static __attribute__((noinline)) void print_cycles(const char *name, const uint32_t cycles) {
-  base_printf("  %s took %u cycles\n", name, cycles);
+static __attribute__((noinline)) void print_cycles(const uint64_t cycles) {
+  CHECK(cycles <= UINT32_MAX);
+  base_printf("  %u cycles\n", (uint32_t) cycles);
 }
 
+/**
+ * Disable instruction cache to prevent timing interference from setup.
+ */
 static __attribute__((noinline)) void disable_icache(void) {
   uint32_t cpuctrl;
   CSR_READ(CSR_REG_CPUCTRL, &cpuctrl);
@@ -47,10 +38,11 @@ static __attribute__((noinline)) void disable_icache(void) {
 bool test_main(void) {
   disable_icache();
 
-  uint64_t t_start = profile_start();
-  uint32_t cycles = profile_end(t_start);
+  uint64_t t_start = mcycle_read();
+  uint64_t t_end = mcycle_read();
+  uint64_t cycles = t_end - t_start;
 
-  print_cycles("nothing", cycles);
+  print_cycles(cycles);
 
   return true;
 }
