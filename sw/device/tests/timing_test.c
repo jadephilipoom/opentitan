@@ -24,10 +24,6 @@ static __attribute__((noinline)) uint32_t profile_end(uint64_t t_start) {
   return (uint32_t)cycles;
 }
 
-static __attribute__((noinline)) uint32_t add32(const uint32_t a, const uint32_t b) {
-  return a + b;
-}
-
 /**
  * Custom noinline function instead of LOG_INFO to prevent printing from being
  * inlined/reordered with other instructions.
@@ -36,15 +32,11 @@ static __attribute__((noinline)) void print_cycles(const char *name, const uint3
   base_printf("  %s took %u cycles\n", name, cycles);
 }
 
-bool test_main() {
-  uint32_t a = 5678;
-  uint32_t b = 1234;
-
+bool test_main(void) {
   uint64_t t_start = profile_start();
-  uint32_t sum = add32(a, b);
-  uint32_t add_cycles = profile_end(t_start);
+  uint32_t cycles = profile_end(t_start);
 
-  print_cycles("add", add_cycles);
+  print_cycles("nothing", cycles);
 
   return true;
 }
