@@ -79,6 +79,16 @@ config_setting(
     flag_values = {":spx_params": "shake_256s_robust"},
 )
 
+# [Experimental] Configurations for SPHINCS+ variant with max. 2^20 sigs.
+config_setting(
+    name = "shake_128s_low_max_sigs_simple",
+    flag_values = {":spx_params": "shake_128s_low_max_sigs_simple"},
+)
+config_setting(
+    name = "shake_128s_low_max_sigs_robust",
+    flag_values = {":spx_params": "shake_128s_low_max_sigs_robust"},
+)
+
 # Setting groups for the SPHINCS+ thash setting (simple/robust).
 selects.config_setting_group(
     name = "thash_simple",
@@ -89,6 +99,7 @@ selects.config_setting_group(
         ":shake_192s_simple",
         ":shake_256f_simple",
         ":shake_256s_simple",
+        ":shake_128s_low_max_sigs_simple",
     ],
 )
 
@@ -101,6 +112,7 @@ selects.config_setting_group(
         ":shake_192s_robust",
         ":shake_256f_robust",
         ":shake_256s_robust",
+        ":shake_128s_low_max_sigs_robust",
     ],
 )
 
@@ -203,6 +215,7 @@ cc_library(
         "//sw/device/sphincsplus/params:params-sphincs-shake-192s.h",
         "//sw/device/sphincsplus/params:params-sphincs-shake-256f.h",
         "//sw/device/sphincsplus/params:params-sphincs-shake-256s.h",
+        "//sw/device/sphincsplus/params:params-sphincs-shake-128s-low-max-sigs.h",
     ],
     defines =
         select({
@@ -218,6 +231,8 @@ cc_library(
             ":shake_192s_robust": ["PARAMS=sphincs-shake-192s"],
             ":shake_256f_robust": ["PARAMS=sphincs-shake-256f"],
             ":shake_256s_robust": ["PARAMS=sphincs-shake-256s"],
+            ":shake_128s_low_max_sigs_simple": ["PARAMS=sphincs-shake-128s-low-max-sigs"],
+            ":shake_128s_low_max_sigs_robust": ["PARAMS=sphincs-shake-128s-low-max-sigs"],
         }),
 )
 

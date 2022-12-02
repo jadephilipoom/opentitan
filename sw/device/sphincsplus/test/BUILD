@@ -13,97 +13,6 @@ load(
     "verilator_params",
 )
 
-# Custom flag for specifying the SPHINCS+ parameter set.
-string_flag(
-    name = "spx_params",
-    build_setting_default = "shake_128f_simple",
-)
-
-config_setting(
-    name = "shake_128f_simple",
-    flag_values = {":spx_params": "shake_128f_simple"},
-)
-
-config_setting(
-    name = "shake_128s_simple",
-    flag_values = {":spx_params": "shake_128s_simple"},
-)
-
-config_setting(
-    name = "shake_192f_simple",
-    flag_values = {":spx_params": "shake_192f_simple"},
-)
-
-config_setting(
-    name = "shake_192s_simple",
-    flag_values = {":spx_params": "shake_192s_simple"},
-)
-
-config_setting(
-    name = "shake_256f_simple",
-    flag_values = {":spx_params": "shake_256f_simple"},
-)
-
-config_setting(
-    name = "shake_256s_simple",
-    flag_values = {":spx_params": "shake_256s_simple"},
-)
-
-config_setting(
-    name = "shake_128f_robust",
-    flag_values = {":spx_params": "shake_128f_robust"},
-)
-
-config_setting(
-    name = "shake_128s_robust",
-    flag_values = {":spx_params": "shake_128s_robust"},
-)
-
-config_setting(
-    name = "shake_192f_robust",
-    flag_values = {":spx_params": "shake_192f_robust"},
-)
-
-config_setting(
-    name = "shake_192s_robust",
-    flag_values = {":spx_params": "shake_192s_robust"},
-)
-
-config_setting(
-    name = "shake_256f_robust",
-    flag_values = {":spx_params": "shake_256f_robust"},
-)
-
-config_setting(
-    name = "shake_256s_robust",
-    flag_values = {":spx_params": "shake_256s_robust"},
-)
-
-# Setting groups for the SPHINCS+ thash setting (simple/robust).
-selects.config_setting_group(
-    name = "thash_simple",
-    match_any = [
-        ":shake_128f_simple",
-        ":shake_128s_simple",
-        ":shake_192f_simple",
-        ":shake_192s_simple",
-        ":shake_256f_simple",
-        ":shake_256s_simple",
-    ],
-)
-
-selects.config_setting_group(
-    name = "thash_robust",
-    match_any = [
-        ":shake_128f_robust",
-        ":shake_128s_robust",
-        ":shake_192f_robust",
-        ":shake_192s_robust",
-        ":shake_256f_robust",
-        ":shake_256s_robust",
-    ],
-)
-
 opentitan_functest(
     name = "verify_test",
     srcs = ["verify.c"],
@@ -121,6 +30,8 @@ opentitan_functest(
         "//sw/device/sphincsplus:shake_192s_robust": ["TESTNAME=sphincs-shake-192s-robust"],
         "//sw/device/sphincsplus:shake_256f_robust": ["TESTNAME=sphincs-shake-256f-robust"],
         "//sw/device/sphincsplus:shake_256s_robust": ["TESTNAME=sphincs-shake-256s-robust"],
+        "//sw/device/sphincsplus:shake_128s_low_max_sigs_simple": ["TESTNAME=sphincs-shake-128s-low-max-sigs-simple"],
+        "//sw/device/sphincsplus:shake_128s_low_max_sigs_robust": ["TESTNAME=sphincs-shake-128s-low-max-sigs-robust"],
     }),
     verilator = verilator_params(
         timeout = "eternal",
@@ -169,6 +80,12 @@ opentitan_functest(
         ],
         "//sw/device/sphincsplus:shake_256s_robust": [
             "//sw/device/sphincsplus/test/sphincs-shake-256s-robust:message_keys",
+        ],
+        "//sw/device/sphincsplus:shake_128s_low_max_sigs_simple": [
+            "//sw/device/sphincsplus/test/sphincs-shake-128s-low-max-sigs-simple:message_keys",
+        ],
+        "//sw/device/sphincsplus:shake_128s_low_max_sigs_robust": [
+            "//sw/device/sphincsplus/test/sphincs-shake-128s-low-max-sigs-robust:message_keys",
         ],
     }),
 )
