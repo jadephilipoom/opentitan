@@ -10,6 +10,26 @@ load(
     "verilator_params",
 )
 
+cc_library(
+    name = "message_keys",
+    hdrs = ["message_keys.inc"],
+)
+
+opentitan_functest(
+    name = "verify_test",
+    srcs = ["verify_test.c"],
+    verilator = verilator_params(
+        timeout = "eternal",
+    ),
+    deps = [
+        "message_keys",
+        "//sw/device/lib/base:memory",
+        "//sw/device/lib/runtime:ibex",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:verify",
+    ],
+)
+
 opentitan_functest(
     name = "fors_test",
     srcs = ["fors_test.c"],
