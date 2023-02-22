@@ -1,0 +1,3496 @@
+---
+title: "OpenTitan Crypto Library Specification"
+---
+
+Status: **RFC Approved by TC: 2022-05-13**
+
+## Objective
+
+This document is intended for users of the OpenTitan crypto library. It
+defines C interfaces (APIs) and data structures to perform the required
+cryptographic operations such as encryption, signature generation etc.,
+and lists implementation specific details that are opaque to a user.
+
+The cryptographic API is defined for the following crypto modes:
+- Symmetric ciphers (AES)
+- Authenticated Encryption (AES-GCM, AES-KWP)
+- Message digest (SHA2, SHA3)
+- Keyed message digest (HMAC, KMAC)
+- Signature generation and verification (RSA, ECC)
+- Random number generation (DRBG)
+- Key derivation (KDF)
+
+Some of these crypto modes can operate on streaming data and several
+modes support asynchronous (non-blocking) modes of operation. These are
+discussed in the later part of this specification.
+
+## Symbols and Abbreviations
+
+The following abbreviations are used in this specification
+- **AAD**: Additional Authenticated Data
+- **AD**: Authenticated Decryption
+- **AE**: Authenticated Encryption
+- **AES**: Advanced Encryption Standard
+- **CAVP**: Cryptographic Algorithm Validation Program
+- **CFB**: Cipher Feedback mode
+- **CMAC**: Cipher-based Message Authentication Code
+- **CTR**: Counter mode
+- **DH**: Diffie–Hellman algorithm
+- **DRBG**: Deterministic Random Bit Generator
+- **DSA**: Digital Signature Algorithm
+- **ECB**: Electronic Codebook mode
+- **ECC**: Elliptic Curve Cryptography
+- **ECDH**: Elliptic Curve Diffie–Hellman
+- **ECDSA**: Elliptic Curve Digital Signature Algorithm
+- **FIPS**: Federal Information Processing Standard
+- **GCM**: Galois Counter Mode
+- **HMAC**: Keyed-Hash Message Authentication Code
+- **ICV**: Integrity Check Value
+- **IETF**: Internet Engineering Task Force
+- **IV**: Initialization Vector
+- **KDF**: Key Derivation Function
+- **KEK**: Key-Encryption-Key
+- **KMAC**: KECCAK Message Authentication Code
+- **KWP**: AES Key Wrap with Padding
+- **MAC**: Message Authentication Code
+- **NIST**: National Institute of Standards and Technology
+- **NRBG**: Non-deterministic Random Bit Generator
+- **PKCS**: Public-Key Cryptography Standards
+- **PRF**: Pseudorandom Function
+- **PSS**: Probabilistic Signature Scheme
+- **RSA**: Rivest–Shamir–Adleman, a public-key cryptosystem
+- **RSASSA**: RSA Signature Schemes with Appendix
+- **SHA**: Secure Hash Algorithm
+- **XOF**: eXtendable-Output Function
+
+## Final list of crypto algorithms and modes
+
+The was used to capture the required cryptographic support in OpenTitan.
+Based on the inputs from the cryptographic use case table, a list of
+crypto algorithms (and modes) for which an API needs to be exposed are
+identified and are listed.
+
+**Symmetric crypto**
+-   AES-ECB
+-   AES-CBC
+-   AES-CFB
+-   AES-OFB
+-   AES-CTR
+-   AES-KWP
+
+**Authenticated Encryption**
+-   AES-GCM
+
+**HASH**
+-   SHA2-256
+-   SHA2-384
+-   SHA2-512
+-   SHA3-224
+-   SHA3-256
+-   SHA3-384
+-   SHA3-512
+
+**HASH-XOF**
+-   SHAKE128
+-   SHAKE256
+-   cSHAKE128
+-   cSHAKE256
+
+**MAC**
+-   HMAC-SHA256
+-   KMAC128
+-   KMAC256
+
+**DRBG**
+-   CTR DRBG
+
+**Streaming mode**
+-   HASH (SHA2 modes only)
+-   HMAC (HMAC-SHA256 only)
+
+**KeyGen**
+-   AES Keygen (all modes)
+-   HMAC Keygen
+-   KMAC Keygen
+-   RSA Keygen
+-   ECDSA Keygen
+-   ECDH Keygen
+-   Ed25519 Keygen
+-   X25519 Keygen
+
+**Asymmetric crypto**
+
+-   RSA (Signature, Verification)
+-   ECDSA (Signature, Verification)
+-   ECDH Key exchange
+-   Ed25519 (Signature, Verification)
+-   X25519 Key exchange
+
+**Asynchronous Interfaces**
+-   RSA Keygen
+-   RSA Signature, Verification
+-   ECDSA Keygen
+-   ECDSA (Signature, Verification)
+-   ECDH Keygen
+-   ECDH Key exchange
+-   Ed25519 Keygen
+-   Ed25519 (Signature, Verification)
+-   X25519 Keygen
+-   X25519 Key exchange
+
+**KDF**
+- HMAC-KDF (CTR mode)
+- KMAC-KDF (CTR mode)
+
+## Structs and Enums
+
+This section defines the public and private data structures that are
+used with the API interfaces.
+
+Private data structures are implementation specific, and are opaque to
+users of the API.
+
+### Public data structures
+
+Doxygen documentation for non-algorithm-specific data structures is [here](/sw/apis/datatypes_8h.html).
+
+{{< doxygen_snippet "datatypes_8h" "crypto_status" >}}
+{{< doxygen_snippet "datatypes_8h" "key_type" >}}
+{{< doxygen_snippet "datatypes_8h" "aes_key_mode" >}}
+{{< doxygen_snippet "datatypes_8h" "hmac_key_mode" >}}
+{{< doxygen_snippet "datatypes_8h" "kmac_key_mode" >}}
+{{< doxygen_snippet "datatypes_8h" "rsa_key_mode" >}}
+{{< doxygen_snippet "datatypes_8h" "ecc_key_mode" >}}
+{{< doxygen_snippet "datatypes_8h" "kdf_key_mode" >}}
+{{< doxygen_snippet "datatypes_8h" "key_mode" >}}
+{{< doxygen_snippet "include_2aes_8h" "aead_gcm_tag_len" >}}
+{{< doxygen_snippet "datatypes_8h" "verification_status" >}}
+{{< doxygen_snippet "datatypes_8h" "crypto_unblinded_key_t" >}}
+{{< doxygen_snippet "datatypes_8h" "crypto_uint8_buf_t" >}}
+{{< doxygen_snippet "datatypes_8h" "crypto_const_uint8_buf_t" >}}
+{{< doxygen_snippet "include_2aes_8h" "block_cipher_mode" >}}
+{{< doxygen_snippet "include_2aes_8h" "aes_operation" >}}
+{{< doxygen_snippet "include_2aes_8h" "aes_padding" >}}
+{{< doxygen_snippet "hash_8h" "hash_mode" >}}
+{{< doxygen_snippet "hash_8h" "xof_mode" >}}
+{{< doxygen_snippet "mac_8h" "mac_mode" >}}
+{{< doxygen_snippet "rsa_8h" "rsa_padding" >}}
+{{< doxygen_snippet "rsa_8h" "rsa_hash" >}}
+{{< doxygen_snippet "rsa_8h" "rsa_private_key_t" >}}
+{{< doxygen_snippet "rsa_8h" "rsa_key_size" >}}
+{{< doxygen_snippet "rsa_8h" "rsa_public_key_t" >}}
+{{< doxygen_snippet "ecc_8h" "ecc_signature_t" >}}
+{{< doxygen_snippet "ecc_8h" "eddsa_sign_mode" >}}
+{{< doxygen_snippet "ecc_8h" "ecc_public_key_t" >}}
+{{< doxygen_snippet "ecc_8h" "ecc_domain_t" >}}
+{{< doxygen_snippet "ecc_8h" "ecc_curve_type" >}}
+{{< doxygen_snippet "ecc_8h" "ecc_curve_t" >}}
+{{< doxygen_snippet "kdf_8h" "kdf_type" >}}
+
+### Private data structures
+
+The following data structures are considered implementation specific.
+
+{{< doxygen_snippet "datatypes_8h" "crypto_blinded_key_t" >}}
+{{< doxygen_snippet "hash_8h" "hash_context_t" >}}
+{{< doxygen_snippet "mac_8h" "hmac_context_t" >}}
+{{< doxygen_snippet "include_2aes_8h" "gcm_ghash_context_t" >}}
+
+## Streaming and Asynchronous modes of operation
+
+OpenTitan may implement additional API interfaces for several
+cryptographic modes based on the specific use-cases from applications
+such as ability to perform cryptographic operations on partial input
+data, capability to stop and resume cryptographic operations etc. These
+API modes are detailed below.
+
+### One shot and Streaming mode
+
+Based on the input data availability, several cryptographic modes
+discussed in this specification implement two types of APIs: One-shot
+APIs and streaming mode APIs.
+
+A one-shot API is used when the entire data to be operated is available
+upfront. The entire data (pointer) is passed to the one-shot API as an
+input and the result is immediately available after the operation.
+
+Streaming APIs are to support use-cases where the entire data to be
+transformed isn't available at the start of the operation and also in
+use-cases with limited memory availability. Such streaming APIs operate
+iteratively over bytes of data, in blocks, as they are fed. Partial
+inputs are buffered in the context until a full block is available to
+process. The partial result from the block is stored in a context
+parameter and is used again in the subsequent rounds, until the final
+round. Only in the final round the result of the cryptographic operation
+is available.
+
+Cryptographic modes such as HASH and HMAC support streaming APIs along
+with the default one-shot APIs.
+
+**Crypto modes that support streaming modes: **
+1.  HASH (SHA2 modes only)
+2.  HMAC (HMAC-SHA256 only)
+
+## Synchronous and Asynchronous mode
+
+Synchronous mode of operation is when the crypto call does not return to
+the caller until the cryptographic operation is complete. This mode
+blocks the CPU and no other process can utilize it until it returns,
+hence it is also known as blocking mode of operation.
+
+OpenTitan's TockOS has a low latency return call programming model where
+the CPU blocking should not be longer than (5-10ms). Cryptographic modes
+which take longer time to complete their operation must implement an
+asynchronous mode to provide non-blocking mode of operation.
+
+The defines a way to asynchronously run the long running cryptographic
+operations that use OTBN. The OTBN accelerator itself is treated as a
+"separate thread"to achieve this intended non-blocking operation.
+
+Each asynchronous operation will have two function calls associated with
+it:
+- **\<algorithm\>\_async\_start**
+  - Takes input arguments. Checks if OTBN is idle and cleared. If so: does any
+    necessary synchronous preprocessing, initializes OTBN, and starts the OTBN
+    routine. Returns "OK"if the operation was successfully started.
+- **\<algorithm\>\_async\_finalize**
+  - Takes caller-allocated output buffers. Checks if the app loaded onto OTBN
+    is the expected one; if not, returns "Invalid Input"status message. Checks
+    OTBN status and returns "OK" and output or "Async Incomplete" or "Internal
+    Error"
+
+Cryptographic modes such as RSA and ECC that take a longer time support
+asynchronous APIs along with the default synchronous APIs.
+
+**Crypto modes that support asynchronous modes:**
+1.  RSA Keygen
+2.  RSA Signature
+3.  RSA Verification
+4.  ECDSA Keygen
+5.  ECDSA Signature
+6.  ECDSA Verification
+7.  ECDH Keygen
+8.  ECDH Key exchange
+9.  Ed25519 Keygen
+10. Ed25519 Signature
+11. Ed25519 Verification
+12. X25519 Keygen
+13. X25519 Key exchange
+
+## AES
+
+Advanced Encryption Standard (AES) is the symmetric block cipher for
+encryption and decryption. AES operates with a data block length of 128
+bits and with cipher keys of length 128, 192 or 256 bits.
+
+The unit is a cryptographic accelerator, implemented in hardware, to
+perform encryption and decryption on 16-byte blocks of data. OpenTitan
+AES IP supports five (5) confidentiality modes of operation, with a key
+length of 128 bits, 192 bits and 256 bits.
+
+OpenTitan AES supported confidentiality modes:
+1.  Electronic Codebook (ECB)
+2.  Cipher Block Chaining (CBC)
+3.  Cipher Feedback (CFB)
+4.  Output Feedback (OFB)
+5.  Counter (CTR)
+
+APIs are defined to support five block cipher (confidentiality) modes of
+operation: AES-\[ECB, CBC, CFB, OFB and CTR\] and AES-\[GCM, KWP\] for
+authenticated encryption. Padding schemes such as pkcs7, iso9797m1,
+iso9797m2, x923, random padding and null padding are supported and are
+defined in the **aes\_padding\_t** structure from .
+
+Kindly refer to the links in the section for more information on AES and
+the block cipher modes of operation.
+
+Doxygen documentation for AES-based algorithms is [here]("sw/public-api/include_2aes_8h").
+
+### API
+
+A one-shot API initializes the required block cipher mode of operation (ECB,
+CBC, CFB, OFB or CTR) and performs the required encryption/decryption.
+
+#### Key generation
+
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_aes_keygen" >}}
+
+#### One-shot AES
+
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_aes" >}}
+
+#### AES-GCM
+
+AES-GCM (Galois/Counter Mode) is used for authenticated encryption of
+the associated data and provides both confidentiality and authenticity
+of data. Confidentiality using a variation of the AES counter mode and
+authenticity of the confidential data using a universal hash function
+that is defined over a binary Galois field. GCM can also provide
+authentication assurance for additional data that is not encrypted.
+
+Kindly refer to the and the links in the section for more information on
+AES-GCM mode and its construction.
+
+AES GCM consists of two related functions: An authenticated encryption
+function to generate a ciphertext and an authentication tag from the
+plaintext and an authenticated decryption function to verify the tag and
+to recover the plaintext forem the ciphertext.
+
+In addition, we expose the internal GHASH and GCTR operation that GCM relies
+upon (from , section 6.4). This allows flexibility for use-cases that need
+custom GCM constructs: for example, we do not provide AES-GCM in streaming mode
+here because it encourages decryption and processing of unauthenticated data,
+but some users may need it for compatibility purposes. Additionally, the GHASH
+operation can be used to construct GCM with block ciphers other than AES.
+
+##### GCM - Authenticated Encryption
+
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_aes_encrypt_gcm" >}}
+
+##### GCM - Authenticated Decryption
+
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_aes_decrypt_gcm" >}}
+
+##### GCM - GHASH and GCTR
+
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_gcm_ghash_init" >}}
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_gcm_ghash_update" >}}
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_gcm_ghash_final" >}}
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_aes_gcm_gctr" >}}
+
+#### AES-KWP
+
+AES Key Wrap (KW) is a deterministic authenticated-encryption mode of
+operation of the AES algorithm. AES-KW is designed to protect the
+confidentiality and the authenticity/integrity of cryptographic keys. A
+variant of the Key-wrap algorithm with an internal padding scheme called
+Key-wrap with padding (KWP) is defined for interoperability.
+
+Kindly refer to the and the links in the section for more information on
+AES-KWP mode and its construction.
+
+AES KWP mode comprises two related functions: Authenticated encryption
+and authenticated decryption ; to convert a plaintext to a longer
+ciphertext and vice versa.
+
+##### KWP - Authenticated Encryption
+
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_aes_kwp_encrypt" >}}
+
+##### KWP - Authenticated Decryption
+
+{{< doxygen_snippet "include_2aes_8h" "otcrypto_aes_kwp_decrypt" >}}
+
+HASH
+
+A cryptographic hash (HASH) function is a deterministic one-way function
+that maps an arbitrary length message to a fixed length digest. HASH
+algorithms are used to verify the integrity of the message, i.e. any
+change to the message will, with a very high probability, result in a
+different message digest.
+
+OpenTitan supports SHA-256 cryptographic hash function, while the
+supports the fixed digest length SHA3\[224, 256, 384, 512\]
+cryptographic hash functions, and the extendable-output functions of
+variable digest length SHAKE\[128, 256\] and cSHAKE\[128, 256\].
+
+APIs are defined to support the following modes: SHA2\[256, 384, 512\],
+SHA3\[224, 256, 384, 512\], SHAKE\[128, 256\] and cSHAKE\[128,256\].
+
+The HASH API (**SHA2 only)** supports two kinds of use cases: and .
+
+(**One-shot API**: When the entire data is available upfront ; and a
+**Split API **to support streaming use-case where entire input data is
+not available at the start of the HASH operation and the HASH is
+continually updated with blocks of data as in when they are available).
+
+Kindly refer to the links in the section for more information on HASH
+construction and supported modes.
+
+  --------------- ---------------------------
+  **Hash Mode**   **Digest Length (bytes)**
+
+  SHA256          32
+
+  SHA384          48
+
+  SHA512          64
+
+  SHA3-224        28
+
+  SHA3-256        32
+
+  SHA3-384        48
+
+  SHA3-512        64
+
+  --------------- ---------------------------
+
+**Table-1**: Digest length for SHA2 and SHA3 hash modes
+
+API
+
+Oneshot API
+
+This mode is used when the entire data to be HASHED is available
+upfront.
+
+HASH
+
+This is a generic Hash API where the required digest type and length is
+passed as an input parameter. The supported Hash modes are SHA256,
+SHA384, SHA512, SHA3-224, SHA3-256, SHA3-384 and SHA3-512.
+
+/\*\*
+
+\* Performs the required hash function on the input data.
+
+\*
+
+\* The caller should allocate space for the \`digest\` buffer, (expected
+
+\* length depends on \`hash_mode\`, refer table-1), and set the length
+
+\* of expected output in the \`len\` field of \`digest\`. If the
+user-set
+
+\* length and the output length does not match, an error message will
+
+\* be returned.
+
+\*
+
+\* This function hashes the \`input_message\` using the \`hash_mode_t\`
+
+\* hash function and returns a \`digest\`.
+
+\*
+
+\* \@param input_message Input message to be hashed
+
+\* \@param hash_mode Required hash mode for the digest
+
+\* \@param digest Output digest after hashing the input message
+
+\* \@return crypto_status_t Result of the hash operation
+
+\*/
+
+**crypto\_status\_t otcrypto\_hash**(**crypto\_const\_uint8\_buf\_t**
+input_message,\
+**hash\_mode\_t** hash_mode,\
+**crypto\_uint8\_buf\_t** \*digest);
+
+HASH-XOF
+
+This is a generic Hash XOF (Extendable-Output Functions) API where the
+required digest type and length is passed as an input parameter. The
+supported Hash-XOF modes are SHAKE128, SHAKE256, cSHAKE128, cSHAKE256.
+
+Note: SHAKE and cSHAKE
+
+When N (function name) and S (customization string) are both empty
+strings,
+
+cSHAKE128(X, L, \"\", \"\") = SHAKE128(X, L)
+
+cSHAKE256(X, L, \"\", \"\") = SHAKE256(X, L).
+
+/\*\*
+
+\* Performs the required extendable output function on the input data.
+
+\*
+
+\* The \`function_name_string\` is used by NIST to define functions
+
+\* based on cSHAKE. When no function other than cSHAKE is desired; it
+
+\* can be empty. The \`customization_string\` is used to define a
+
+\* variant of the cSHAKE function. If no customization is desired it
+
+\* can be empty. The \`function_name_string\` and
+\`customization_string\`
+
+\* are ignored when the \`xof_mode\` is set to kHashModeSha3Shake128 or
+
+\* kHashModeSha3Shake256.
+
+\*
+
+\* The caller should allocate space for the \`digest\` buffer,\
+\* (expected length same as \`required_output_len\`), and set the length
+
+\* of expected output in the \`len\` field of \`digest\`. If the
+user-set
+
+\* length and the output length does not match, an error message will
+
+\* be returned.
+
+\*
+
+\* \@param input_message Input message for extendable output function
+
+\* \@param hash_mode Required extendable output function
+
+\* \@param function_name_string NIST Function name string
+
+\* \@param customization_string Customization string for cSHAKE
+
+\* \@param required_output_len Required output length, in bytes
+
+\* \@param digest Output from the extendable output function
+
+\* \@return crypto_status_t Result of the xof operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_xof**(**crypto\_const\_uint8\_buf\_t**
+input_message,\
+**xof\_mode\_t** xof_mode,\
+**crypto\_uint8\_buf\_t** function_name_string,\
+**crypto\_uint8\_buf\_t** customization_string,\
+**size\_t** required_output_len,\
+**crypto\_uint8\_buf\_t** \*digest);
+
+Streaming API
+
+The streaming mode API is used for incremental hashing use-case, where
+the data to be hashed is split and passed in multiple blocks.
+
+The streaming mode is supported **only for SHA2** hash modes (SHA256,
+SHA384, SHA512).
+
+It is implemented using the INIT →UPDATE →FINAL mode APIs structure,
+
+The **INIT **mode initializes the context parameter
+
+Populates the hash context with the digest size, block size, hash update
+and final APIs to be used based on the hash mode.
+
+The **UPDATE **mode is called repeatedly with message bytes to be hashed
+
+Process the input data using the selected hash compression function. The
+unprocessed bytes are stored in the context and later combined with
+subsequent input bytes before calling an update or final function. The
+intermediate digest is stored back in the context.
+
+The **FINAL **mode computes the final HASH and copies the result to the
+digest parameter and clears context
+
+Process the partial data, pads the data to the block length. The final
+HASH is copied to the digest parameter after processing.
+
+SHA2 Hash Algorithm block, digest and state size reference
+
+  --------------- --------------------- ----------------------- ---------------------
+  **Algorithm**   **Digest Size**       **Block size**          **State size**
+
+  SHA2-256        256 bits (32 bytes)   512 bits (64 bytes)     256 bits (32 bytes)
+
+  SHA2-384        384 bits (48 bytes)   1024 bits (128 bytes)   512 bits (64 bytes)
+
+  SHA2-512        512 bits (64 bytes)   1024 bits (128 bytes)   512 bits (64 bytes)
+
+  --------------- --------------------- ----------------------- ---------------------
+
+The following APIs are used to perform hash computation on the streaming
+data. The required hash mode is set through the INIT function. The
+UPDATE function is repeatedly called to process input data and lastly
+the FINAL function is called to generate the final digest value.
+
+HASH
+
+/\*\*
+
+\* Performs the INIT operation for a cryptographic hash function.
+
+\*
+
+\* Initializes the generic hash context. The required hash mode is
+
+\* selected through the \`hash_mode\` parameter. Only
+\`kHashModeSha256\`,
+
+\* \`kHashModeSha384\` and \`kHashModeSha512\` are supported. Other
+modes
+
+\* are not supported and an error would be returned.
+
+\*
+
+\* Populates the hash context with the selected hash mode and its
+
+\* digest and block sizes. The structure of hash context and how it
+
+\* populates the required fields are internal to the specific hash
+
+\* implementation.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@param hash_mode Required hash mode
+
+\* \@return crypto_status_t Result of the hash init operation
+
+\*/\
+**crypto\_status\_t** **otcrypto\_hash\_init**(**hash\_context\_t**
+\*const ctx,\
+** hash\_mode\_t** hash_mode);
+
+/\*\*
+
+\* Performs the UPDATE operation for a cryptographic hash function.
+
+\*
+
+\* The update operation processes the \`input_message\` using the
+
+\* selected hash compression function. The intermediate digest is
+
+\* stored in the context \`ctx\`. Any partial data is stored back in
+
+\* the context and combined with the subsequent bytes.
+
+\*
+
+\* #otcrypto_hash_init should be called before this function.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@param input_message Input message to be hashed
+
+\* \@return crypto_status_t Result of the hash update operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_hash\_update**(\
+**hash\_context\_t** \*const ctx,\
+**crypto\_const\_uint8\_buf\_t** input_message);
+
+/\*\*
+
+\* Performs the FINAL operation for a cryptographic hash function.
+
+\*
+
+\* The final operation processes the remaining partial blocks,
+
+\* computes the final hash and copies it to the \`digest\` parameter.
+
+\*
+
+\* #otcrypto_hash_update should be called before this function.
+
+\*
+
+\* The caller should allocate space for the \`digest\` buffer, (expected
+
+\* length depends on \`hash_mode\`, refer table-1), and set the length
+
+\* of expected output in the \`len\` field of \`digest\`. If the
+user-set
+
+\* length and the output length does not match, an error message will
+
+\* be returned.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@param digest Output digest after hashing the input blocks
+
+\* \@return crypto_status_t Result of the hash final operation
+
+\*/\
+**crypto\_status\_t** **otcrypto\_hash\_final **(**hash\_context\_t**
+\*const ctx,\
+**crypto\_uint8\_buf\_t** \*digest);
+
+/\*
+
+\* **NOTE**: APIs in the following section are Internal only.
+
+\*
+
+\* These APIs should not be called directly and are meant
+
+\* to be used by the generic hash API. The APIs for SHA
+
+\* 256/384/512 APIs are not added to the API header file.
+
+\*/
+
+HASH-SHA2-256
+
+Defines the INIT, UPDATE and FINAL APIs for SHA256 hash function, to be
+called from generic hash function API.
+
+/\*\*
+
+\* Performs the SHA2-256 INIT operation.
+
+\*
+
+\* Initializes the SHA2-256 parameters in the context.
+
+\*
+
+\* This API is internal to the generic hash API and should not be
+
+\* called directly.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@return crypto_status_t Result of the SHA256 init operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_sha256\_init**(**hash\_context\_t**
+\*const ctx);
+
+/\*\*
+
+\* Performs the SHA2-256 UPDATE operation.
+
+\*
+
+\* The update operation processes the data using the SHA256 function.
+
+\* The intermediate digest and unprocessed partial data is stored
+
+\* back in the context.
+
+\*
+
+\* This API is internal to the generic hash API and should not be
+
+\* called directly.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@param input_message Input message to be hashed
+
+\* \@return crypto_status_t Result of the SHA256 update operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_sha256\_update**(\
+**hash\_context\_t** \*const ctx,\
+**crypto\_const\_uint8\_buf\_t** input_message);
+
+/\*\*
+
+\* Performs the SHA2-256 FINAL operation.
+
+\*
+
+\* The final function processes the remaining data and copies the
+
+\* final hash to the \`digest\` parameter.
+
+\*
+
+\* This API is internal to the generic hash API and should not be
+
+\* called directly.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@param digest Output digest after hashing the input blocks
+
+\* \@return crypto_status_t Result of the SHA256 final operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_sha256\_final**(**hash\_context\_t**
+\*const ctx,\
+**crypto\_uint8\_buf\_t** \*digest);
+
+HASH-SHA2-384
+
+Defines the INIT, UPDATE and FINAL APIs for SHA384 hash function, that
+would be called from a generic hash function API
+
+/\*\*
+
+\* Performs the SHA2-384 INIT operation.
+
+\*
+
+\* Initializes the SHA2-384 parameters in the context.
+
+\*
+
+\* This API is internal to the generic hash API and should not be
+
+\* called directly.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@return crypto_status_t Result of the SHA384 init operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_sha384\_init**(**hash\_context\_t**
+\*const ctx);
+
+/\*\*
+
+\* Performs the SHA2-384 UPDATE operation.
+
+\*
+
+\* The update operation processes the data using the SHA384 function.
+
+\* The intermediate digest and unprocessed partial data is stored
+
+\* back in the context.
+
+\*
+
+\* This API is internal to the generic hash API and should not be
+
+\* called directly.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@param input_message Input message to be hashed
+
+\* \@return crypto_status_t Result of the SHA384 update operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_sha384\_update**(\
+**hash\_context\_t** \*const ctx,\
+**crypto\_const\_uint8\_buf\_t** input_message);
+
+/\*\*
+
+\* Performs the SHA2-384 FINAL operation.
+
+\*
+
+\* The final function processes the remaining data and copies
+
+\* the final hash to the \`digest\` parameter.
+
+\*
+
+\* This API is internal to the generic hash API and should not be
+
+\* called directly.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@param digest Output digest after hashing the input blocks
+
+\* \@return crypto_status_t Result of the SHA384 final operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_sha384\_final**(**hash\_context\_t**
+\*const ctx,\
+**crypto\_uint8\_buf\_t** \*digest);
+
+HASH-SHA2-512
+
+Defines the INIT, UPDATE and FINAL APIs for SHA512 hash function, to be
+called from generic hash function API.
+
+/\*\*
+
+\* Performs the SHA2-512 INIT operation.
+
+\*
+
+\* Initializes the SHA2-512 parameters in the context.
+
+\*
+
+\* This API is internal to the generic hash API and should not be
+
+\* called directly.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@return crypto_status_t Result of the SHA512 init operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_sha512\_init**(**hash\_context\_t**
+\*const ctx);
+
+/\*\*
+
+\* Performs the SHA2-512 UPDATE operation.
+
+\*
+
+\* The update operation processes the data using the SHA512 function.
+
+\* The intermediate digest and unprocessed partial data is stored
+
+\* back in the context.
+
+\*
+
+\* This API is internal to the generic hash API and should not be
+
+\* called directly.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@param input_message Input message to be hashed
+
+\* \@return crypto_status_t Result of the SHA512 update operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_sha512\_update**(\
+**hash\_context\_t** \*const ctx,\
+**crypto\_const\_uint8\_buf\_t** input_message);
+
+/\*\*
+
+\* Performs the SHA2-512 FINAL operation.
+
+\*
+
+\* The final function processes the remaining data and copies the
+
+\* final hash to the \`digest\` parameter.
+
+\*
+
+\* This API is internal to the generic hash API and should not be
+
+\* called directly.
+
+\*
+
+\* \@param ctx Pointer to the generic hash context struct
+
+\* \@param digest Output digest after hashing the input blocks
+
+\* \@return crypto_status_t Result of the SHA512 final operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_sha512\_final**(**hash\_context\_t**
+\*const ctx,\
+**crypto\_uint8\_buf\_t** \*digest);
+
+MAC
+
+A message authentication code provides integrity and authentication
+checks using a secret key shared between two parties. The MAC that uses
+a cryptographic hash function in conjunction with a secret key is called
+a HMAC, while a MAC that is based on KECCAK is called KMAC.
+
+OpenTitan supports HMAC-SHA256 mode of operation with a key length of
+256bits. The supports KMAC128 and KMAC 256, with a key length of \[128,
+192, 256, 384, 512\] bits.
+
+APIs are defined in the for HMAC-SHA256 and KMAC256. Key sizes supported
+are 256bits for HMAC and \[128, 192, 256, 384, 512\] bits for KMAC.
+
+The HMAC API supports two kinds of use cases: and .
+
+(**One-shot API**: When the entire data is available upfront ; and a
+**Split API **to support streaming use-case where entire input data is
+not available at the start of the HMAC operation and the MAC is
+continually updated with blocks of data as in when they are available).
+
+Kindly refer to the links in the section for more information on the
+HMAC and the KMAC constructions and supported modes.
+
+API
+
+Oneshot API
+
+MAC
+
+This mode is used when the entire data to be HASHED is available
+upfront. This is a generic MAC API where the required mode and output
+length (for KMAC) is passed as an input parameter. The supported modes
+are HMAC-SHA256, KMAC128, KMAC256.
+
+/\*\*
+
+\* Performs the HMAC / KMAC function on the input data.
+
+\*
+
+\* HMAC: This function computes the required MAC function on the
+
+\* \`input_message\` using the \`key\` and returns a \`digest\`.
+
+\*
+
+\* KMAC: This function computes the KMAC on the \`input_message\` using
+
+\* the \`key\` and returns a \`digest\` of \`required_output_len\`. The
+
+\* customization string is passed through \`customization_string\`
+
+\* parameter. If no customization is desired it can be empty. The
+
+\* \`customization_string\` and \`required_output_len\` is only used for
+
+\* KMAC modes and is ignored for the HMAC mode.
+
+\*
+
+\* The caller should allocate space for the \`digest\` buffer, (expected
+
+\* length is 32 bytes for HMAC and \`required_output_len\`for KMAC), and
+
+\* set the length of expected output in the \`len\` field of \`digest\`.
+
+\* If the user-set length and the output length does not match, an
+
+\* error message will be returned.
+
+\*
+
+\* \@param key Pointer to the blinded key struct with key shares
+
+\* \@param input_message Input message to be hashed
+
+\* \@param mac_mode Required operation to be performed (HMAC/KMAC)
+
+\* \@param customization_string Customization string for KMAC
+
+\* \@param required_output_len Required output length from KMAC, in
+
+\* bytes
+
+\* \@param digest Output digest after hashing the input data
+
+\* \@return crypto_status_t The result of the KMAC128 operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_mac**(const
+**crypto\_blinded\_key\_t** \*key,\
+** crypto\_const\_uint8\_buf\_t** input_message,\
+** mac\_mode\_t** mac_mode,\
+** crypto\_uint8\_buf\_t** customization_string,\
+** size\_t** required_output_len,\
+** crypto\_uint8\_buf\_t** \*digest);
+
+Streaming API
+
+The streaming mode API is used for incremental hashing use-case, where
+the data to be hashed is split and passed in multiple blocks. The
+streaming mode is supported only for HMAC mode (HMAC-SHA256).
+
+The INIT →UPDATE →FINAL mode works as below,
+
+The **INIT **mode initializes the context parameter
+
+Populates the HMAC context with the digest size, block size, hash update
+and final APIs to be used based on the hash mode.
+
+The **UPDATE **mode is called repeatedly with message bytes to be hashed
+
+Process the input data using the selected MAC function. The unprocessed
+bytes are stored in the context and later combined with subsequent input
+bytes before calling an update or final function. The intermediate
+digest is stored back in the context.
+
+The **FINAL **mode computes the final HASH and copies the result to the
+digest parameter and clears context
+
+Process the partial data, pads the data to the block length. The final
+digest is copied to the digest parameter after processing.
+
+The following APIs are used to perform HMAC computation on the streaming
+data. The required mode is set through the INIT function. The UPDATE
+function is repeatedly called to process input data and lastly the FINAL
+function is called to generate the final digest value.
+
+HMAC
+
+/\*\*
+
+\* Performs the INIT operation for HMAC.
+
+\*
+
+\* Initializes the generic HMAC context. The required HMAC mode is
+
+\* selected through the \`hmac_mode\` parameter. Populates the HMAC
+
+\* context with the digest size, block size, HMAC update and HMAC
+
+\* final APIs to be called based on the mode.
+
+\*
+
+\* The structure of HMAC context and how it populates the required
+
+\* fields based on the HMAC mode are internal to the specific HMAC
+
+\* implementation.
+
+\*
+
+\* The HMAC streaming API supports only the \`kMacModeHmacSha256\` mode.
+
+\* Other modes are not supported and an error would be returned. The
+
+\* interface is designed to be generic to support other required modes
+
+\* in the future.
+
+\*
+
+\* \@param ctx Pointer to the generic HMAC context struct
+
+\* \@param key Pointer to the blinded HMAC key struct
+
+\* \@param hmac_mode Required HMAC mode
+
+\* \@return crypto_status_t Result of the HMAC init operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_hmac\_init**(**hmac\_context\_t**
+\*ctx,\
+const **crypto\_blinded\_key\_t** \*key,\
+**mac\_mode\_t **hmac_mode);
+
+/\*\*
+
+\* Performs the UPDATE operation for HMAC.
+
+\*
+
+\* The update operation processes the \`input_message\` using the
+
+\* selected compression function. The intermediate digest is stored
+
+\* in the HMAC context \`ctx\`. Any partial data is stored back in
+
+\* the context and combined with the subsequent bytes.
+
+\*
+
+\* #otcrypto_hmac_init should be called before calling this function.
+
+\*
+
+\* \@param ctx Pointer to the generic HMAC context struct
+
+\* \@param input_message Input message to be hashed
+
+\* \@return crypto_status_t Result of the HMAC update operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_hmac\_update**(\
+**hmac\_context\_t** \*const ctx,\
+**crypto\_const\_uint8\_buf\_t** input_message);
+
+/\*\*
+
+\* Performs the FINAL operation for HMAC.
+
+\*
+
+\* The final operation processes the remaining partial blocks,
+
+\* computes the final digest and copies it to the \`digest\` parameter.
+
+\*
+
+\* #otcrypto_hmac_update should be called before calling this
+
+\* function.
+
+\*
+
+\* The caller should allocate space for the \`digest\` buffer, (expected
+
+\* length is 32 bytes for HMAC), and set the length of expected output
+
+\* in the \`len\` field of \`digest\`. If the user-set length and the
+
+\* output length does not match, an error message will be returned.
+
+\*
+
+\* \@param ctx Pointer to the generic HMAC context struct
+
+\* \@param digest Output digest after hashing the input blocks
+
+\* \@return crypto_status_t Result of the HMAC final operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_hmac\_final**(**hmac\_context\_t**
+\*const ctx,\
+**crypto\_uint8\_buf\_t** \*digest);
+
+RSA
+
+RSA (Rivest--Shamir--Adleman) is an asymmetric cryptographic algorithm
+used for authentication and data confidentiality.
+
+**RSA Key Pair**
+
+RSA schemes employ two key types: RSA public key (known to everyone) and
+RSA private key (sensitive). Together they form an RSA key pair.
+
+RSA *public key* is denoted by (n, e), where:
+
+n the RSA modulus, a positive integer
+
+e the RSA public exponent, a positive integer
+
+RSA* private key *is denoted by the pair (n, d), where
+
+n the RSA modulus, a positive integer
+
+d the RSA private exponent, a positive integer
+
+**Supported Modes**
+
+OpenTitan uses the OpenTitan Big Number Accelerator (), an asymmetric
+cryptographic accelerator, to speed up the underlying RSA operations.
+
+APIs are defined in the to support RSA Key generation and RSA digital
+signature generation and a verification for the key lengths of \[1024,
+2048, 3072, 4096\] bits. Two PKCS signature schemes are supported:
+(RSASSA-PSS, RSASSA-PKCS1-v1_5). Padding schemes such as OAEP, PKCS,
+PSS, and null padding are supported and are defined in the
+**rsa\_padding\_t** structure in .
+
+The APIs for RSA key generation and digital signature modes support two
+kinds of use cases: and an mode of operation.
+
+(**Synchronous API**: Blocking mode, where the crypto call does not
+return to the program until the crypto operation is complete ; and an
+**Asynchronous mode **where long-running cryptographic operations that
+use OTBN accelerator are called asynchronously to let other shorter
+computations to happen in the background. This is to support TockOS's
+low latency return call programming model, which requires long running
+operations to implement asynchronous interfaces).
+
+Kindly refer to the links in the section for more information on RSA,
+encryption and digital signature schemes.
+
+**HASH function for RSA schemes**
+
+An approved hash function is used during the generation of key pairs and
+digital signatures. When used during the generation of an RSA key pair,
+the length in bits of the hash function output block shall meet or
+exceed the security strength associated with the bit length of the
+modulus n.
+
+It is recommended that the security strength of the modulus and the
+security strength of the hash function be the same unless an agreement
+has been made between participating entities to use a stronger hash
+function
+
+API / Wrapper
+
+Synchronous (blocking mode) API
+
+RSA Key Generation
+
+/\*\*
+
+\* Performs the RSA key generation.
+
+\*
+
+\* Computes RSA private key (d) and RSA public key exponent (e) and
+
+\* modulus (n).
+
+\*
+
+\* \@param required_key_len Requested key length
+
+\* \@param rsa_public_key Pointer to RSA public exponent struct
+
+\* \@param rsa_private_key Pointer to RSA private exponent struct
+
+\* \@return crypto_status_t Result of the RSA key generation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_rsa\_keygen**(**rsa\_key\_size\_t**
+required_key_len,\
+**rsa\_public\_key\_t** \*rsa_public_key,\
+**rsa\_private\_key\_t** \*rsa_private_key);
+
+RSA Signature
+
+/\*\*
+
+\* Computes the digital signature on the input message data.
+
+\*
+
+\* The caller should allocate space for the \`signature\` buffer,\
+\* (expected length same as modulus length from \`rsa_private_key\`),
+
+\* and set the length of expected output in the \`len\` field of
+
+\* \`signature\`. If the user-set length and the output length does not
+
+\* match, an error message will be returned.
+
+\*
+
+\* \@param rsa_private_key Pointer to RSA private exponent struct
+
+\* \@param input_message Input message to be signed
+
+\* \@param padding_mode Padding scheme to be used for the data
+
+\* \@param hash_mode Hashing scheme to be used for the signature scheme
+
+\* \@param signature Pointer to generated signature struct
+
+\* \@return crypto_status_t The result of the RSA sign generation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_rsa\_sign**(const
+**rsa\_private\_key\_t **\*rsa_private_key,\
+** crypto\_const\_uint8\_buf\_t **input_message,\
+** rsa\_padding\_t** padding_mode,\
+** rsa\_hash\_t** hash_mode,\
+** crypto\_uint8\_buf\_t **\*signature);
+
+RSA Verification
+
+/\*\*
+
+\* Verifies the authenticity of the input signature.
+
+\*
+
+\* The generated signature is compared against the input signature and
+
+\* PASS / FAIL is returned.
+
+\*
+
+\* \@param rsa_public_key Pointer to RSA public exponent struct
+
+\* \@param input_message Input message to be signed for verification
+
+\* \@param padding_mode Padding scheme to be used for the data
+
+\* \@param hash_mode Hashing scheme to be used for the signature scheme
+
+\* \@param signature Pointer to the input signature to be verified
+
+\* \@param verification_result Returns the result of signature
+
+\* verification (Pass/Fail)
+
+\* \@return crypto_status_t The status of the RSA verify operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_rsa\_verify**(const
+**rsa\_public\_key\_t **\*rsa_public_key,\
+** crypto\_const\_uint8\_buf\_t **input_message,\
+** rsa\_padding\_t** padding_mode,\
+** rsa\_hash\_t** hash_mode,\
+** crypto\_const\_uint8\_buf\_t **signature,\
+** verification\_status\_t **\*verification_result);
+
+ECC
+
+Elliptic curve cryptography (ECC) is a public-key cryptography based on
+elliptic curves over finite fields and is widely used for key agreement
+and signature schemes. ECC has an advantage over other similar
+public-key crypto systems as it uses shorter key-lengths to provide
+equivalent security.
+
+Two key types are employed in the ECC primitive: ECC public key (Q) and
+ECC private key (d). The public key can be known to everyone, and is
+used in key agreement and to verify messages. The private key is
+sensitive, known only to the user and is used to sign messages.
+
+**ECC Key Pair**
+
+ECC *private key* is denoted by 'd' where
+
+d positive integer between {1,...n−}, (where n is the order of the
+subgroup)
+
+ECC *public key* is denoted by Q, and Q = dG, where
+
+d private key
+
+G base-point of the sub group
+
+**Supported Modes**
+
+OpenTitan uses the OpenTitan Big Number Accelerator (), an asymmetric
+cryptographic accelerator, to speed up the underlying ECC operations.
+Only elliptic curves over prime finite fields (P) are supported.
+Elliptic curves of the short Weierstrass form, Montgomery form, and
+twisted Edward form are supported.
+
+For short Weierstrass form three predefined named curves are supported
+(NIST P256, NIST P384 and brainpool 256) along with support for
+user-defined generic curves. Programmers have the option to set
+predefined domain parameters for named curves or input their own domain
+parameters for a user-defined curve. For the Montgomery form, only
+X25519 is supported. For twisted Edwards form only Ed25519 is supported.
+
+APIs are defined in the to support key generation, key agreement and
+signature schemes for Weierstrass curves and X25519/Ed25519.
+
+The APIs for ECC key generation, ECDSA, EdDSA and key agreement modes
+support two kinds of use cases: and an mode of operation.
+
+(**Synchronous API**: Blocking mode, where the crypto call does not
+return to the program until the crypto operation is complete ; and an
+**Asynchronous mode **where long-running cryptographic operations that
+use OTBN accelerator are called asynchronously to let other shorter
+computations to happen in the background. This is to support TockOS's
+low latency return call programming model, which requires long running
+operations to implement asynchronous interfaces).
+
+Kindly refer to the links in the section for more information on ECC
+construction and curve types, NIST and brainpool named curves, key
+generation and agreement, ECDSA and EdDSA.
+
+API / Wrapper
+
+Synchronous (blocking mode) API
+
+ECDSA Keygen
+
+/\*\*
+
+\* Performs the key generation for ECDSA operation.
+
+\*
+
+\* Computes private key (d) and public key (Q) keys for ECDSA
+
+\* operation.
+
+\*
+
+\* The domain_parameter field of the \`elliptic_curve\` is required
+
+\* only for a custom curve. For named curves this field is ignored
+
+\* and can be set to NULL.
+
+\*
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param public_key Pointer to the unblinded public key (Q) struct
+
+\* \@return crypto_status_t Result of the ECDSA key generation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdsa\_keygen**(**ecc\_curve\_t**
+\*elliptic_curve,\
+** crypto\_blinded\_key\_t **\*private_key,\
+** ecc\_public\_key\_t **\*public_key);
+
+ECDSA Signature
+
+/\*\*
+
+\* Performs the ECDSA digital signature generation.
+
+\*
+
+\* The domain_parameter field of the \`elliptic_curve\` is required
+
+\* only for a custom curve. For named curves this field is ignored
+
+\* and can be set to NULL.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param input_message Input message to be signed
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@param signature Pointer to the signature struct with (r,s) values
+
+\* \@return crypto_status_t Result of the ECDSA signature generation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdsa\_sign**(const
+**crypto\_blinded\_key\_t** \*private_key,\
+**crypto\_const\_uint8\_buf\_t** input_message,\
+**ecc\_curve\_t** \*elliptic_curve,\
+** ecc\_signature\_t** \*signature);
+
+Deterministic ECDSA Signature
+
+/\*\*
+
+\* Performs the deterministic ECDSA digital signature generation.
+
+\*
+
+\* In the case of deterministic ECDSA, the random value 'k'for the
+
+\* signature generation is deterministically generated from the
+
+\* private key and the input message. Refer to for details.
+
+\*
+
+\* The domain_parameter field of the \`elliptic_curve\` is required
+
+\* only for a custom curve. For named curves this field is ignored
+
+\* and can be set to NULL.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param input_message Input message to be signed
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@param signature Pointer to the signature struct with (r,s) values
+
+\* \@return crypto_status_t Result of the deterministic ECDSA signature
+
+\* generation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_deterministic\_ecdsa\_sign**(\
+const **crypto\_blinded\_key\_t **\*private_key,
+
+**crypto\_const\_uint8\_buf\_t** input_message,
+
+**ecc\_curve\_t** \*elliptic_curve,\
+** ecc\_signature\_t** \*signature);
+
+ECDSA Verification
+
+/\*\*
+
+\* Performs the ECDSA digital signature verification.
+
+\*
+
+\* The domain_parameter field of the \`elliptic_curve\` is required
+
+\* only for a custom curve. For named curves this field is ignored
+
+\* and can be set to NULL.
+
+\*
+
+\* \@param public_key Pointer to the unblinded public key (Q) struct
+
+\* \@param input_message Input message to be signed for verification
+
+\* \@param signature Pointer to the signature to be verified
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@param verification_result Result of verification (Pass/Fail)
+
+\* \@return crypto_status_t Result of the ECDSA verification operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdsa\_verify** (const
+**ecc\_public\_key\_t** \*public_key,\
+** crypto\_const\_uint8\_buf\_t **input_message,\
+** ecc\_signature\_t** \*signature,\
+** ecc\_curve\_t** \*elliptic_curve,\
+** verification\_status\_t **\*verification_result);
+
+ECDH Keygen
+
+/\*\*
+
+\* Performs the key generation for ECDH key agreement.
+
+\*
+
+\* Computes private key (d) and public key (Q) keys for ECDSA
+
+\* operation.
+
+\*
+
+\* The domain_parameter field of the \`elliptic_curve\` is required
+
+\* only for a custom curve. For named curves this field is ignored
+
+\* and can be set to NULL.
+
+\*
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param public_key Pointer to the unblinded public key (Q) struct
+
+\* \@return crypto_status_t Result of the ECDH key generation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdh\_keygen**(**ecc\_curve\_t**
+\*elliptic_curve**,**\
+** crypto\_blinded\_key\_t **\*private_key**,**\
+** ecc\_public\_key\_t** \*public_key);
+
+ECDH
+
+/\*\*
+
+\* Performs Elliptic Curve Diffie Hellman shared secret generation.
+
+\*
+
+\* The domain_parameter field of the \`elliptic_curve\` is required
+
+\* only for a custom curve. For named curves this field is ignored
+
+\* and can be set to NULL.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param public_key Pointer to the unblinded public key (Q) struct
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@param shared_secret Pointer to generated blinded shared key struct
+
+\* \@return crypto_status_t Result of ECDH shared secret generation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdh**(const **crypto\_blinded\_key\_t
+**\*private_key,\
+const **ecc\_public\_key\_t** \*public_key,\
+**ecc\_curve\_t** \*elliptic_curve,\
+**crypto\_blinded\_key\_t **\*shared_secret);
+
+Ed25519 Key Gen
+
+/\*\*
+
+\* Generates a new Ed25519 key pair.
+
+\*
+
+\* Computes the private exponent (d) and public key (Q) based on
+
+\* Curve25519.
+
+\*
+
+\* No domain_parameter is needed and is automatically set for Ed25519.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key struct
+
+\* \@param public_key Pointer to the unblinded public key struct
+
+\* \@return crypto_status_t Result of the Ed25519 key generation
+
+\*/
+
+**crypto\_status\_t**
+**otcrypto\_ed25519\_keygen**(**crypto\_blinded\_key\_t
+**\*private_key,\
+** crypto\_unblinded\_key\_t** \*public_key);
+
+Ed25519 Signature
+
+/\*\*
+
+\* Generates an Ed25519 digital signature.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key struct
+
+\* \@param input_message Input message to be signed
+
+\* \@param sign_mode Parameter for EdDSA or Hash EdDSA sign mode
+
+\* \@param signature Pointer to the EdDSA signature with (r,s) values
+
+\* \@return crypto_status_t Result of the EdDSA signature generation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ed25519\_sign**(const
+**crypto\_blinded\_key\_t **\*private_key,\
+** crypto\_const\_uint8\_buf\_t **input_message,\
+** eddsa\_sign\_mode\_t** sign_mode,\
+** ecc\_signature\_t** \*signature);
+
+Ed25519 Verification
+
+/\*\*
+
+\* Verifies an Ed25519 signature.
+
+\*
+
+\* \@param public_key Pointer to the unblinded public key struct
+
+\* \@param input_message Input message to be signed for verification
+
+\* \@param sign_mode Parameter for EdDSA or Hash EdDSA sign mode
+
+\* \@param signature Pointer to the signature to be verified
+
+\* \@param verification_result Returns the result of signature
+
+\* verification (Pass/Fail)
+
+\* \@return crypto_status_t Result of the EdDSA verification operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ed25519\_verify**(\
+const **crypto\_unblinded\_key\_t **\*public_key,\
+**crypto\_const\_uint8\_buf\_t **input_message,\
+**eddsa\_sign\_mode\_t** sign_mode,\
+** ecc\_signature\_t** \*signature,\
+** verification\_status\_t **\*verification_result);
+
+X25519 Key Gen
+
+/\*\*
+
+\* Generates a new key pair for X25519 key exchange.
+
+\*
+
+\* Computes the private scalar (d) and public key (Q) based on
+
+\* Curve25519.
+
+\*
+
+\* No domain_parameter is needed and is automatically set for X25519.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key struct
+
+\* \@param public_key Pointer to the unblinded public key struct
+
+\* \@return crypto_status_t Result of the X25519 key generation
+
+\*/
+
+**crypto\_status\_t**
+**otcrypto\_x25519\_keygen**(**crypto\_blinded\_key\_t **\*private_key,\
+** crypto\_unblinded\_key\_t** \*public_key);
+
+X25519 Key exchange
+
+/\*\*
+
+\* Performs the X25519 Diffie Hellman shared secret generation.
+
+\*
+
+\* \@param private_key Pointer to blinded private key (u-coordinate)
+
+\* \@param public_key Pointer to the public scalar from the sender
+
+\* \@param shared_secret Pointer to shared secret key (u-coordinate)
+
+\* \@return crypto_status_t Result of the X25519 operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_x25519**(const
+**crypto\_blinded\_key\_t** \*private_key**,**\
+** **const **crypto\_unblinded\_key\_t **\*public_key**,**\
+** crypto\_blinded\_key\_t **\*shared_secret);
+
+Asynchronous APIs
+
+The defines a way to asynchronously run the long running cryptographic
+operations that use OTBN. The OTBN accelerator itself is treated as a
+"separate thread"to achieve non-blocking operation.
+
+Each asynchronous operation will have two function calls associated with
+it:
+
+-   **\<algorithm\>\_async\_start**
+
+    -   Takes input arguments. Checks if OTBN is idle and cleared. If
+        so: does any necessary synchronous preprocessing, initializes
+        OTBN, and starts the OTBN routine. Returns "OK"if the operation
+        was successfully started
+
+```{=html}
+<!-- -->
+```
+-   **\<algorithm\>\_async\_finalize**
+
+    -   Takes caller-allocated output buffers. Checks if the app loaded
+        onto OTBN is the expected one; if not, returns "Invalid
+        Input"status message. Checks OTBN status and returns "OK"and
+        output or "Async Incomplete"or "Internal Error"
+
+APIs are defined below to support non-blocking operation for RSA and ECC
+modes.
+
+RSA
+
+Asynchronous RSA Key Generation
+
+/\*\*
+
+\* Starts the asynchronous RSA key generation function.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to compute the RSA
+
+\* private key (d), RSA public key exponent (e) and modulus (n).
+
+\*
+
+\* Returns \`kCryptoStatusOK\` if the operation was successfully
+
+\* started, or\`kCryptoStatusInternalError\` if the operation cannot be
+
+\* started.
+
+\*
+
+\* \@param required_key_len Requested key length
+
+\* \@return crypto_status_t Result of async RSA keygen start operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_rsa\_keygen\_async\_start**(\
+**rsa\_key\_size\_t** required_key_len);
+
+/\*\*
+
+\* Finalizes the asynchronous RSA key generation function.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies the RSA private key (d), RSA
+
+\* public key exponent (e) and modulus (n) if the OTBN status is done,
+
+\* or \`kCryptoStatusAsyncIncomplete\` if the OTBN is busy or
+
+\* \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* \@param rsa_public_key Pointer to RSA public exponent struct
+
+\* \@param rsa_private_key Pointer to RSA private exponent struct
+
+\* \@return crypto_status_t Result of asynchronous RSA keygen finalize
+
+\* operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_rsa\_keygen\_async\_finalize**(\
+**rsa\_public\_key\_t** \*rsa_public_key,\
+**rsa\_private\_key\_t **\*rsa_private_key);
+
+Asynchronous RSA Signature
+
+/\*\*
+
+\* Starts the asynchronous digital signature generation function.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to compute the digital
+
+\* signature on the input message.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` if the operation was successfully
+
+\* started, or\`kCryptoStatusInternalError\` if the operation cannot be
+
+\* started.
+
+\*
+
+\* \@param rsa_private_key Pointer to RSA private exponent struct
+
+\* \@param input_message Input message to be signed
+
+\* \@param padding_mode Padding scheme to be used for the data
+
+\* \@param hash_mode Hashing scheme to be used for the signature scheme
+
+\* \@return crypto_status_t Result of async RSA sign start operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_rsa\_sign\_async\_start**(\
+const **rsa\_private\_key\_t **\*rsa_private_key,\
+**crypto\_const\_uint8\_buf\_t **input_message,\
+**rsa\_padding\_t** padding_mode,\
+**rsa\_hash\_t** hash_mode);
+
+/\*\*
+
+\* Finalizes the asynchronous digital signature generation function.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies the signature if the OTBN
+
+\* status is done, or \`kCryptoStatusAsyncIncomplete\` if the OTBN is
+
+\* busy or \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* The caller should allocate space for the \`signature\` buffer,\
+\* (expected length same as modulus length from \`rsa_private_key\`),
+
+\* and set the length of expected output in the \`len\` field of
+
+\* \`signature\`. If the user-set length and the output length does not
+
+\* match, an error message will be returned.
+
+\*
+
+\* \@param signature Pointer to generated signature struct
+
+\* \@return crypto_status_t Result of async RSA sign finalize operation
+
+\*/
+
+**crypto\_status\_t**
+**otcrypto\_rsa\_sign\_async\_finalize**(**crypto\_uint8\_buf\_t
+**\*signature);
+
+Asynchronous - RSA Verification
+
+/\*\*
+
+\* Starts the asynchronous signature verification function.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to recover the message
+
+\* from the input signature.
+
+\*
+
+\* \@param rsa_public_key Pointer to RSA public exponent struct
+
+\* \@param signature Pointer to the input signature to be verified
+
+\* \@return crypto_status_t Result of async RSA verify start operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_rsa\_verify\_async\_start**(\
+const **rsa\_public\_key\_t **\*rsa_public_key,\
+** crypto\_const\_uint8\_buf\_t **signature);
+
+/\*\*
+
+\* Finalizes the asynchronous signature verification function.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and populates the \`verification result\`
+
+\* if the OTBN status is done, or \`kCryptoStatusAsyncIncomplete\` if
+
+\* OTBN is busy or \`kCryptoStatusInternalError\` if there is an error.
+
+\* The (hash of) recovered message is compared against the input
+
+\* message and a PASS or FAIL is returned.
+
+\*
+
+\* \@param input_message Input message to be signed for verification
+
+\* \@param padding_mode Padding scheme to be used for the data
+
+\* \@param hash_mode Hashing scheme to be used for the signature scheme
+
+\* \@param verification_result Returns the result of verification
+
+\* \@return crypto_status_t Result of async RSA verify finalize
+
+\* operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_rsa\_verify\_async\_finalize**(\
+**crypto\_const\_uint8\_buf\_t **input_message,\
+**rsa\_padding\_t** padding_mode,\
+**rsa\_hash\_t** hash_mode,\
+** verification\_status\_t **\*verification_result);
+
+ECC
+
+Asynchronous - ECDSA Keygen
+
+/\*\*
+
+\* Starts the asynchronous key generation for ECDSA operation.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to compute the private
+
+\* key (d) and public key (Q) for ECDSA operation.
+
+\*
+
+\* The domain_parameter field of the \`elliptic_curve\` is required
+
+\* only for a custom curve. For named curves this field is ignored
+
+\* and can be set to NULL.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` if the operation was successfully
+
+\* started, or\`kCryptoStatusInternalError\` if the operation cannot be
+
+\* started.
+
+\*
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@return crypto_status_t Result of asynchronous ECDSA keygen start
+
+\* operation.
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdsa\_keygen\_async\_start**(\
+** ecc\_curve\_t** \*elliptic_curve);
+
+/\*\*
+
+\* Finalizes the asynchronous key generation for ECDSA operation.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies the private key (d) and public
+
+\* key (Q), if the OTBN status is done, or
+
+\* \`kCryptoStatusAsyncIncomplete\` if the OTBN is busy or
+
+\* \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param public_key Pointer to the unblinded public key (Q) struct
+
+\* \@return crypto_status_t Result of asynchronous ECDSA keygen
+
+\* finalize operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdsa\_keygen\_async\_finalize**(\
+**crypto\_blinded\_key\_t **\*private_key,\
+**ecc\_public\_key\_t **\*public_key);
+
+Asynchronous - ECDSA Signature
+
+/\*\*
+
+\* Starts the asynchronous ECDSA digital signature generation.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to compute the digital
+
+\* signature on the input message. The domain_parameter field of the
+
+\* \`elliptic_curve\` is required only for a custom curve. For named
+
+\* curves this field is ignored and can be set to NULL.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param input_message Input message to be signed
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@return crypto_status_t Result of async ECDSA start operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdsa\_sign\_async\_start**(\
+const **crypto\_blinded\_key\_t **\*private_key,\
+**crypto\_const\_uint8\_buf\_t **input_message,\
+**ecc\_curve\_t** \*elliptic_curve);
+
+/\*\*
+
+\* Finalizes the asynchronous ECDSA digital signature generation.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies the signature if the OTBN
+
+\* status is done, or \`kCryptoStatusAsyncIncomplete\` if the OTBN is
+
+\* busy or \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* \@param signature Pointer to the signature struct with (r,s) values
+
+\* \@return crypto_status_t Result of async ECDSA finalize operation
+
+\*/
+
+**crypto\_status\_t**
+**otcrypto\_ecdsa\_sign\_async\_finalize**(**ecc\_signature\_t**
+\*signature);
+
+Asynchronous - Deterministic ECDSA Signature
+
+/\*\*
+
+\* Starts the asynchronous deterministic ECDSA signature generation.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to compute the digital
+
+\* signature on the input message. The domain_parameter field of the
+
+\* \`elliptic_curve\` is required only for a custom curve. For named
+
+\* curves this field is ignored and can be set to NULL.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param input_message Input message to be signed
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@return crypto_status_t Result of async deterministic ECDSA start
+
+\* operation
+
+\*/
+
+**crypto\_status\_t**
+**otcrypto\_deterministic\_ecdsa\_sign\_async\_start**(\
+const **crypto\_blinded\_key\_t **\*private_key,\
+**crypto\_const\_uint8\_buf\_t **input_message,\
+**ecc\_curve\_t** \*elliptic_curve);
+
+/\*\*
+
+\* Finalizes the asynchronous deterministic ECDSA digital signature
+
+\* generation.
+
+\*
+
+\* In the case of deterministic ECDSA, the random value 'k'for the
+
+\* signature generation is deterministically generated from the
+
+\* private key and the input message. Refer to for details.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies the signature if the OTBN
+
+\* status is done, or \`kCryptoStatusAsyncIncomplete\` if the OTBN is
+
+\* busy or \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* \@param signature Pointer to the signature struct with (r,s) values
+
+\* \@return crypto_status_t Result of async deterministic ECDSA
+
+\* finalize operation
+
+\*/
+
+**crypto\_status\_t**
+**otcrypto\_ecdsa\_deterministic\_sign\_async\_finalize**(\
+**ecc\_signature\_t** \*signature);
+
+Asynchronous - ECDSA Verification
+
+/\*\*
+
+\* Starts the asynchronous ECDSA digital signature verification.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to recover 'r'value
+
+\* from the input signature 's'value. The domain_parameter field of
+
+\* \`elliptic_curve\` is required only for a custom curve. For named
+
+\* curves this field is ignored and can be set to NULL.
+
+\*
+
+\* \@param public_key Pointer to the unblinded public key (Q) struct
+
+\* \@param input_message Input message to be signed for verification
+
+\* \@param signature Pointer to the signature to be verified
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@return crypto_status_t Result of async ECDSA verify start function
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdsa\_verify\_async\_start** (\
+const **ecc\_public\_key\_t** \*public_key,\
+** crypto\_const\_uint8\_buf\_t **input_message,\
+**ecc\_signature\_t** \*signature,\
+** ecc\_curve\_t** \*elliptic_curve);
+
+/\*\*
+
+\* Finalizes the asynchronous ECDSA digital signature verification.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and populates the \`verification result\`
+
+\* if the OTBN status is done. \`kCryptoStatusAsyncIncomplete\` if the
+
+\* OTBN is busy or \`kCryptoStatusInternalError\` if there is an error.
+
+\* The computed signature is compared against the input signature
+
+\* and a PASS or FAIL is returned.
+
+\*
+
+\* \@param verification_result Returns the result of verification
+
+\* \@return crypto_status_t Result of async ECDSA verify finalize
+
+\* operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdsa\_verify\_async\_finalize** (\
+**verification\_status\_t **\*verification_result);
+
+Asynchronous - ECDH Key Gen
+
+/\*\*
+
+\* Starts the asynchronous key generation for ECDH operation.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to compute the private
+
+\* key (d) and public key (Q) for ECDH operation.
+
+\*
+
+\* The domain_parameter field of the \`elliptic_curve\` is required
+
+\* only for a custom curve. For named curves this field is ignored
+
+\* and can be set to NULL.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` if the operation was successfully
+
+\* started, or\`kCryptoStatusInternalError\` if the operation cannot be
+
+\* started.
+
+\*
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@return crypto_status_t Result of asynchronous ECDH keygen start
+
+\* operation.
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdh\_keygen\_async\_start**(\
+**ecc\_curve\_t** \*elliptic_curve);
+
+/\*\*
+
+\* Finalizes the asynchronous key generation for ECDSA operation.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies the private key (d) and public
+
+\* key (Q), if the OTBN status is done, or
+
+\* \`kCryptoStatusAsyncIncomplete\` if the OTBN is busy or
+
+\* \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param public_key Pointer to the unblinded public key (Q) struct
+
+\* \@return crypto_status_t Result of asynchronous ECDH keygen
+
+\* finalize operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdh\_keygen\_async\_finalize**(\
+** crypto\_blinded\_key\_t **\*private_key,\
+** ecc\_public\_key\_t **\*public_key);
+
+Asynchronous - ECDH
+
+/\*\*
+
+\* Starts the asynchronous Elliptic Curve Diffie Hellman shared
+
+\* secret generation.
+
+\*
+
+\* The domain_parameter field of the \`elliptic_curve\` is required
+
+\* only for a custom curve. For named curves this field is ignored
+
+\* and can be set to NULL.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key (d) struct
+
+\* \@param public_key Pointer to the unblinded public key (Q) struct
+
+\* \@param elliptic_curve Pointer to the elliptic curve to be used
+
+\* \@return crypto_status_t Result of async ECDH start operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdh\_async\_start**(\
+const **crypto\_blinded\_key\_t **\*private_key,\
+const **ecc\_public\_key\_t** \*public_key,\
+**ecc\_curve\_t** \*elliptic_curve);
+
+/\*\*
+
+\* Finalizes the asynchronous Elliptic Curve Diffie Hellman shared
+
+\* secret generation.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies \`shared_secret\` if the OTBN
+
+\* status is done, or \`kCryptoStatusAsyncIncomplete\` if the OTBN
+
+\* is busy or \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* \@param shared_secret Pointer to generated blinded shared key struct
+
+\* \@return crypto_status_t Result of async ECDH finalize operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ecdh\_async\_finalize**(\
+**crypto\_blinded\_key\_t **\*shared_secret);
+
+Asynchronous - Ed25519 Key Gen
+
+/\*\*
+
+\* Starts the asynchronous key generation for Ed25519.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to compute the private
+
+\* exponent (d) and public key (Q) based on Curve25519.
+
+\*
+
+\* No domain_parameter is needed and is automatically set for X25519.
+
+\*
+
+\* \@param drbg_state Pointer to the DRBG working state
+
+\* \@param additional_input Pointer to the additional input for DRBG
+
+\* \@return crypto_status_t Result of asynchronous ed25519 keygen start
+
+\* operation.
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ed25519\_keygen\_async\_start**( );
+
+/\*\*
+
+\* Finalizes the asynchronous key generation for Ed25519.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies private key (d) and public key
+
+\* (Q), if the OTBN status is done, or \`kCryptoStatusAsyncIncomplete\`
+
+\* if the OTBN is busy or \`kCryptoStatusInternalError\` if there is an
+
+\* error.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key struct
+
+\* \@param public_key Pointer to the unblinded public key struct
+
+\* \@return crypto_status_t Result of asynchronous ed25519 keygen
+
+\* finalize operation.
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ed25519\_keygen\_async\_finalize**(\
+**crypto\_blinded\_key\_t **\*private_key,\
+**crypto\_unblinded\_key\_t** \*public_key);
+
+Asynchronous - Ed25519 Signature
+
+/\*\*
+
+\* Starts the asynchronous Ed25519 digital signature generation.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to compute the digital
+
+\* signature on the input message. The domain_parameter field for
+
+\* Ed25519 is automatically set.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key struct
+
+\* \@param input_message Input message to be signed
+
+\* \@param sign_mode Parameter for EdDSA or Hash EdDSA sign mode
+
+\* \@param signature Pointer to the EdDSA signature to get (r) value
+
+\* \@return crypto_status_t Result of async Ed25519 start operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ed25519\_sign\_async\_start**(\
+const **crypto\_blinded\_key\_t **\*private_key,\
+** crypto\_const\_uint8\_buf\_t **input_message,\
+** eddsa\_sign\_mode\_t** sign_mode,\
+**ecc\_signature\_t** \*signature);
+
+/\*\*
+
+\* Finalizes the asynchronous Ed25519 digital signature generation.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies the signature if the OTBN
+
+\* status is done, or \`kCryptoStatusAsyncIncomplete\` if the OTBN is
+
+\* busy or \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* \@param signature Pointer to the EdDSA signature to get (s) value
+
+\* \@return crypto_status_t Result of async Ed25519 finalize operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ed25519\_sign\_async\_finalize**(\
+**ecc\_signature\_t** \*signature);
+
+Asynchronous - Ed25519 Verification
+
+/\*\*
+
+\* Starts the asynchronous Ed25519 digital signature verification.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to verify the
+
+\* signature. The domain_parameter for Ed25519 is set automatically.
+
+\*
+
+\* \@param public_key Pointer to the unblinded public key struct
+
+\* \@param input_message Input message to be signed for verification
+
+\* \@param sign_mode Parameter for EdDSA or Hash EdDSA sign mode
+
+\* \@param signature Pointer to the signature to be verified
+
+\* \@param verification_result Returns the result of signature
+
+\* verification (Pass/Fail)
+
+\* \@return crypto_status_t Result of async Ed25519 verification start
+
+\* function
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ed25519\_verify\_async\_start**(\
+const **crypto\_unblinded\_key\_t **\*public_key,\
+** crypto\_const\_uint8\_buf\_t **input_message,\
+** eddsa\_sign\_mode\_t** sign_mode,\
+**ecc\_signature\_t** \*signature);
+
+/\*\*
+
+\* Finalizes the asynchronous Ed25519 digital signature verification.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and populates the \`verification result\`
+
+\* with a PASS or FAIL, if the OTBN status is done,
+
+\* \`kCryptoStatusAsyncIncomplete\` if the OTBN is busy or
+
+\* \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* \@param verification_result Returns the result of verification
+
+\* \@return crypto_status_t Result of async Ed25519 verification
+
+\* finalize function
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_ed25519\_verify\_async\_finalize**(\
+**verification\_status\_t **\*verification_result);
+
+Asynchronous - X25519 Key Gen
+
+/\*\*
+
+\* Starts the asynchronous key generation for X25519.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to compute the private
+
+\* exponent (d) and public key (Q) based on Curve25519.
+
+\*
+
+\* No domain_parameter is needed and is automatically set for X25519.
+
+\*
+
+\* \@param drbg_state Pointer to the DRBG working state
+
+\* \@param additional_input Pointer to the additional input for DRBG
+
+\* \@return crypto_status_t Result of asynchronous X25519 keygen start
+
+\* operation.
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_x25519\_keygen\_async\_start**( );
+
+/\*\*
+
+\* Finalizes the asynchronous key generation for X25519.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies private key (d) and public key
+
+\* (Q), if the OTBN status is done, or \`kCryptoStatusAsyncIncomplete\`
+
+\* if the OTBN is busy or \`kCryptoStatusInternalError\` if there is an
+
+\* error.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key struct
+
+\* \@param public_key Pointer to the unblinded public key struct
+
+\* \@return crypto_status_t Result of asynchronous X25519 keygen
+
+\* finalize operation.
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_x25519\_keygen\_async\_finalize**(\
+**crypto\_blinded\_key\_t **\*private_key,\
+** crypto\_unblinded\_key\_t** \*public_key);
+
+Asynchronous - X25519 key exchange
+
+/\*\*
+
+\* Starts the asynchronous X25519 Diffie Hellman shared secret
+
+\* generation.
+
+\*
+
+\* Initializes OTBN and starts the OTBN routine to perform Diffie
+
+\* Hellman shared secret generation based on Curve25519. The
+
+\* domain parameter is automatically set for X25519 API.
+
+\*
+
+\* \@param private_key Pointer to the blinded private key
+
+\* (u-coordinate)
+
+\* \@param public_key Pointer to the public scalar from the sender
+
+\* \@return crypto_status_t Result of the async X25519 start operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_x25519\_async\_start**(\
+const **crypto\_blinded\_key\_t** \*private_key,\
+** **const **crypto\_unblinded\_key\_t **\*public_key);
+
+/\*\*
+
+\* Finalizes the asynchronous X25519 Diffie Hellman shared secret
+
+\* generation.
+
+\*
+
+\* Returns \`kCryptoStatusOK\` and copies \`shared_secret\` if the OTBN
+
+\* status is done, or \`kCryptoStatusAsyncIncomplete\` if the OTBN
+
+\* is busy or \`kCryptoStatusInternalError\` if there is an error.
+
+\*
+
+\* \@param shared_secret Pointer to shared secret key (u-coordinate)
+
+\* \@return crypto_status_t Result of async X25519 finalize operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_x25519\_async\_finalize**(\
+** crypto\_blinded\_key\_t **\*shared_secret);
+
+DRBG
+
+Random bit generators (RBG) are used to generate cryptographically
+secure random bits. The random bits can be generated using a
+non-deterministic random bit generator (NRBG) or a deterministic random
+bit generator (DRBG).
+
+The DRBG module generates (deterministic) pseudo-random bits from an
+input seed (entropy) value, using an underlying algorithm such as HASH,
+HMAC or AES. These random bits are then used directly or after
+processing, by the application in need of random values.
+
+OpenTitan's random bit generator, (Cryptographically Secure Random
+Number Generator) uses a block cipher based DRBG mechanism
+(AES_CTR_DRBG) as specified in . OpenTitan's RNG targets compliance with
+both , as well as and . The CSRNG operates at 256 bit security strength.
+
+Based on the requirements from the , APIs are defined in the to support
+DRBG mechanisms such as DRBG Instantiate, Reseed, Generate and
+Uninstantiate.
+
+The APIs for DRBG Instantiate and Reseed support two ways of obtaining
+the required entropy: In an **auto entropy **mode the required entropy
+is provided by the CSRNG IP (which gets its entropy from the ENTROPY_SRC
+module) and in the **manual entropy **mode the required entropy is
+obtained from the user as an input parameter. The user-provided entropy
+generates deterministic pseudo-random bits from a known seed.
+
+\
+The picture below shows an example of a functional model of a DRBG.
+
+**DRBG Functional Model**
+
+A DRBG mechanism takes several parameters as input such as: Entropy
+input, nonce, personalization string and additional input, based on its
+operating mode.
+
+To learn more about these input parameters and other details such as
+DRBG mechanism, entropy requirements, seed construction, derivation
+function and prediction resistance, kindly refer to the , , and
+documents and the links in the section.
+
+API
+
+NOTE:
+
+1.  The \`drbg_entropy_mode\` context parameter is used to disallow
+    mixing of DRBG operations with auto entropy and (user-provided)
+    manual entropy
+
+2.  Entropy length - **The accepted entropy length is 384bits**. The API
+    will reject the user provided entropy if the length is not 384-bits
+    (24 bytes).
+
+**AUTO ENTROPY**
+
+The entropy for instantiation and reseed is [automatically
+provided]{.underline} by the CSRNG IP, which gets its entropy from the
+ENTROPY_SRC module.
+
+DRBG-CTR-INSTANTIATE
+
+/\*\*
+
+\* Instantiates the DRBG system.
+
+\*
+
+\* Initializes the DRBG and the context for DRBG. Gets the required
+
+\* entropy input automatically from the entropy source.
+
+\*
+
+\* \@param drbg_state Pointer to the DRBG working state
+
+\* \@param nonce Pointer to the nonce bit-string
+
+\* \@param perso_string Pointer to personalization bitstring
+
+\* \@return crypto_status_t Result of the DRBG instantiate operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_drbg\_instantiate**(**drbg\_state\_t**
+\*drbg_state,\
+** crypto\_uint8\_buf\_t** nonce,\
+** crypto\_uint8\_buf\_t** perso_string);
+
+DRBG-CTR-RESEED
+
+/\*\*
+
+\* Reseeds the DRBG with fresh entropy.
+
+\*
+
+\* Reseeds the DRBG with fresh entropy that is automatically fetched
+
+\* from the entropy source and updates the working state parameters.
+
+\*
+
+\* \@param drbg_state Pointer to the DRBG working state
+
+\* \@param additional_input Pointer to the additional input for DRBG
+
+\* \@return crypto_status_t Result of the DRBG reseed operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_drbg\_reseed**(**drbg\_state\_t**
+\*drbg_state,\
+**crypto\_uint8\_buf\_t **additional_input);
+
+**MANUAL ENTROPY **
+
+The entropy required for instantiation and reseed is manually provided
+to the APIs, by the user.
+
+DRBG-CTR-MANUAL-INSTANTIATE
+
+/\*\*
+
+\* Instantiates the DRBG system.
+
+\*
+
+\* Initializes DRBG and the DRBG context. Gets the required entropy
+
+\* input from the user through the \`entropy\` parameter.
+
+\*
+
+\* \@param drbg_state Pointer to the DRBG working state
+
+\* \@param entropy Pointer to the user defined entropy value
+
+\* \@param nonce Pointer to the nonce bit-string
+
+\* \@param personalization_string Pointer to personalization bitstring
+
+\* \@return crypto_status_t Result of the DRBG manual instantiation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_drbg\_manual\_instantiate**(\
+** drbg\_state\_t** \*drbg_state,\
+** crypto\_uint8\_buf\_t **entropy,\
+** crypto\_uint8\_buf\_t **nonce,\
+** crypto\_uint8\_buf\_t **perso_string);
+
+DRBG-CTR-MANUAL-RESEED
+
+/\*\*
+
+\* Reseeds the DRBG with fresh entropy.
+
+\*
+
+\* Reseeds the DRBG with entropy input from the user through \`entropy\`
+
+\* parameter and updates the working state parameters.
+
+\*
+
+\* \@param drbg_state Pointer to the DRBG working state
+
+\* \@param entropy Pointer to the user defined entropy value
+
+\* \@param additional_input Pointer to the additional input for DRBG
+
+\* \@return crypto_status_t Result of the manual DRBG reseed operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_drbg\_manual\_reseed**(\
+**drbg\_state\_t** \*drbg_state,\
+** crypto\_uint8\_buf\_t** entropy,\
+** crypto\_uint8\_buf\_t** additional_input);
+
+DRBG-CTR-GENERATE
+
+/\*\*
+
+\* DRBG function for generating random bits.
+
+\*
+
+\* Used to generate pseudo random bits after DRBG instantiation or
+
+\* DRBG reseeding.
+
+\*
+
+\* The caller should allocate space for the \`drbg_output\` buffer,\
+\* (of length \`output_len\`), and set the length of expected
+
+\* output in the \`len\` field of \`drbg_output\`. If the user-set
+length
+
+\* and the output length does not match, an error message will be
+
+\* returned.
+
+\*
+
+\* \@param drbg_state Pointer to the DRBG working state
+
+\* \@param additional_input Pointer to the additional data
+
+\* \@param output_len Required length of pseudorandom output, in bytes
+
+\* \@param drbg_output Pointer to the generated pseudo random bits
+
+\* \@return crypto_status_t Result of the DRBG generate operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_drbg\_generate**(**drbg\_state\_t**
+\*drbg_state,\
+** crypto\_uint8\_buf\_t **additional_input,\
+** size\_t** output_len,\
+** crypto\_uint8\_buf\_t** \*drbg_output);
+
+DRBG-CTR-UNINSTANTIATE
+
+/\*\*
+
+\* Uninstantiates DRBG and clears the context.
+
+\*
+
+\* \@param drbg_state Pointer to the DRBG working state
+
+\* \@return crypto_status_t Result of the DRBG uninstantiate operation
+
+\*/
+
+**crypto\_status\_t**
+**otcrypto\_drbg\_uninstantiate**(**drbg\_state\_t** \*drbg_state);
+
+KDF
+
+OpenTitan Key derivation functions (KDF) provide key-expansion
+capability. Key derivation functions can be used to derive additional
+keys from a cryptographic key that has been established through an
+automated key-establishment scheme or from a pre-shared key.
+
+The OpenTitan key derivation function is based on the counter mode and
+uses a pseudorandom function (PRF) as a building block. OpenTitan KDF
+function supports a user-selectable PRF as the engine (i.e. either HMAC
+or a KMAC).
+
+To learn more about PRFs, various key derivation mechanisms and security
+considerations, kindly refer to the and the links in the section.
+
+API
+
+KDF_CTR
+
+/\*\*
+
+\* Performs the key derivation function in counter mode.
+
+\*
+
+\* The required PRF engine for the KDF function is selected using the
+
+\* \`kdf_mode\` parameter.
+
+\*
+
+\* \@param key_derivation_key Pointer to the blinded key derivation key
+
+\* \@param kdf_mode Required KDF mode, with HMAC or KMAC as a PRF
+
+\* \@param key_mode Crypto mode for which the derived key is intended
+
+\* \@param required_bit_len Required length of the derived key in bits
+
+\* \@param keying_material Pointer to the blinded keying material
+
+\* \@return crypto_status_t Result of the key derivation operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_kdf\_ctr**(const
+**crypto\_blinded\_key\_t** key_derivation_key,\
+** kdf\_type\_t** kdf_mode,\
+** key\_mode\_t** key_mode,\
+** size\_t** required_bit_len,\
+** crypto\_blinded\_key\_t** keying_material);
+
+Key Import and Export
+
+The following section defines the APIs required to import and export
+keys.
+
+Import key function takes a user key in plain and generates an OpenTitan
+specific unblinded (not-masked) or blinded (masked with 'n'shares) key
+struct. The export function unloads the blinded key to an unblinded key
+from which the user can read the plain key when required.
+
+API
+
+Build unblinded key
+
+/\*\*
+
+\* Builds an unblinded key struct from a user (plain) key.
+
+\*
+
+\* \@param plain_key Pointer to the user defined plain key
+
+\* \@param key_mode Crypto mode for which the key usage is intended
+
+\* \@param unblinded_key Generated unblinded key struct
+
+\* \@return crypto_status_t Result of the build unblinded key operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_build\_unblinded\_key**(\
+**crypto\_const\_uint8\_buf\_t **plain_key,\
+**key\_mode\_t** key_mode,\
+**crypto\_unblinded\_key\_t **unblinded_key);
+
+Build blinded key
+
+/\*\*
+
+\* Builds a blinded key struct from a plain key.
+
+\*
+
+\* This API takes as input a plain key from the user and masks
+
+\* it using an implantation specific masking with 'n'shares and
+
+\* generates a blinded key struct as output.
+
+\*
+
+\* \@param plain_key Pointer to the user defined plain key
+
+\* \@param key_mode Crypto mode for which the key usage is intended
+
+\* \@param blinded_key Generated blinded key struct
+
+\* \@return crypto_status_t Result of the build blinded key operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_build\_blinded\_key**(\
+**crypto\_const\_uint8\_buf\_t** plain_key,\
+**key\_mode\_t** key_mode,\
+**crypto\_blinded\_key\_t **blinded_key);
+
+Blinded key to Unblinded key
+
+/\*\*
+
+\* Exports the blinded key struct to an unblinded key struct.
+
+\*
+
+\* This API takes as input a blinded key masked with 'n'shares,
+
+\* removes the masking and generates an unblinded key struct as
+
+\* output.
+
+\*
+
+\* \@param blinded_key Blinded key struct to be unmasked
+
+\* \@param unblinded_key Generated unblinded key struct
+
+\* \@return crypto_status_t Result of the blinded key export operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_blinded\_to\_unblinded\_key**(\
+const **crypto\_blinded\_key\_t** blinded_key,\
+**crypto\_unblinded\_key\_t** unblinded_key);
+
+Unblinded key to Blinded key
+
+/\*\*
+
+\* Build a blinded key struct from an unblinded key struct.
+
+\*
+
+\* \@param unblinded_key Blinded key struct to be unmasked
+
+\* \@param blinded_key Generated (unmasked) unblinded key struct
+
+\* \@return crypto_status_t Result of unblinded key export operation
+
+\*/
+
+**crypto\_status\_t** **otcrypto\_unblinded\_to\_blinded\_key**(\
+const **crypto\_unblinded\_key** unblinded_key,\
+**crypto\_blinded\_key\_t **blinded_key);
+
+Security Strength
+
+Security strength in simple terms denotes the amount of work required to
+break a cryptographic algorithm. Security strength of an algorithm with
+key length 'k'is expressed in "bits" where n-bit security means that the
+attacker would have to perform 2^n^ operations to break the algorithm.
+
+The table below summarizes the security strength for all the .
+
++----------------+----------------+----------------+----------------+
+| **Family**     | **Algo**       | **Security     | **Comments**   |
+|                |                | Strength       |                |
+|                |                | (bits)**       |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+| Symmetric-key  | AES128         | 128            |                |
+| block ciphers  |                |                |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | AES192         | 192            |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | AES256         | 256            |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+| HASH           | SHA256         | 128            | 128 bits for   |
+|                |                |                | Collision      |
+|                |                |                | Resistance,\   |
+|                |                |                | 256 bits for   |
+|                |                |                | Preimage       |
+|                |                |                | Resistance     |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | SHA384         | 192            | 192 bits for   |
+|                |                |                | Collision      |
+|                |                |                | Resistance,\   |
+|                |                |                | 384 bits for   |
+|                |                |                | Preimage       |
+|                |                |                | Resistance     |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | SHA512         | 256            | 256 bits for   |
+|                |                |                | Collision      |
+|                |                |                | Resistance,\   |
+|                |                |                | 512 bits for   |
+|                |                |                | Preimage       |
+|                |                |                | Resistance     |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | SHA3-224       | 112            | 112 bits for   |
+|                |                |                | Collision      |
+|                |                |                | Resistance,\   |
+|                |                |                | 224 bits for   |
+|                |                |                | Preimage       |
+|                |                |                | Resistance     |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | SHA3-256       | 128            | 128 bits for   |
+|                |                |                | Collision      |
+|                |                |                | Resistance,\   |
+|                |                |                | 256 bits for   |
+|                |                |                | Preimage       |
+|                |                |                | Resistance     |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | SHA3-384       | 192            | 192 bits for   |
+|                |                |                | Collision      |
+|                |                |                | Resistance,\   |
+|                |                |                | 384 bits for   |
+|                |                |                | Preimage       |
+|                |                |                | Resistance     |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | SHA3-512       | 256            | 256 bits for   |
+|                |                |                | Collision      |
+|                |                |                | Resistance,\   |
+|                |                |                | 512 bits for   |
+|                |                |                | Preimage       |
+|                |                |                | Resistance     |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+| HASH-XOF       | SHAKE128       | Output         | For output     |
+|                |                | 'd'bits\       | size of        |
+|                |                | min(d/2,128)   | 'd'bits,\      |
+|                |                |                | Collision      |
+|                |                |                | Resistance:    |
+|                |                |                | min(d/2,128)\  |
+|                |                |                | Preimage       |
+|                |                |                | Resistance:    |
+|                |                |                | ≥min(d,128)    |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | SHAKE256       | Output         | For output     |
+|                |                | 'd'bits\       | size of        |
+|                |                | min(d/2,256)   | 'd'bits,\      |
+|                |                |                | Collision      |
+|                |                |                | Resistance:    |
+|                |                |                | min(d/2,256)\  |
+|                |                |                | Preimage       |
+|                |                |                | Resistance:    |
+|                |                |                | ≥min(d,256)    |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | cSHAKE128      | 128            |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | cSHAKE256      | 256            |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+| \              | HMAC-SHA256    | 256            |                |
+| MAC            |                |                |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | KMAC128        | 128            |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | KMAC256        | 256            |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+| RSA            | Modulus 1024   | 80             | Legacy, not    |
+|                | bits           |                | recommended    |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | Modulus 2048   | 112            |                |
+|                | bits           |                |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | Modulus 3072   | 128            |                |
+|                | bits           |                |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | Modulus 4096   | \~144          |                |
+|                | bits           |                |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+| ECC            | NIST P256      | 128            | Key size       |
+|                |                |                | {256-383}      |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | NIST P384      | 192            | Key size       |
+|                |                |                | {384-511}      |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+|                | Curve25519     | 128            |                |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+| DRBG           | CTR_DRBG       | 256            | Based on       |
+|                |                |                | AES-CTR-256    |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+| KDF            | KDF_CTR        | 128            | With HMAC or   |
+|                |                |                | KMAC as a PRF  |
++----------------+----------------+----------------+----------------+
+|                |                |                |                |
++----------------+----------------+----------------+----------------+
+
+Over time the cryptographic algorithms may become more vulnerable to
+successful attacks, requiring a transition to stronger algorithms or
+longer key lengths over time. The table below is a recommendation from ,
+that provides a projected time frame for applying cryptographic
+protection at a minimum security strength.
+
+**NIST Security strength time frames**
+
+Kindly refer to the security strength links in the section for more
+information on crypto algorithms, key sizes and related security
+strength and transition recommendations.
+
+References
+
+**General **
+
+1.  of this specification
+
+\
+**Asynchronous mode of operation for OpenTitan **
+
+**AES**
+
+1.  : Announcing the Advanced Encryption Standard (AES)
+
+2.  : Recommendation for Block Cipher Modes of Operation: Methods and
+    Techniques
+
+3.  : Recommendation for Block Cipher Modes of Operation: Galois/Counter
+    Mode (GCM) and GMAC
+
+4.  : Recommendation for Block Cipher Modes of Operation: Methods for
+    Key wrapping
+
+**HASH**
+
+1.  : Secure Hash Standard
+
+2.  : Recommendation for Applications Using Approved Hash Algorithms
+
+3.  : SHA-3 Standard: Permutation-Based Hash and Extendable-Output
+    Functions
+
+4.  : SHA-3 Derived Functions: cSHAKE, KMAC, TupleHash, and ParallelHash
+
+**MAC**
+
+1.  : HMAC: Keyed-Hashing for Message Authentication
+
+2.  : Identifiers and Test Vectors for HMAC-SHA-224, HMAC-SHA-256,
+    HMAC-SHA-384, and HMAC-SHA-512
+
+3.  : Using HMAC-SHA-256, HMAC-SHA-384, and HMAC-SHA-512
+
+4.  : SHA-3 Derived Functions: cSHAKE, KMAC, TupleHash, and ParallelHash
+
+**RSA**
+
+1.  : PKCS #1: RSA Cryptography Specifications Version 2.2
+
+2.  : Digital Signature Standard
+
+3.  : Digital Signature Standard
+
+**ECC**
+
+1.  : Elliptic Curve Cryptography
+
+2.  :- Recommended Elliptic Curve Domain Parameters
+
+3.  : Digital Signature Standard (P256 / P384)
+
+4.  : Recommendation for Pair-Wise Key-Establishment Schemes Using
+    Discrete Logarithm Cryptography
+
+5.  : Elliptic Curve Cryptography (ECC) Brainpool Standard Curves and
+    Curve Generation
+
+6.  : Elliptic Curve (ECC) Cipher Suites for Transport Layer Security
+    (TLS)
+
+7.  : Choosing safe curves for elliptic-curve cryptography
+
+8.  : Alternative Elliptic Curve Representations
+
+9.  : Elliptic Curves for Security (curve25519 / Ed25519)
+
+10. : Edwards-Curve Digital Signature Algorithm (EdDSA)
+
+11. : Recommendations for Discrete Logarithm-Based Cryptography
+
+12. , Daniel J. Bernstein et al.
+
+13. , Daniel J. Bernstein
+
+**DRBG**
+
+1.  : Recommendation for Random Number Generation Using Deterministic
+    Random Bit Generators
+
+2.  : Recommendation for the Entropy Sources Used for Random Bit
+    Generation
+
+3.  : Recommendation for Random Bit 5 Generator (RBG) Constructions
+
+4.  : A proposal for: Functionality classes for random number generators
+
+5.  OpenTitan technical specification
+
+**Key Derivation:**
+
+1.  : Recommendation for Key Derivation using Pseudorandom Functions
+
+**Key Management, Security Strength**
+
+1.  : Transitioning the Use of Cryptographic Algorithms and Key Lengths
+
+2.  : Recommendation for Key Management (Part 1 General)

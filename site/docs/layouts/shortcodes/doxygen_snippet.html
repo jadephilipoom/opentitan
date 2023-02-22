@@ -1,0 +1,139 @@
+{{/* Hugo shortcode to print a code snippet from Doxygen. */}}
+
+{{/* First, locate the doxygen XML and unmarshal it into a map. */}}
+{{ $baseName := .Get 0 }}
+{{ $path := path.Join .Site.Params.generatedRoot (printf "sw/api-xml/%s.xml" $baseName) }}
+{{ if not (fileExists $path) }}
+  {{ errorf "Doxygen XML has not been generated for %s" $baseName }}
+{{ end }}
+{{ $doxygen_xml := readFile $path | resources.FromString (printf "data/doxygen_%s.xml" $baseName) }}
+{{ $doxygen := transform.Unmarshal $doxygen_xml }}
+
+{{/* Next, find the doxygen source file. */}}
+{{ $source_path := path.Join .Site.Params.generatedRoot (printf "sw/public-api/sw/apis/%s_source.html" $baseName) }}
+{{ if not (fileExists $source_path) }}
+  {{ errorf "Doxygen source file has not been generated for %s" $baseName }}
+{{ end }}
+{{ $source := readFile $source_path | safeHTML }}
+
+{{/* Next, find the member definition with a matching name. */}}
+{{ $name := .Get 1 }}
+{{ $matches := slice }}
+{{ with $doxygen.compounddef }}
+  {{ range .sectiondef }}
+    {{ $kind := index . "-kind" | plainify }}
+    {{/* .memberdef may be a slice or a single object; create a singleton list if an object. */}}
+    {{ $members := slice .memberdef }}
+    {{ if reflect.IsSlice .memberdef }}
+      {{ $members = .memberdef }}
+    {{ end }}
+
+    {{/* Find any objects with a matching name. */}}
+    {{ range $members }}
+      {{ if isset . "name" }}
+        {{ if eq .name $name }}
+          {{ $matches = $matches | append . }}
+        {{ end }}
+      {{ else }}
+        {{ $member := . | jsonify }}
+        {{ errorf "Section member has no field 'name': %s" $member }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{/* Check that we found exactly one match. */}}
+{{ if eq (len $matches) 0 }}
+   {{ errorf "No matching objects found for name %s in file %s Hint: if it's a `typedef struct`, try adding `_t`." $name $path }}
+{{ else if gt (len $matches) 1 }}
+   {{ $objs := $matches | jsonify }}
+   {{ errorf "Multiple (%d) objects found for name %s: %s" (len $matches) $name $objs }}
+{{ end }}
+
+{{/* Fetch start and end line numbers. */}}
+{{ $obj := index $matches 0 }}
+{{ $kind := index $obj "-kind" | plainify }}
+{{ $start := -1 }}
+{{ $end := -1 }}
+{{ if eq $kind "enum" }}
+  {{ $start = index $obj.location "-bodystart" | plainify | int }}
+  {{ $end = index $obj.location "-bodyend" | plainify | int }}
+{{ else if eq $kind "function" }}
+  {{ $start = index $obj.location "-declline" | plainify | int }}
+{{ else if eq $kind "typedef" }}
+  {{ $end = index $obj.location "-line" | plainify | int }}
+{{ else }}
+  {{ errorf "Unsupported declaration type for %s: %s" $name $kind }}
+{{ end }}
+
+{{/* Find all lines in the source file. */}}
+{{ $all_lines := findRE `<div class="line">.*?</div>` $source }}
+
+{{/* For functions, we don't get an end index, so find the next ';' following
+     the start of the declaration. */}}
+{{ if eq $kind "function" }}
+  {{ $stop := false }}
+  {{ range $_, $lineno := (seq $start (len $all_lines)) }}
+    {{ if $stop }}
+    {{ else }}
+      {{ $line := index $all_lines (sub $lineno 1) }}
+      {{ if in $line `class="comment"` }}
+      {{ else if in ($line | plainify) ";" }}
+        {{ $end = $lineno }}
+        {{ $stop = true }}
+      {{ else }}
+        {{ $end = $lineno }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+
+{{/* For typedefs, we don't get a start index, so find the last "typedef"
+     preceding the end index. */}}
+{{ if eq $kind "typedef" }}
+  {{ range $_, $lineno := (seq $end) }}
+    {{ $line := index $all_lines (sub $lineno 1) }}
+    {{/* Remove the line number and plainify to get just the code. */}}
+    {{ $text := replaceRE `<span class="lineno">.*?</span>` "" $line | plainify }}
+    {{ if in $line `class="comment"` }}
+    {{ else if hasPrefix $text "typedef" }}
+       {{ $start = $lineno }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+{{ if lt $start 0 }}
+  {{ errorf "Error calculating the start line index for %s (type %s). Calculated range: %d to %d" $name $kind $start $end }}
+{{ else if lt $end $start }}
+  {{ errorf "Error calculating the end line index for %s (type %s). Calculated range: %d to %d" $name $kind $start $end }}
+{{ end }}
+
+{{/* Fetch the lines for the selected source code.
+     Note: line numbers are 1-indexed. */}}
+{{ $source_len := sub (add $end 1) $start }}
+{{ $source_lines := first $source_len (after (sub $start 1) $all_lines) }}
+
+{{/* Get any docstring that immediately precedes the selected lines. */}}
+{{ $comment_lines := slice }}
+{{ range $_, $lineno := (seq (sub $start 1)) }}
+  {{ $line := index $all_lines (sub $lineno 1) }}
+  {{ if in $line `<span class="comment">/**</span>` }}
+     {{/* Start of a new docstring. */}}
+     {{ $comment_lines = slice $line }}
+  {{ else if in $line `class="comment"` }}
+     {{ $comment_lines = $comment_lines | append $line }}
+  {{ else }}
+     {{ $comment_lines = slice }}
+  {{ end }}
+{{ end }}
+
+{{/* Pretty-print the selected lines. */}}
+{{ $print_lines := $comment_lines | append $source_lines }}
+{{ $plain_lines := slice }}
+{{ range $print_lines }}
+  {{/* Remove the line number. */}}
+  {{ $line := replaceRE `<span class="lineno">.*?</span>` "" . }}
+  {{ $plain_lines = $plain_lines | append ($line | plainify) }}
+{{ end }}
+{{ transform.Highlight (delimit $plain_lines "\n") "c" "style=api" }}
