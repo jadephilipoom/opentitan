@@ -2285,7 +2285,7 @@ boolean_to_arithmetic:
  * @param[out] [w21, w20]: d0, first share of private key d (320 bits)
  * @param[out] [w23, w22]: d1, second share of private key d (320 bits)
  *
- * clobbered registers: x2, x3, w1 to w4, w20 to w29
+ * clobbered registers: x2, x3, w1 to w6, w20 to w29
  * clobbered flag groups: FG0
  */
 p256_key_from_seed:
@@ -2338,19 +2338,31 @@ p256_key_from_seed:
 
   /* Compute d1. Because 2^320 < 2 * (n << 64), a conditional subtraction is
      sufficient to reduce. Similarly to the carry bit, the conditional bit here
-     is not very sensitive because the shares are large relative to n.
-       [w23,w22] <= x1 mod (n << 64) = d1 */
-  bn.sel    w22, w22, w24, FG0.C
-  bn.sel    w23, w23, w25, FG0.C
+     is not very sensitive because the shares are large relative to n. Compute
+     in separate registers to prevent leaking the carry bit anyway.
+       [w5,w6] <= x1 mod (n << 64) = d1 */
+  bn.sel    w5, w22, w24, FG0.C
+  bn.sel    w6, w23, w25, FG0.C
+
+  /* Overwrite original registers with randomness to prevent power side-channel
+     leakage and then copy. */
+  bn.wsrr   w22, 0x2 /* URND */
+  bn.wsrr   w23, 0x2 /* URND */
+  bn.mov    w22, w5
+  bn.mov    w23, w6
 
   /* Isolate the carry bit and shift it back into position.
        w25 <= x0[320] << 64 */
+  bn.wsrr   w25, 0x2 /* URND */
   bn.rshi   w25, w31, w21 >> 64
   bn.rshi   w25, w25, w31 >> 192
 
   /* Clear the carry bit from the original result.
        [w21,w20] <= x0 mod 2^320 */
-  bn.xor    w21, w21, w25
+  bn.wsrr   w5, 0x2 /* URND */
+  bn.xor    w5, w21, w25
+  bn.wsrr   w21, 0x2 /* URND */
+  bn.mov    w21, w5
 
   /* Conditionally subtract (n << 64) to reduce.
        [w21,w20] <= (x0 mod 2^320) mod (n << 64) */
@@ -2359,24 +2371,32 @@ p256_key_from_seed:
   bn.sel    w20, w20, w26, FG0.C
   bn.sel    w21, w21, w27, FG0.C
 
+  /* Overwrite with randomness to prevent leakage. */
+  bn.wsrr   w5, 0x2 /* URND */
+  bn.wsrr   w6, 0x2 /* URND */
+
   /* Compute the correction factor.
        [w25,w24] <= (x[320] << 320) mod (n << 64) = c */
   bn.sub    w26, w31, w28
   bn.subb   w27, w25, w29
-  bn.sel    w24, w31, w26, FG0.C
-  bn.sel    w25, w25, w27, FG0.C
+  bn.sel    w5, w31, w26, FG0.C
+  bn.sel    w6, w25, w27, FG0.C
+
+  /* Overwrite with randomness to prevent leakage. */
+  bn.wsrr   w2, 0x2 /* URND */
+  bn.wsrr   w3, 0x2 /* URND */
 
   /* Compute d0 with a modular subtraction. First we add (n << 64) to protect
      against underflow, then conditionally subtract it again if needed.
-       [w21,w20] <= ([w21, w20] - [w25,w24]) mod (n << 64) = d1 */
+       [w21,w20] <= ([w21, w20] - [w5,w6]) mod (n << 64) = d0 */
   bn.add    w20, w20, w28
   bn.addc   w21, w21, w29
-  bn.sub    w20, w20, w24
-  bn.subb   w21, w21, w25
-  bn.sub    w26, w20, w28
-  bn.subb   w27, w21, w29
-  bn.sel    w20, w20, w26, FG0.C
-  bn.sel    w21, w21, w27, FG0.C
+  bn.sub    w2, w20, w5
+  bn.subb   w3, w21, w6
+  bn.sub    w26, w2, w28
+  bn.subb   w27, w3, w29
+  bn.sel    w20, w2, w26, FG0.C
+  bn.sel    w21, w3, w27, FG0.C
 
   ret
 
