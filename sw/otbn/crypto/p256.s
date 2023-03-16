@@ -2293,7 +2293,7 @@ p256_key_from_seed:
      individually. EXPERIMENT FOR TVLA ONLY: DO NOT USE THIS CODE IN
      PRODUCTION. */
   bn.addi   w28, w31, 1
-  bn.rshi   w28, w28, w31 >> 192
+  bn.rshi   w28, w28, w31 >> 193
   bn.not    w28, w28
   bn.and    w21, w21, w28
   bn.and    w23, w23, w28
