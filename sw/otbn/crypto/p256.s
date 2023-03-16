@@ -2292,10 +2292,11 @@ p256_key_from_seed:
   /* Clear the highest bit of the seed by clearing it in both shares
      individually. EXPERIMENT FOR TVLA ONLY: DO NOT USE THIS CODE IN
      PRODUCTION. */
-  bn.rshi   w21, w21, w31 >> 255
-  bn.rshi   w21, w31, w21 >> 1
-  bn.rshi   w23, w23, w31 >> 255
-  bn.rshi   w23, w31, w23 >> 1
+  bn.addi   w28, w31, 1
+  bn.rshi   w28, w28, w31 >> 192
+  bn.not    w28, w28
+  bn.and    w21, w21, w28
+  bn.and    w23, w23, w28
 
   /* Convert from a boolean to an arithmetic mask using Goubin's algorithm.
        [w21, w20] <= ((seed0 ^ seed1) - seed1) mod 2^321 = x0 */
