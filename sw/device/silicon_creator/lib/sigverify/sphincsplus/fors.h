@@ -37,6 +37,14 @@ rom_error_t fors_pk_from_sig(const uint8_t *sig, const uint8_t *m,
                              const spx_ctx_t *ctx, const spx_addr_t *fors_addr,
                              uint32_t *pk);
 
+/**
+ * Signs a message m, deriving the secret key from sk_seed and the FTS address.
+ * Assumes m contains at least kSpxForsHeight * kSpxForsTrees bits.
+ */
+OT_WARN_UNUSED_RESULT
+rom_error_t fors_sign(uint32_t *sig, uint32_t *pk, const unsigned char *m,
+                      const spx_ctx_t *ctx, const spx_addr_t *fors_addr);
+
 #ifdef __cplusplus
 }
 #endif

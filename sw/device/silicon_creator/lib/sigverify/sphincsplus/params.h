@@ -142,6 +142,14 @@ enum {
    * WOTS public key size in words.
    */
   kSpxWotsPkWords = kSpxWotsPkBytes / sizeof(uint32_t),
+  /**
+   * SPHINCS+ secret key length in words.
+   */
+  kSpxSkWords = kSpxSkBytes / sizeof(uint32_t),
+  /**
+   * FORS signature length in words.
+   */
+  kSpxForsWords = kSpxForsBytes / sizeof(uint32_t),
 };
 
 /**

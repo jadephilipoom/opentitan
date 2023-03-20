@@ -29,6 +29,23 @@ autogen_cryptotest_header(
 )
 
 opentitan_functest(
+    name = "sign_test_hardcoded",
+    srcs = ["sign_test.c"],
+    verilator = verilator_params(
+        timeout = "eternal",
+    ),
+    deps = [
+        ":sphincsplus_shake_128s_simple_testvectors_hardcoded_header",
+        "//sw/device/lib/base:memory",
+        "//sw/device/lib/runtime:ibex",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/silicon_creator/lib:test_main",
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:sign",
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:verify",
+    ],
+)
+
+opentitan_functest(
     name = "verify_test_hardcoded",
     srcs = ["verify_test.c"],
     verilator = verilator_params(

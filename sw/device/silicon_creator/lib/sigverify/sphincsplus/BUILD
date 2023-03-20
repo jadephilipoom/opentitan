@@ -55,8 +55,39 @@ cc_library(
 )
 
 cc_library(
+    name = "merkle",
+    srcs = ["merkle.c"],
+    hdrs = ["merkle.h"],
+    deps = [
+        ":address",
+        ":context",
+        ":wots",
+        ":wotsx1",
+        "//sw/device/lib/base:memory",
+        "//sw/device/silicon_creator/lib:error",
+    ],
+)
+
+cc_library(
     name = "params",
     hdrs = ["params.h"],
+)
+
+cc_library(
+    name = "sign",
+    srcs = ["sign.c"],
+    hdrs = ["sign.h"],
+    deps = [
+        ":address",
+        ":fors",
+        ":hash",
+        ":merkle",
+        ":params",
+        ":thash",
+        ":utils",
+        "//sw/device/lib/base:memory",
+        "//sw/device/silicon_creator/lib:error",
+    ],
 )
 
 cc_library(
@@ -78,6 +109,7 @@ cc_library(
     hdrs = ["utils.h"],
     deps = [
         ":address",
+        ":context",
         ":params",
         ":thash",
         "//sw/device/lib/base:memory",
@@ -116,5 +148,19 @@ cc_library(
         "//sw/device/lib/base:memory",
         "//sw/device/silicon_creator/lib:error",
         "//sw/device/silicon_creator/lib/drivers:kmac",
+    ],
+)
+
+cc_library(
+    name = "wotsx1",
+    srcs = ["wotsx1.c"],
+    hdrs = ["wotsx1.h"],
+    deps = [
+        ":hash",
+        ":params",
+        ":thash",
+        ":utils",
+        "//sw/device/lib/base:memory",
+        "//sw/device/silicon_creator/lib:error",
     ],
 )

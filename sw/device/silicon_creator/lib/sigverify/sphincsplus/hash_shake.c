@@ -82,3 +82,25 @@ rom_error_t spx_hash_message(const uint8_t *R, const uint8_t *pk,
 
   return kErrorOk;
 }
+
+rom_error_t gen_message_random(uint32_t *R, const unsigned char *sk_prf,
+                               const unsigned char *optrand,
+                               const unsigned char *m,
+                               unsigned long long mlen) {
+  HARDENED_RETURN_IF_ERROR(kmac_shake256_start());
+  kmac_shake256_absorb(sk_prf, kSpxN);
+  kmac_shake256_absorb(optrand, kSpxN);
+  kmac_shake256_absorb(m, mlen);
+  kmac_shake256_squeeze_start();
+  return kmac_shake256_squeeze_end(R, kSpxNWords);
+}
+
+rom_error_t prf_addr(uint32_t *out, const spx_ctx_t *ctx,
+                     const spx_addr_t *addr) {
+  HARDENED_RETURN_IF_ERROR(kmac_shake256_start());
+  kmac_shake256_absorb((unsigned char *)ctx->pub_seed, kSpxN);
+  kmac_shake256_absorb((unsigned char *)addr->addr, kSpxAddrBytes);
+  kmac_shake256_absorb((unsigned char *)ctx->sk_seed, kSpxN);
+  kmac_shake256_squeeze_start();
+  return kmac_shake256_squeeze_end(out, kSpxNWords);
+}

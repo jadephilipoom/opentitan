@@ -15,14 +15,15 @@ extern "C" {
 #endif  // __cplusplus
 
 // A test vector for SPHINCS+ signature verification.
-typedef struct spx_verify_test_vector {
+typedef struct spx_test_vector {
   uint8_t sig[kSpxVerifySigBytes];  // Signature to verify.
   uint8_t pk[kSpxVerifyPkBytes];    // Public key.
+  uint8_t sk[kSpxSignSkBytes];    // Secret key.
   size_t msg_len;                   // Length of message.
   uint8_t *msg;                     // Message.
-} spx_verify_test_vector_t;
+} spx_test_vector_t;
 
-static const size_t kSpxVerifyNumTests = ${len(tests)};
+static const size_t kSpxNumTests = ${len(tests)};
 
 // Static message arrays.
 % for idx, t in enumerate(tests):
@@ -37,7 +38,7 @@ static uint8_t msg${idx}[${t["msg_len"]}] = {
   %endif
 % endfor
 
-static const spx_verify_test_vector_t spx_verify_tests[${len(tests)}] = {
+static const spx_test_vector_t spx_tests[${len(tests)}] = {
 % for idx, t in enumerate(tests):
     {
         .sig =
@@ -50,6 +51,12 @@ static const spx_verify_test_vector_t spx_verify_tests[${len(tests)}] = {
             {
   % for i in range(0, len(t["pk_hexbytes"]), 10):
                 ${', '.join(t["pk_hexbytes"][i:i + 10])},
+  % endfor
+            },
+        .sk =
+            {
+  % for i in range(0, len(t["sk_hexbytes"]), 10):
+                ${', '.join(t["sk_hexbytes"][i:i + 10])},
   % endfor
             },
         .msg_len = ${t["msg_len"]},

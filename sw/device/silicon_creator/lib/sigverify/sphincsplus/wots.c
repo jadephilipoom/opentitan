@@ -129,15 +129,7 @@ static void wots_checksum(const uint8_t *msg_base_w, uint8_t *csum_base_w) {
   base_w((unsigned char *)&csum, kSpxWotsLen2, csum_base_w);
 }
 
-/**
- * Derive the matching chain lengths from a message.
- *
- * The `lengths` buffer should be at least `kSpxWotsLen` words long.
- *
- * @param msg Input message.
- * @param[out] lengths Resulting chain lengths.
- */
-static void chain_lengths(const uint8_t *msg, uint8_t *lengths) {
+void chain_lengths(const uint8_t *msg, uint8_t *lengths) {
   base_w(msg, kSpxWotsLen1, lengths);
   wots_checksum(lengths, &lengths[kSpxWotsLen1]);
 }

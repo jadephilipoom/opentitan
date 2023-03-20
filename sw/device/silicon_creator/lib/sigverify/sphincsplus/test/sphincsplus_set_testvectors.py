@@ -59,6 +59,7 @@ def main() -> int:
         t['sig_hexbytes'] = hex_to_hexbytes(t['sig_hex'])
         t['msg_hexbytes'] = hex_to_hexbytes(t['msg_hex'])
         t['pk_hexbytes'] = hex_to_hexbytes(t['pk_hex'])
+        t['sk_hexbytes'] = hex_to_hexbytes(t['sk_hex'])
 
     with args.template as template:
         with args.headerfile as header:

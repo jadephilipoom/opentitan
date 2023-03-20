@@ -37,6 +37,16 @@ rom_error_t wots_pk_from_sig(const uint8_t *sig, const uint8_t *msg,
                              const spx_ctx_t *ctx, spx_addr_t *addr,
                              uint32_t *pk);
 
+/**
+ * Derive the matching chain lengths from a message.
+ *
+ * The `lengths` buffer should be at least `kSpxWotsLen` words long.
+ *
+ * @param msg Input message.
+ * @param[out] lengths Resulting chain lengths.
+ */
+void chain_lengths(const uint8_t *msg, uint8_t *lengths);
+
 #ifdef __cplusplus
 }
 #endif

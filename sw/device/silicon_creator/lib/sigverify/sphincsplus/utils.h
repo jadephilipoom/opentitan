@@ -55,6 +55,22 @@ rom_error_t spx_utils_compute_root(const uint8_t *leaf, uint32_t leaf_idx,
                                    uint8_t tree_height, const spx_ctx_t *ctx,
                                    spx_addr_t *addr, uint32_t *root);
 
+/**
+ * For a given leaf index, computes the authentication path and the resulting
+ * root node using Merkle's TreeHash algorithm.
+ * Expects the layer and tree parts of the tree_addr to be set, as well as the
+ * tree type (i.e. SPX_ADDR_TYPE_HASHTREE or SPX_ADDR_TYPE_FORSTREE).
+ * Applies the offset idx_offset to indices before building addresses, so that
+ * it is possible to continue counting indices across trees.
+ */
+rom_error_t treehashx1(
+    unsigned char *root, unsigned char *auth_path, const spx_ctx_t *ctx,
+    uint32_t leaf_idx, uint32_t idx_offset, uint32_t tree_height,
+    rom_error_t (*gen_leaf)(uint32_t * /* Where to write the leaf */,
+                            const spx_ctx_t * /* ctx */, uint32_t addr_idx,
+                            void *info),
+    spx_addr_t *tree_addrx4, void *info);
+
 #ifdef __cplusplus
 }
 #endif

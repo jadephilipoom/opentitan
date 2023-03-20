@@ -54,6 +54,30 @@ rom_error_t spx_hash_message(const uint8_t *R, const uint8_t *pk,
                              const uint8_t *m, unsigned long long mlen,
                              uint8_t *digest, uint64_t *tree,
                              uint32_t *leaf_idx);
+/**
+ * Computes the message-dependent randomness R, using a secret seed and an
+ * optional randomization value as well as the message.
+ *
+ * @param[out] R Per-signature random number.
+ * @param sk_prf Secret seed.
+ * @param optrand Optional random number.
+ * @param m Message.
+ * @param mlen Message length.
+ */
+OT_WARN_UNUSED_RESULT
+rom_error_t gen_message_random(uint32_t *R, const unsigned char *sk_prf,
+                               const unsigned char *optrand,
+                               const unsigned char *m, unsigned long long mlen);
+/*
+ * Computes PRF(pk_seed, sk_seed, addr).
+ *
+ * @param[out] out Output buffer (length `kSpxNWords`).
+ * @param ctx Context object.
+ * @param addr Hypertreee address.
+ */
+OT_WARN_UNUSED_RESULT
+rom_error_t prf_addr(uint32_t *out, const spx_ctx_t *ctx,
+                     const spx_addr_t *addr);
 
 #ifdef __cplusplus
 }

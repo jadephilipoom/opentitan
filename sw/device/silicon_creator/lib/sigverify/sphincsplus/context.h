@@ -19,13 +19,13 @@ extern "C" {
 /**
  * Context object for the SPHINCS+ operation.
  *
- * The reference implementation has more fields here: `sk_seed` and
- * hash-specific precomputed values for Haraka and SHA2 hash functions. Since
- * we are only using SHAKE-based SPHINCS+ in this context, and only performing
- * verification, all we need is the public key seed.
+ * The reference implementation has hash-specific precomputed values for Haraka
+ * and SHA2 hash functions. Since we are only using SHAKE-based SPHINCS+ in
+ * this context, these values are not needed.
  */
 typedef struct spx_ctx {
   uint32_t pub_seed[kSpxNWords];
+  uint32_t sk_seed[kSpxNWords];
 } spx_ctx_t;
 
 #ifdef __cplusplus
