@@ -51,15 +51,24 @@ rom_error_t spx_sign(uint32_t *sig, const uint8_t *m, size_t mlen,
   // Optionally, signing can be made non-deterministic using optrand.
   // This can help counter side-channel attacks that would benefit from
   // getting a large number of traces when the signer uses the same nodes.
+  //
+  // TODO: add actual randomness here
   // randombytes(optrand, kSpxN);
   memcpy(optrand, ctx.pub_seed, kSpxN);
+
+  // BM: 1131 cycles
+
   // Compute the digest randomization value.
   HARDENED_RETURN_IF_ERROR(gen_message_random(sig, (unsigned char *)sk_prf, optrand, m, mlen));
+
+  // BM: 2023 cycles
 
   // Derive the message digest and leaf index from R, PK and M.
   HARDENED_RETURN_IF_ERROR(spx_hash_message((unsigned char *)sig, (unsigned char *)pk, m, mlen,
                                             mhash, &tree, &idx_leaf));
   sig += kSpxNWords;
+
+  // BM: 3635 cycles
 
   spx_addr_tree_set(&wots_addr, tree);
   spx_addr_keypair_set(&wots_addr, idx_leaf);
@@ -68,6 +77,8 @@ rom_error_t spx_sign(uint32_t *sig, const uint8_t *m, size_t mlen,
   HARDENED_RETURN_IF_ERROR(fors_sign(sig, root, mhash, &ctx, &wots_addr));
   sig += kSpxForsWords;
 
+  // BM: 5821765 cycles
+
   for (i = 0; i < kSpxD; i++) {
     spx_addr_layer_set(&tree_addr, i);
     spx_addr_tree_set(&tree_addr, tree);
@@ -75,13 +86,16 @@ rom_error_t spx_sign(uint32_t *sig, const uint8_t *m, size_t mlen,
     spx_addr_subtree_copy(&wots_addr, &tree_addr);
     spx_addr_keypair_set(&wots_addr, idx_leaf);
 
+    // BM: 5850752 cycles if only merkle_sign is commented out (93% of runtime)
     HARDENED_RETURN_IF_ERROR(merkle_sign((unsigned char *)sig, root, &ctx,
-                                         &wots_addr, &tree_addr, idx_leaf));
+                                        &wots_addr, &tree_addr, idx_leaf));
     sig += kSpxWotsWords + kSpxTreeHeight * kSpxNWords;
 
     // Update the indices for the next layer.
     idx_leaf = (tree & ((1 << kSpxTreeHeight) - 1));
     tree = tree >> kSpxTreeHeight;
   }
+
+  // BM: 84071816 cycles if nothing is commented out
   return kErrorOk;
 }

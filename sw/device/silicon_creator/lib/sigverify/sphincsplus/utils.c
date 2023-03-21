@@ -4,6 +4,7 @@
 //
 // Derived from code in the SPHINCS+ reference implementation (CC0 license):
 // https://github.com/sphincs/sphincsplus/blob/ed15dd78658f63288c7492c00260d86154b84637/ref/utils.c
+// https://github.com/sphincs/sphincsplus/blob/ed15dd78658f63288c7492c00260d86154b84637/ref/utilsx1.c
 
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/utils.h"
 
@@ -98,56 +99,51 @@ rom_error_t treehashx1(
                             const spx_ctx_t * /* ctx */, uint32_t idx,
                             void *info),
     spx_addr_t *tree_addr, void *info) {
-  /* This is where we keep the intermediate nodes */
+  // This is where we keep the intermediate nodes.
   uint32_t stack[tree_height * kSpxNWords];
 
   uint32_t idx;
   uint32_t max_idx = (uint32_t)((1 << tree_height) - 1);
   for (idx = 0;; idx++) {
     uint32_t current[2 * kSpxNWords];
-    /* Current logical node is at */
-    /* index[SPX_N].  We do this to minimize the number of copies */
-    /* needed during a thash */
+    // Current logical node is at index[SPX_N]. We do this to minimize the
+    // number of copies needed during a thash.
     HARDENED_RETURN_IF_ERROR(
         gen_leaf(&current[kSpxNWords], ctx, idx + idx_offset, info));
 
-    /* Now combine the freshly generated right node with previously */
-    /* generated left ones */
+    // Now combine the freshly generated right node with previously generated
+    // left ones
     uint32_t internal_idx_offset = idx_offset;
     uint32_t internal_idx = idx;
     uint32_t internal_leaf = leaf_idx;
-    uint32_t h; /* The height we are in the Merkle tree */
+    uint32_t h; // The height we are in the Merkle tree.
     for (h = 0;; h++, internal_idx >>= 1, internal_leaf >>= 1) {
-      /* Check if we hit the top of the tree */
+      // Check if we hit the top of the tree.
       if (h == tree_height) {
-        /* We hit the root; return it */
+        // We hit the root; return it.
         memcpy(root, &current[kSpxNWords], kSpxN);
         return kErrorOk;
       }
 
-      /*
-       * Check if the node we have is a part of the
-       * authentication path; if it is, write it out
-       */
+      // Check if the node we have is a part of the authentication path; if it
+      // is, write it out.
       if ((internal_idx ^ internal_leaf) == 0x01) {
         memcpy(&auth_path[h * kSpxN], &current[kSpxNWords],
                kSpxN);
       }
 
-      /*
-       * Check if we're at a left child; if so, stop going up the stack
-       * Exception: if we've reached the end of the tree, keep on going
-       * (so we combine the last 4 nodes into the one root node in two
-       * more iterations)
-       */
+       // Check if we're at a left child; if so, stop going up the stack.
+       // Exception: if we've reached the end of the tree, keep on going (so we
+       // combine the last 4 nodes into the one root node in two more
+       // iterations).
       if ((internal_idx & 1) == 0 && idx < max_idx) {
         break;
       }
 
-      /* Ok, we're at a right node */
-      /* Now combine the left and right logical nodes together */
+      // Ok, we're at a right node.  Now combine the left and right logical
+      // nodes together.
 
-      /* Set the address of the node we're creating. */
+      // Set the address of the node we're creating.
       internal_idx_offset >>= 1;
       spx_addr_tree_height_set(tree_addr, h + 1);
       spx_addr_tree_index_set(tree_addr,
@@ -159,8 +155,8 @@ rom_error_t treehashx1(
                                      tree_addr, &current[kSpxNWords]));
     }
 
-    /* We've hit a left child; save the current for when we get the */
-    /* corresponding right right */
+    // We've hit a left child; save the current for when we get the
+    // corresponding right child.
     memcpy(&stack[h * kSpxNWords], &current[kSpxNWords], kSpxN);
   }
   return kErrorOk;
