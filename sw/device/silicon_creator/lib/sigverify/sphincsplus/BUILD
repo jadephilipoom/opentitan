@@ -42,6 +42,14 @@ cc_library(
 )
 
 cc_library(
+    name = "lengths",
+    hdrs = ["lengths.h"],
+    deps = [
+        ":params",
+    ],
+)
+
+cc_library(
     name = "hash",
     srcs = ["hash_shake.c"],
     hdrs = ["hash.h"],
@@ -85,6 +93,7 @@ cc_library(
         ":params",
         ":thash",
         ":utils",
+        "//sw/device/lib/base:hardened_memory",
         "//sw/device/lib/base:memory",
         "//sw/device/silicon_creator/lib:error",
     ],

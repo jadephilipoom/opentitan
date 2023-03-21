@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #include "sw/device/lib/base/memory.h"
+#include "sw/device/lib/base/hardened_memory.h"
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/address.h"
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/context.h"
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/fors.h"
@@ -22,11 +23,11 @@
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/wots.h"
 
 rom_error_t spx_sign(uint32_t *sig, const uint8_t *m, size_t mlen,
-                     const uint8_t *sk) {
+                     const uint32_t *sk) {
   spx_ctx_t ctx;
 
-  const unsigned char *sk_prf = sk + kSpxN;
-  const unsigned char *pk = sk + 2 * kSpxN;
+  const uint32_t *sk_prf = sk + kSpxNWords;
+  const uint32_t *pk = sk + 2 * kSpxNWords;
 
   unsigned char optrand[kSpxN];
   unsigned char mhash[kSpxForsMsgBytes];
@@ -37,8 +38,7 @@ rom_error_t spx_sign(uint32_t *sig, const uint8_t *m, size_t mlen,
   spx_addr_t wots_addr = {.addr = {0}};
   spx_addr_t tree_addr = {.addr = {0}};
 
-  // TODO: harden this copy.
-  memcpy(ctx.sk_seed, sk, kSpxN);
+  hardened_memcpy(ctx.sk_seed, sk, kSpxNWords);
   memcpy(ctx.pub_seed, pk, kSpxN);
 
   /* This hook allows the hash function instantiation to do whatever
@@ -54,14 +54,12 @@ rom_error_t spx_sign(uint32_t *sig, const uint8_t *m, size_t mlen,
   // randombytes(optrand, kSpxN);
   memcpy(optrand, ctx.pub_seed, kSpxN);
   // Compute the digest randomization value.
-  HARDENED_RETURN_IF_ERROR(gen_message_random(sig, sk_prf, optrand, m, mlen));
+  HARDENED_RETURN_IF_ERROR(gen_message_random(sig, (unsigned char *)sk_prf, optrand, m, mlen));
 
   // Derive the message digest and leaf index from R, PK and M.
-  HARDENED_RETURN_IF_ERROR(spx_hash_message((unsigned char *)sig, pk, m, mlen,
+  HARDENED_RETURN_IF_ERROR(spx_hash_message((unsigned char *)sig, (unsigned char *)pk, m, mlen,
                                             mhash, &tree, &idx_leaf));
   sig += kSpxNWords;
-
-  memset(sig, 0, kSpxBytes - kSpxN);
 
   spx_addr_tree_set(&wots_addr, tree);
   spx_addr_keypair_set(&wots_addr, idx_leaf);
@@ -70,7 +68,6 @@ rom_error_t spx_sign(uint32_t *sig, const uint8_t *m, size_t mlen,
   HARDENED_RETURN_IF_ERROR(fors_sign(sig, root, mhash, &ctx, &wots_addr));
   sig += kSpxForsWords;
 
-  /*
   for (i = 0; i < kSpxD; i++) {
     spx_addr_layer_set(&tree_addr, i);
     spx_addr_tree_set(&tree_addr, tree);
@@ -86,6 +83,5 @@ rom_error_t spx_sign(uint32_t *sig, const uint8_t *m, size_t mlen,
     idx_leaf = (tree & ((1 << kSpxTreeHeight) - 1));
     tree = tree >> kSpxTreeHeight;
   }
-  */
   return kErrorOk;
 }

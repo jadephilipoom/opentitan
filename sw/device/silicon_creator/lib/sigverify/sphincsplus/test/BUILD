@@ -40,8 +40,8 @@ opentitan_functest(
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/silicon_creator/lib:test_main",
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:lengths",
         "//sw/device/silicon_creator/lib/sigverify/sphincsplus:sign",
-        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:verify",
     ],
 )
 
@@ -57,6 +57,7 @@ opentitan_functest(
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/silicon_creator/lib:test_main",
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:lengths",
         "//sw/device/silicon_creator/lib/sigverify/sphincsplus:verify",
     ],
 )

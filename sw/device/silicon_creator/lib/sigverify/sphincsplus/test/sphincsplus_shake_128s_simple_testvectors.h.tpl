@@ -8,7 +8,7 @@
 #ifndef OPENTITAN_SW_DEVICE_SILICON_CREATOR_LIB_SIGVERIFY_SPHINCSPLUS_TEST_SPHINCSPLUS_SHAKE_128S_SIMPLE_TESTVECTORS_H_
 #define OPENTITAN_SW_DEVICE_SILICON_CREATOR_LIB_SIGVERIFY_SPHINCSPLUS_TEST_SPHINCSPLUS_SHAKE_128S_SIMPLE_TESTVECTORS_H_
 
-#include "sw/device/silicon_creator/lib/sigverify/sphincsplus/params.h"
+#include "sw/device/silicon_creator/lib/sigverify/sphincsplus/lengths.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,11 +16,11 @@ extern "C" {
 
 // A test vector for SPHINCS+ signature verification.
 typedef struct spx_test_vector {
-  uint8_t sig[kSpxVerifySigBytes];  // Signature to verify.
-  uint8_t pk[kSpxVerifyPkBytes];    // Public key.
-  uint8_t sk[kSpxSignSkBytes];    // Secret key.
-  size_t msg_len;                   // Length of message.
-  uint8_t *msg;                     // Message.
+  uint8_t sig[kSpxLenSigBytes];  // Signature to verify.
+  uint8_t pk[kSpxLenPkBytes];    // Public key.
+  uint8_t sk[kSpxLenSkBytes];    // Secret key.
+  size_t msg_len;                // Length of message.
+  uint8_t *msg;                  // Message.
 } spx_test_vector_t;
 
 static const size_t kSpxNumTests = ${len(tests)};

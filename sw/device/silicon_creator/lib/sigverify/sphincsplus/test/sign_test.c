@@ -12,7 +12,7 @@
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
-#include "sw/device/silicon_creator/lib/sigverify/sphincsplus/verify.h"
+#include "sw/device/silicon_creator/lib/sigverify/sphincsplus/lengths.h"
 #include "sw/device/silicon_creator/lib/test_main.h"
 
 // The autogen rule that creates this header creates it in a directory named
@@ -58,9 +58,13 @@ static uint32_t profile_end(uint64_t t_start) {
  * @param[out] sig Output signature.
  */
 static rom_error_t run_sign(const spx_test_vector_t *test, uint32_t *sig) {
+  // Copy the secret key into a word-aligned buffer. 
+  uint32_t sk[kSpxLenSkWords];
+  memcpy(sk, test->sk, kSpxLenSkBytes);
+
   // Run signing and print the cycle count.
   uint64_t t_start = profile_start();
-  rom_error_t err = spx_sign(sig, test->msg, test->msg_len, test->sk);
+  rom_error_t err = spx_sign(sig, test->msg, test->msg_len, sk);
   uint32_t cycles = profile_end(t_start);
   LOG_INFO("Signing took %u cycles.", cycles);
 
@@ -73,11 +77,11 @@ static rom_error_t run_sign(const spx_test_vector_t *test, uint32_t *sig) {
 static rom_error_t spx_sign_test(void) {
   spx_test_vector_t test = spx_tests[test_index];
 
-  uint32_t sig[kSpxVerifySigBytes / sizeof(uint32_t)];
+  uint32_t sig[kSpxLenSigWords];
   RETURN_IF_ERROR(run_sign(&test, sig));
 
   // Ensure that the signatures match.
-  CHECK_ARRAYS_EQ((unsigned char *)sig, test.sig, kSpxVerifySigBytes);
+  CHECK_ARRAYS_EQ((unsigned char *)sig, test.sig, kSpxLenSigBytes);
   return kErrorOk;
 }
 

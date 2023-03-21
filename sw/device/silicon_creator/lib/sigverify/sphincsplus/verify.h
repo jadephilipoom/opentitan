@@ -19,33 +19,17 @@
 extern "C" {
 #endif
 
-enum {
-  /**
-   * Size of SPHINCS+ root node.
-   */
-  kSpxVerifyRootNumWords = kSpxNWords,
-  /**
-   * Size of SPHINCS+ signature.
-   */
-  kSpxVerifySigBytes = kSpxBytes,
-  /**
-   * Size of SPHINCS+ public key.
-   */
-  kSpxVerifyPkBytes = kSpxPkBytes,
-};
-
 /**
  * Computes the root for a signature and message under a given public key.
  *
  * The signature is valid if the computed root matches the root from the public
  * key; the final comparison is left to the caller.
  *
- * @param sig Input signature (`kSpxVerifySigBytes` bytes long).
+ * @param sig Input signature (`kSpxSigBytes` bytes long).
  * @param m Input message.
  * @param mlen Length of message (bytes).
- * @param pk Public key (`kSpxVerifyPkBytes` bytes long).
- * @param[out] root Buffer for computed tree root (`kSpxVerifyRootNumWords`
- *                  words long).
+ * @param pk Public key (`kSpxPkBytes` bytes long).
+ * @param[out] root Buffer for computed tree root (`kSpxRootWords` words).
  * @return Error code indicating if the operation succeeded.
  */
 OT_WARN_UNUSED_RESULT
@@ -55,9 +39,8 @@ rom_error_t spx_verify(const uint8_t *sig, const uint8_t *m, size_t mlen,
 /**
  * Extract the public key root.
  *
- * @param pk Public key (`kSpxVerifyPkBytes` bytes long).
- * @param[out] root Buffer for the public key root (`kSpxVerifyRootNumWords`
- *                  words long).
+ * @param pk Public key (`kSpxPkBytes` bytes long).
+ * @param[out] root Buffer for the public key root (`kSpxRootWords` words).
  */
 void spx_public_key_root(const uint8_t *pk, uint32_t *root);
 

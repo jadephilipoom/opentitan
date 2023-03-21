@@ -29,19 +29,19 @@ enum {
   /**
    * Height of the hypertree.
    */
-  kSpxFullHeight = 63,
+  kSpxFullHeight = 66,
   /**
    * Number of subtree layers.
    */
-  kSpxD = 7,
+  kSpxD = 22,
   /**
    * FORS tree dimension (height).
    */
-  kSpxForsHeight = 12,
+  kSpxForsHeight = 6,
   /**
    * FORS tree dimension (number of trees).
    */
-  kSpxForsTrees = 14,
+  kSpxForsTrees = 33,
   /**
    * Winternitz parameter.
    */
