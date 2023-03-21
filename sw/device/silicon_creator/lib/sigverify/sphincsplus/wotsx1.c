@@ -52,21 +52,10 @@ rom_error_t wots_gen_leafx1(uint32_t *dest, const spx_ctx_t *ctx,
 
     spx_addr_type_set(leaf_addr, kSpxAddrTypeWots);
 
-    // Iterate down the WOTS chain.
-    for (k = 0;; k++) {
-      // Check if this is the value that needs to be saved as a part of the
-      // WOTS signature.
-      if (k == wots_k) {
-        memcpy(info->wots_sig + i * kSpxN, (unsigned char *)buffer, kSpxN);
-      }
-
-      // Check if we hit the top of the chain.
-      if (k == kSpxWotsW - 1)
-        break;
-
-      // Iterate one step on the chain.
-      spx_addr_hash_set(leaf_addr, k);
-
+    // Iterate down the WOTS chain. This loop is performance-critical (> 80% of
+    // runtime for signing).
+    spx_addr_hash_set(leaf_addr, 0);
+    for (k = 0; k < kSpxWotsW - 1; k++) {
       // Inlined thash (for performance).
       // = thash((unsigned char *)buffer, 1, ctx, leaf_addr, buffer)
       HARDENED_RETURN_IF_ERROR(kmac_shake256_start());
@@ -74,9 +63,26 @@ rom_error_t wots_gen_leafx1(uint32_t *dest, const spx_ctx_t *ctx,
       kmac_shake256_absorb_words(leaf_addr->addr, ARRAYSIZE(leaf_addr->addr));
       kmac_shake256_absorb_words(buffer, kSpxNWords);
       kmac_shake256_squeeze_start();
+
+      // While KMAC is processing, check if this is the value that needs to be
+      // saved as a part of the WOTS signature and copy if needed.
+      if (k == wots_k) {
+        memcpy(info->wots_sig + i * kSpxN, buffer, kSpxN);
+      }
+
+      // Read data back from KMAC and send a DONE command to hardware.
       HARDENED_RETURN_IF_ERROR(kmac_shake256_squeeze_end(buffer, kSpxNWords));
 
+      // While KMAC is cleaning up, prepare address for the next iteration.
+      spx_addr_hash_set(leaf_addr, k+1);
+
       // BM: 13000220 if thash is commented out (84% of runtime)
+    }
+
+    // Special case if the value to be saved is the final value. Outside the
+    // loop for performance.
+    if (wots_k == kSpxWotsW - 1) {
+      memcpy(info->wots_sig + i * kSpxN, buffer, kSpxN);
     }
   }
 
