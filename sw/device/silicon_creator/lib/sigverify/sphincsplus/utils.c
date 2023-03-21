@@ -111,9 +111,6 @@ rom_error_t treehashx1(
     HARDENED_RETURN_IF_ERROR(
        gen_leaf(&current[kSpxNWords], ctx, idx + idx_offset, info));
 
-    // BM: 2695985 for entire signing if only gen_leaf is commented out and
-    // replaced with memset (97% of runtime, includes both FORS and merkle)
-
     // Now combine the freshly generated right node with previously generated
     // left ones
     uint32_t internal_idx_offset = idx_offset;

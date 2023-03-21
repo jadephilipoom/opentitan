@@ -48,7 +48,6 @@ rom_error_t wots_gen_leafx1(uint32_t *dest, const spx_ctx_t *ctx,
     spx_addr_type_set(leaf_addr, kSpxAddrTypeWotsPrf);
 
     HARDENED_RETURN_IF_ERROR(prf_addr(buffer, ctx, leaf_addr));
-    // BM: 79790205 if prf_addr is replaced with memset (5% of runtime)
 
     spx_addr_type_set(leaf_addr, kSpxAddrTypeWots);
 
@@ -75,8 +74,6 @@ rom_error_t wots_gen_leafx1(uint32_t *dest, const spx_ctx_t *ctx,
 
       // While KMAC is cleaning up, prepare address for the next iteration.
       spx_addr_hash_set(leaf_addr, k+1);
-
-      // BM: 13000220 if thash is commented out (84% of runtime)
     }
 
     // Special case if the value to be saved is the final value. Outside the
@@ -88,6 +85,4 @@ rom_error_t wots_gen_leafx1(uint32_t *dest, const spx_ctx_t *ctx,
 
   // Do the final thash to generate the public keys.
   return thash((unsigned char *)pk_buffer, kSpxWotsLen, ctx, pk_addr, dest);
-
-  // BM: 6075535 if entire function is replaced with memset (92.7% of runtime)
 }
