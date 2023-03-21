@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #include "sw/device/lib/base/memory.h"
+#include "sw/device/silicon_creator/lib/drivers/kmac.h"
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/address.h"
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/context.h"
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/hash.h"
@@ -66,8 +67,14 @@ rom_error_t wots_gen_leafx1(uint32_t *dest, const spx_ctx_t *ctx,
       // Iterate one step on the chain.
       spx_addr_hash_set(leaf_addr, k);
 
-      HARDENED_RETURN_IF_ERROR(
-         thash((unsigned char *)buffer, 1, ctx, leaf_addr, buffer));
+      // Inlined thash (for performance).
+      // = thash((unsigned char *)buffer, 1, ctx, leaf_addr, buffer)
+      HARDENED_RETURN_IF_ERROR(kmac_shake256_start());
+      kmac_shake256_absorb_words(ctx->pub_seed, kSpxNWords);
+      kmac_shake256_absorb_words(leaf_addr->addr, ARRAYSIZE(leaf_addr->addr));
+      kmac_shake256_absorb_words(buffer, kSpxNWords);
+      kmac_shake256_squeeze_start();
+      HARDENED_RETURN_IF_ERROR(kmac_shake256_squeeze_end(buffer, kSpxNWords));
 
       // BM: 13000220 if thash is commented out (84% of runtime)
     }
