@@ -109,7 +109,10 @@ rom_error_t treehashx1(
     // Current logical node is at index[SPX_N]. We do this to minimize the
     // number of copies needed during a thash.
     HARDENED_RETURN_IF_ERROR(
-        gen_leaf(&current[kSpxNWords], ctx, idx + idx_offset, info));
+       gen_leaf(&current[kSpxNWords], ctx, idx + idx_offset, info));
+
+    // BM: 2695985 for entire signing if only gen_leaf is commented out and
+    // replaced with memset (97% of runtime, includes both FORS and merkle)
 
     // Now combine the freshly generated right node with previously generated
     // left ones
