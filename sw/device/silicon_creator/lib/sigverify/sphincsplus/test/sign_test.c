@@ -77,7 +77,7 @@ static rom_error_t spx_sign_test(void) {
   RETURN_IF_ERROR(run_sign(&test, sig));
 
   // Ensure that the signatures match.
-  CHECK_ARRAYS_EQ(test.sig, (unsigned char *)sig, kSpxVerifySigBytes);
+  CHECK_ARRAYS_EQ((unsigned char *)sig, test.sig, kSpxVerifySigBytes);
   return kErrorOk;
 }
 

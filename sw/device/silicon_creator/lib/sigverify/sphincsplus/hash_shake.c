@@ -98,9 +98,9 @@ rom_error_t gen_message_random(uint32_t *R, const unsigned char *sk_prf,
 rom_error_t prf_addr(uint32_t *out, const spx_ctx_t *ctx,
                      const spx_addr_t *addr) {
   HARDENED_RETURN_IF_ERROR(kmac_shake256_start());
-  kmac_shake256_absorb((unsigned char *)ctx->pub_seed, kSpxN);
-  kmac_shake256_absorb((unsigned char *)addr->addr, kSpxAddrBytes);
-  kmac_shake256_absorb((unsigned char *)ctx->sk_seed, kSpxN);
+  kmac_shake256_absorb_words(ctx->pub_seed, kSpxNWords);
+  kmac_shake256_absorb_words(addr->addr, ARRAYSIZE(addr->addr));
+  kmac_shake256_absorb_words(ctx->sk_seed, kSpxNWords);
   kmac_shake256_squeeze_start();
   return kmac_shake256_squeeze_end(out, kSpxNWords);
 }

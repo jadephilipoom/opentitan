@@ -132,7 +132,7 @@ rom_error_t fors_sign(uint32_t *sig, uint32_t *pk, const unsigned char *m,
 
     spx_addr_tree_height_set(&fors_tree_addr, 0);
     spx_addr_tree_index_set(&fors_tree_addr, indices[i] + idx_offset);
-    spx_addr_type_set(&fors_pk_addr, kSpxAddrTypeForsPrf);
+    spx_addr_type_set(&fors_tree_addr, kSpxAddrTypeForsPrf);
 
     /* Include the secret key part that produces the selected leaf node. */
     HARDENED_RETURN_IF_ERROR(fors_gen_sk(sig, ctx, &fors_tree_addr));

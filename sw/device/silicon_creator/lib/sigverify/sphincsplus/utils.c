@@ -121,7 +121,7 @@ rom_error_t treehashx1(
       /* Check if we hit the top of the tree */
       if (h == tree_height) {
         /* We hit the root; return it */
-        memcpy(root, (unsigned char *)&current[kSpxNWords], kSpxN);
+        memcpy(root, &current[kSpxNWords], kSpxN);
         return kErrorOk;
       }
 
@@ -130,7 +130,7 @@ rom_error_t treehashx1(
        * authentication path; if it is, write it out
        */
       if ((internal_idx ^ internal_leaf) == 0x01) {
-        memcpy(&auth_path[h * kSpxN], (unsigned char *)&current[kSpxNWords],
+        memcpy(&auth_path[h * kSpxN], &current[kSpxNWords],
                kSpxN);
       }
 
@@ -154,15 +154,14 @@ rom_error_t treehashx1(
                               internal_idx / 2 + internal_idx_offset);
 
       uint32_t *left = &stack[h * kSpxNWords];
-      memcpy((unsigned char *)current, (unsigned char *)left, kSpxN);
+      memcpy(current, left, kSpxN);
       HARDENED_RETURN_IF_ERROR(thash((unsigned char *)current, 2, ctx,
                                      tree_addr, &current[kSpxNWords]));
     }
 
     /* We've hit a left child; save the current for when we get the */
     /* corresponding right right */
-    memcpy((unsigned char *)&stack[h * kSpxNWords],
-           (unsigned char *)&current[kSpxNWords], kSpxN);
-    return kErrorOk;
+    memcpy(&stack[h * kSpxNWords], &current[kSpxNWords], kSpxN);
   }
+  return kErrorOk;
 }
