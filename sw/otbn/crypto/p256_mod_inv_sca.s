@@ -16,23 +16,35 @@ main:
   bn.xor    w31, w31, w31
 
   /* Load modulus and Barrett constant.
-       w28 <= u, Barrett constant for p
-       w29 <= p, modulus for p256 underlying prime field
-       MOD <= p */
+       w28 <= u, Barrett constant for n
+       w29 <= n, p256 curve order
+       MOD <= n */
   li        x2, 28
-  la        x3, p256_u_p
+  la        x3, p256_u_n
   bn.lid    x2, 0(x3)
   li        x2, 29
-  la        x3, p256_p
+  la        x3, p256_n
   bn.lid    x2, 0(x3)
   bn.wsrw   0, w29
 
-  /* re-load second share of secret scalar k from dmem: w2,w3 = dmem[k1] */
+  /* Load first share of input.
+       w0, w1 <= dmem[k0] */
+  la        x16, k0
+  li        x2, 0
+  bn.lid    x2, 0(x16++)
+  li        x2, 1
+  bn.lid    x2, 0(x16)
+
+  /* Load second share of input.
+       w2, w3 <= dmem[k1] */
   la        x16, k1
   li        x2, 2
   bn.lid    x2, 0(x16++)
   li        x2, 3
   bn.lid    x2, 0(x16)
+
+  /* NOTE: the masking logic is written to mimic the version in `p256_sign`
+     from p256.s; see the documentation of that function for details. */
 
   /* Generate a random 127-bit number.
        w4 <= URND()[255:129] */
@@ -42,6 +54,11 @@ main:
   /* Add 1 to get a 128-bit nonzero scalar for masking.
        w4 <= w4 + 1 = alpha */
   bn.addi  w4, w4, 1
+
+  /* Store masking parameter. */
+  li        x2, 4
+  la        x3, alpha
+  bn.sid    x2, 0(x3)
 
   /* w0 <= ([w0,w1] * w4) mod n = (k0 * alpha) mod n */
   bn.mov    w24, w0
@@ -61,33 +78,30 @@ main:
   /* w1 <= w0^-1 mod n = (k * alpha)^-1 mod n */
   jal       x1, mod_inv
 
-  /* Load masking parameter alpha (128 bits). This is written to mimic the
-     masking in `p256_sign` from p256.s; see the documentation of that function
-     for details. */
-
-  /* Compute inverse.
-       w1 <= x^-1 mod p */
-  jal       x1, mod_inv
-
   /* Store result. */
   li        x2, 1
-  la        x3, output
+  la        x3, kalpha_inv
   bn.sid    x2, 0(x3)
+
+  /* Load masking parameter to w0 (for simulator testing). */
+  la        x3, alpha
+  bn.lid    x0, 0(x3)
 
 .data
 
 /*
 Default data for simulator-based testing:
-Unmasked value: 0x2648d0d248b70944dfd84c2f85ea5793729112e7cafa50abdf7ef8b7594fa2a1
-Masked share 0: 0x7e8bb020f9bb74012c8d5cd1c0fe2d66bead5ed1210904c73a27d1b2cdf7c706d47c4a892130fb63
-Masked share 1: 0x81744fde06448bfff9bb740087b8dbddde11e80c0bf8f1512c230bf7f965aef60b02ae2e381ea73e 
-Expected result: 0x9c5ea399da412d5ac056cbd879c4915fc9d78acc4ff4b855b1a17c9695b118c4
+k (unmasked): 0x2648d0d248b70944dfd84c2f85ea5793729112e7cafa50abdf7ef8b7594fa2a1
+k0: 0x7e8bb020f9bb74012c8d5cd1c0fe2d66bead5ed1210904c73a27d1b2cdf7c706d47c4a892130fb63
+k1: 0x81744fde06448bfff9bb740087b8dbddde11e80c0bf8f1512c230bf7f965aef60b02ae2e381ea73e
+modulus (p256 curve order): 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551
 
-Note: the shares are 320 bits, and set so that (share0 + share1) mod n = x.
+Expected result (kalpha_inv*alpha) mod n:
+0x5dd1c65fc4eae6c1ec40027ef8a50479ab0ea16d84293f99bb401f0caac1e32b
 */
 
 .balign 32
-.input0
+k0:
 .word 0x2130fb63
 .word 0xd47c4a89
 .word 0xcdf7c706
@@ -100,7 +114,7 @@ Note: the shares are 320 bits, and set so that (share0 + share1) mod n = x.
 .word 0x7e8bb020
 
 .balign 32
-.input1
+k1:
 .word 0x381ea73e
 .word 0x0b02ae2e
 .word 0xf965aef6
@@ -112,7 +126,12 @@ Note: the shares are 320 bits, and set so that (share0 + share1) mod n = x.
 .word 0x06448bff
 .word 0x81744fde
 
-/* Output, x^-1 mod p (256 bits). */
+/* Output: (k*alpha)^-1 mod n (256 bits). */
 .balign 32
-output:
+kalpha_inv:
+.zero 32
+
+/* Output: Masking parameter alpha (128 bits). */
+.balign 32
+alpha:
 .zero 32

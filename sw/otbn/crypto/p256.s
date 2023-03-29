@@ -19,6 +19,7 @@
 /* Exposed only for testing or SCA purposes. */
 .globl proj_add
 .globl mod_inv
+.globl mod_mul_320x128
 
 .text
 
