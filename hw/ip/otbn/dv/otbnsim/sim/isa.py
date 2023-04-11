@@ -167,3 +167,10 @@ def extract_quarter_word(value: int, qwsel: int) -> int:
     assert 0 <= value < (1 << 256)
     assert 0 <= qwsel <= 3
     return (value >> (qwsel * 64)) & ((1 << 64) - 1)
+
+
+def extract_sub_word(value: int, size: int, index: int) -> int:
+    '''Extract a `size`-bit word at index `index` from a 256-bit value.'''
+    assert 0 <= value < (1 << 256)
+    assert 0 <= index <= 256 // size
+    return (value >> (index * size)) & ((1 << size) - 1)

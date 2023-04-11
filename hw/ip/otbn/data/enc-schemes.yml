@@ -264,6 +264,19 @@ bnam:
       bits: 31,29-25
       value: bxxxxxx
 
+# Used for bn.addmv, bn.submv
+bnamv:
+  parents:
+    - custom1
+    - wdr3
+    - funct3
+  fields:
+    type: 25  # .8S or .16H
+    sub: 30  # bit 30 indicates subtraction or addition
+    fixed:
+      bits: 31,29-26
+      value: bxxxxx
+
 # Used for bn.mulqacc
 bnaq:
   parents:
