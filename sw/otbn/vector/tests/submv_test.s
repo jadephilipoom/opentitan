@@ -23,7 +23,7 @@ main:
   /* dmem[y] <= vadd(dmem[x], dmem[y]) = dmem[x] + dmem[y] */
   la      x10, x
   la      x11, y
-  jal     x1, vadd
+  jal     x1, submv
 
   /* Set up output */
   li     x0, 0

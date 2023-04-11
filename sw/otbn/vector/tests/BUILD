@@ -7,12 +7,23 @@ load("//rules:otbn.bzl", "otbn_consttime_test", "otbn_sim_test")
 package(default_visibility = ["//visibility:public"])
 
 otbn_sim_test(
-    name = "vadd_test",
+    name = "addmv_test",
     srcs = [
-        "vadd_test.s",
+        "addmv_test.s",
     ],
-    exp = "vadd_test.exp",
+    exp = "addmv_test.exp",
     deps = [
-        "//sw/otbn/vector:vadd",
+        "//sw/otbn/vector:addmv",
+    ],
+)
+
+otbn_sim_test(
+    name = "submv_test",
+    srcs = [
+        "submv_test.s",
+    ],
+    exp = "submv_test.exp",
+    deps = [
+        "//sw/otbn/vector:submv",
     ],
 )

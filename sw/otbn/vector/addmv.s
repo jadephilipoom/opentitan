@@ -1,5 +1,5 @@
-.globl vadd
-vadd:
+.globl addmv
+addmv:
     /* Set up constants for input/output
          x23 <= 23
          x24 <= 24
