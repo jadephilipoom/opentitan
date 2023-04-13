@@ -277,6 +277,20 @@ bnamv:
       bits: 31,29-26
       value: bxxxxx
 
+# Used for bn.mulmv
+bnammv:
+  parents:
+    - custom1
+    - wdr3
+    - funct3
+  fields:
+    type: 25  # .8S or .16H
+    use_lane: 26
+    lane: 30-27
+    fixed:
+      bits: 31
+      value: bx
+
 # Used for bn.mulqacc
 bnaq:
   parents:

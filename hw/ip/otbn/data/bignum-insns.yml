@@ -182,6 +182,106 @@
       funct3: b111
       wrd: wrd
 
+- mnemonic: bn.mulmv
+  synopsis: Pseudo-Modulo Multiply Vector
+  operands:
+    - name: type
+      abbrev: t
+      type: enum(.8S,.16H)
+      doc: |
+        Select the data type of the registers. `.8S` interprets the WDRs as 8
+        32-bit registers, `.16H` as 16 16-bit registers.
+    - name: wrd
+      doc: Updated WDR.
+      type: wrb
+    - name: wrs1
+      doc: First source WDR
+      type: wrs
+    - name: wrs2
+      doc: Second source WDR
+      type: wrs
+  glued-ops: true
+  doc: |
+    Multiply two WDR registers interpreted as vectors, modulo the MOD WSR.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with elements
+    of size 32 bit or 16 bit (depending on `type`). The elements are
+    individually multiplied and reduced by MOD to a result in [0, MOD). Each
+    result element is truncated to 32 or 16 bits (depending on `type`) and
+    stored in `<wrd>`.
+
+    The result is correct if each input element is in [0, MOD).
+
+    Flags are not used or saved.
+  syntax: |
+    <type> <wrd>, <wrs1>, <wrs2>
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnammv
+    mapping:
+      type: type
+      use_lane: b0
+      lane: bxxxx
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b110
+      wrd: wrd
+
+- mnemonic: bn.mulmv.l
+  synopsis: Pseudo-Modulo Multiply Vector
+  operands:
+    - name: type
+      abbrev: t
+      type: enum(.8S,.16H)
+      doc: |
+        Select the data type of the registers. `.8S` interprets the WDRs as 8
+        32-bit registers, `.16H` as 16 16-bit registers.
+    - name: wrd
+      doc: Updated WDR.
+      type: wrb
+    - name: wrs1
+      doc: First source WDR
+      type: wrs
+    - name: wrs2
+      doc: Second source WDR
+      type: wrs
+    - name: lane
+      doc: Select the lane of the `<wrs2>` to multiply `<wrs1>` with.
+      type: uimm
+  glued-ops: true
+  doc: |
+    Multiply a WDR register interpreted as vectors by one element of a WDR
+    register, modulo the MOD WSR.
+
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with signed
+    elements of size 32 bit or 16 bit (depending on `type`). The elements from
+    `<wrs1>` are multiplied by the element from `<wrs2>` at index `<lane>` and
+    reduced by MOD to a result in [0, MOD). Each result element is truncated to
+    32 or 16 bits (depending on `type`) and stored in `<wrd>`.
+
+    The result is correct if each input element is in [0, MOD).
+
+    Flags are not used or saved.
+  syntax: |
+    <type> <wrd>, <wrs1>, <wrs2>, <lane>
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnammv
+    mapping:
+      type: type
+      use_lane: b1
+      lane: lane
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b110
+      wrd: wrd
+
 - mnemonic: bn.mulqacc
   synopsis: Quarter-word Multiply and Accumulate
   operands:

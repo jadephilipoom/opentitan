@@ -19,3 +19,10 @@ otbn_library(
         "submv.s",
     ],
 )
+
+otbn_library(
+    name = "mulmv",
+    srcs = [
+        "mulmv.s",
+    ],
+)

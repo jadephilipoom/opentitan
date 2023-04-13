@@ -27,3 +27,14 @@ otbn_sim_test(
         "//sw/otbn/vector:submv",
     ],
 )
+
+otbn_sim_test(
+    name = "mulmv_test",
+    srcs = [
+        "mulmv_test.s",
+    ],
+    exp = "mulmv_test.exp",
+    deps = [
+        "//sw/otbn/vector:mulmv",
+    ],
+)
