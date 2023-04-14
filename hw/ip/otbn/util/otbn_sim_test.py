@@ -13,6 +13,7 @@ from typing import List
 
 from shared.check import CheckResult
 from shared.reg_dump import parse_reg_dump
+from shared.dmem_dump import parse_dmem_dump, parse_dmem_exp
 
 # Names of special registers
 ERR_BITS = 'ERR_BITS'
@@ -70,14 +71,16 @@ def main() -> int:
 
     # Parse expected values.
     result = CheckResult()
-    expected_regs = parse_reg_dump(args.expected.read())
+    exp = args.expected.read()
+    expected_regs = parse_reg_dump(exp.split("# dmem:")[0])
+    expected_dmem = parse_dmem_exp(exp.split("# dmem:")[1])
 
     # Run the simulation and produce a register dump.
-    cmd = [args.simulator, '--dump-regs', '-', args.elf]
+    cmd = [args.simulator, '--dump-regs', '-', '--dump-dmem', '-', args.elf]
     sim_proc = subprocess.run(cmd, check=True,
                               stdout=subprocess.PIPE, universal_newlines=True)
-    actual_regs = parse_reg_dump(sim_proc.stdout)
-
+    actual_regs = parse_reg_dump(sim_proc.stdout.split("dmem:")[0])
+    dmem = parse_dmem_dump(sim_proc.stdout.split("dmem:")[1])
     # Special handling for the ERR_BITS register.
     expected_err = expected_regs.get(ERR_BITS, 0)
     actual_err = actual_regs[ERR_BITS]
@@ -106,6 +109,12 @@ def main() -> int:
                 result.err(f'Mismatch for register {reg}:\n'
                            f'  Expected: {expected_str}\n'
                            f'  Actual:   {actual_str}')
+        for i in range(0, len(dmem)):
+            if expected_dmem[i] is not None and expected_dmem[i] != dmem[i]:
+                result.err(f'Mismatch for dmem at index {i}:\n'
+                           f'  Expected: 0x{expected_dmem[i]:02x}\n'
+                           f'  Actual:   0x{dmem[i]:02x}')
+
 
     if result.has_errors() or result.has_warnings() or args.verbose:
         print(result.report())

@@ -65,5 +65,6 @@ py_binary(
     deps = [
         "//hw/ip/otbn/util/shared:check",
         "//hw/ip/otbn/util/shared:reg_dump",
+        "//hw/ip/otbn/util/shared:mem_layout"
     ],
 )
