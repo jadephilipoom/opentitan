@@ -514,6 +514,28 @@ otbn_consttime_test(
 )
 
 otbn_sim_test(
+    name = "ntt_dilithium_4l_test",
+    srcs = [
+        "ntt_dilithium_4l_test.s",
+    ],
+    exp = "ntt_dilithium_4l_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:ntt_dilithium_4l",
+    ],
+)
+
+otbn_sim_test(
+    name = "ntt_dilithium_test",
+    srcs = [
+        "ntt_dilithium_test.s",
+    ],
+    exp = "ntt_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:ntt_dilithium",
+    ],
+)
+
+otbn_sim_test(
     name = "rsa_1024_dec_test",
     timeout = "long",
     srcs = [
