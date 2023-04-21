@@ -38,3 +38,14 @@ otbn_sim_test(
         "//sw/otbn/vector:mulmv",
     ],
 )
+
+otbn_sim_test(
+    name = "trans8_test",
+    srcs = [
+        "trans8_test.s",
+    ],
+    exp = "trans8_test.exp",
+    deps = [
+        "//sw/otbn/vector:trans8",
+    ],
+)

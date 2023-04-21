@@ -26,3 +26,10 @@ otbn_library(
         "mulmv.s",
     ],
 )
+
+otbn_library(
+    name = "trans8",
+    srcs = [
+        "trans8.s",
+    ],
+)

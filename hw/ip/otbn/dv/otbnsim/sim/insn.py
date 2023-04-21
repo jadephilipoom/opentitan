@@ -1297,6 +1297,22 @@ class BNMOV(OTBNInsn):
         state.wdrs.get_reg(self.wrd).write_unsigned(value)
 
 
+class BNTRANS8(OTBNInsn):
+    insn = insn_for_mnemonic('bn.trans8', 2)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs = op_vals['wrs']
+
+    def execute(self, state: OTBNState) -> None:
+        for i in range(8):
+            result = 0
+            for j in range(7, -1, -1):
+                result = (result << 32) | (extract_sub_word(state.wdrs.get_reg(self.wrs + j).read_unsigned(), 32, i) & ((1 << 32) - 1))
+            state.wdrs.get_reg(self.wrd + i).write_unsigned(result)
+
+
 class BNMOVR(OTBNInsn):
     insn = insn_for_mnemonic('bn.movr', 4)
 
@@ -1418,6 +1434,6 @@ INSN_CLASSES = [
     BNSEL,
     BNCMP, BNCMPB,
     BNLID, BNSID,
-    BNMOV, BNMOVR,
+    BNMOV, BNMOVR, BNTRANS8,
     BNWSRR, BNWSRW
 ]

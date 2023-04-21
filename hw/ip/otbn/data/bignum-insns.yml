@@ -1030,6 +1030,35 @@
       dst: wrd
   errs: []
 
+- mnemonic: bn.trans8
+  synopsis: Transpose 8x8 
+  operands:
+    - name: wrd
+      doc: |
+        Start destination WDR. Destination registers are <wrd>, <wrd+1>, ...,
+        <wrd+7>.
+      type: wrb
+    - name: wrs
+      doc: Start source WDR. Source registers are <wrs>, <wrs+1>, ..., <wrs+7>.
+      type: wrs
+  glued-ops: true
+  doc: |
+    Transpose the 8x8 matrix formed by <wrs+i> i in [0,7] as rows.
+
+    Flags are not used or saved.
+  syntax: |
+    <wrd>, <wrs>
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs]
+  encoding:
+    scheme: bntrans
+    mapping:
+      wrs: wrs
+      funct3: b010
+      wrd: wrd
+
 - mnemonic: bn.movr
   synopsis: Copy content between WDRs (register-indirect addressing)
   operands:

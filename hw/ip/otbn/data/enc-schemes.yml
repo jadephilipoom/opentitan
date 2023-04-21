@@ -362,6 +362,17 @@ bnmov:
     src: 19-15
     dst: 11-7
 
+bntrans:
+  parents:
+    - custom0
+    - funct3
+  fields:
+    fixed_top:
+      bits: 31-20
+      value: bxxxxxxxxxxxx
+    wrs: 19-15
+    wrd: 11-7
+
 # Used by bn.movr
 bnmovr:
   parents:

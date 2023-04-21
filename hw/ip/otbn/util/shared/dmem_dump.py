@@ -29,8 +29,7 @@ def parse_dmem_dump(dump: str) -> List[int]:
         tmp = []
         # discard byte indicating integrity status
         for v in struct.iter_unpack("<BI", w[0]):
-            tmp = [x for x in struct.unpack("4B", v[1].to_bytes(4, "big"))]\
-                + tmp
+            tmp += [x for x in struct.unpack("4B", v[1].to_bytes(4, "big"))]
         dmem_bytes += tmp
     assert len(dmem_bytes) == get_memory_layout().dmem_size_bytes
     return dmem_bytes
