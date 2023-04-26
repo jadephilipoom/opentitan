@@ -536,6 +536,17 @@ otbn_sim_test(
 )
 
 otbn_sim_test(
+    name = "intt_dilithium_test",
+    srcs = [
+        "intt_dilithium_test.s",
+    ],
+    exp = "intt_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:intt_dilithium",
+    ],
+)
+
+otbn_sim_test(
     name = "rsa_1024_dec_test",
     timeout = "long",
     srcs = [

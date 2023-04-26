@@ -19,3 +19,10 @@ otbn_library(
         "ntt_dilithium.s",
     ],
 )
+
+otbn_library(
+    name = "intt_dilithium",
+    srcs = [
+        "intt_dilithium.s",
+    ],
+)
