@@ -24,7 +24,6 @@
   ral_spec: "{proj_root}/hw/ip/lc_ctrl/data/lc_ctrl.hjson"
 
   // Import additional common sim cfg files.
-  // TODO: remove imported cfgs that do not apply.
   import_cfgs: [// Project wide common sim cfg file
                 "{proj_root}/hw/dv/tools/dvsim/common_sim_cfg.hjson",
                 // Common CIP test lists
@@ -68,6 +67,9 @@
   uvm_test: lc_ctrl_base_test
   uvm_test_seq: lc_ctrl_base_vseq
 
+  // TODO(lowrisc/opentitan#16689): Enable cdc instrumentation.
+  run_opts: ["+cdc_instrumentation_enabled=0"]
+
   // List of test specifications.
   tests: [
     {
@@ -103,6 +105,12 @@
     {
       name: lc_ctrl_regwen_during_op
       uvm_test_seq: lc_ctrl_regwen_during_op_vseq
+      reseed: 10
+    }
+
+    {
+      name: lc_ctrl_claim_transition_if
+      uvm_test_seq: lc_ctrl_claim_transition_if_vseq
       reseed: 10
     }
 

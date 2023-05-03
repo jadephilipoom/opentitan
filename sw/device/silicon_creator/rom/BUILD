@@ -162,6 +162,7 @@ opentitan_rom_binary(
         ":rom_common",
         ":rom_start",
         "//sw/device/silicon_creator/rom/keys/fake",
+        "//sw/device/silicon_creator/rom/keys/fake/spx:fake",
     ],
 )
 
@@ -329,6 +330,7 @@ cc_library(
         "//sw/device/lib/base:macros",
         "//sw/device/silicon_creator/lib:error",
         "//sw/device/silicon_creator/lib/drivers:lifecycle",
+        "//sw/device/silicon_creator/lib/sigverify",
         "//sw/device/silicon_creator/lib/sigverify:spx_key",
     ],
 )

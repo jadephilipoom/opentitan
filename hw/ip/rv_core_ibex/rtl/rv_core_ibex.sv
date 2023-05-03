@@ -283,8 +283,6 @@ module rv_core_ibex
     .lc_en_o(pwrmgr_cpu_en)
   );
 
-  // TODO: This is a hoaky fix, we really should converge everthing
-  // through rv_plic.
   // timer interrupts do not come from
   // rv_plic and may not be synchronous to the ibex core
   logic irq_timer_sync;
@@ -893,6 +891,7 @@ module rv_core_ibex
   );
 
   // Assertions for CPU enable
+  // Allow 2 or 3 cycles for input to enable due to synchronizers
   `ASSERT(FpvSecCmIbexFetchEnable0_A,
       fatal_core_err
       |=>
@@ -900,23 +899,25 @@ module rv_core_ibex
   `ASSERT(FpvSecCmIbexFetchEnable1_A,
       lc_ctrl_pkg::lc_tx_test_false_loose(lc_cpu_en_i)
       |->
-      ##2 lc_ctrl_pkg::lc_tx_test_false_loose(fetch_enable))
+      ##[2:3] lc_ctrl_pkg::lc_tx_test_false_loose(fetch_enable))
   `ASSERT(FpvSecCmIbexFetchEnable2_A,
       lc_ctrl_pkg::lc_tx_test_false_loose(pwrmgr_cpu_en_i)
       |->
-      ##2 lc_ctrl_pkg::lc_tx_test_false_loose(fetch_enable))
+      ##[2:3] lc_ctrl_pkg::lc_tx_test_false_loose(fetch_enable))
   `ASSERT(FpvSecCmIbexFetchEnable3_A,
       lc_ctrl_pkg::lc_tx_test_true_strict(lc_cpu_en_i) &&
       lc_ctrl_pkg::lc_tx_test_true_strict(pwrmgr_cpu_en_i) ##1
       lc_ctrl_pkg::lc_tx_test_true_strict(local_fetch_enable_q) &&
       !fatal_core_err
       |=>
-      lc_ctrl_pkg::lc_tx_test_true_strict(fetch_enable))
+      ##[0:1] lc_ctrl_pkg::lc_tx_test_true_strict(fetch_enable))
   `ASSERT(FpvSecCmIbexFetchEnable3Rev_A,
       ##2 lc_ctrl_pkg::lc_tx_test_true_strict(fetch_enable)
       |->
-      $past(lc_ctrl_pkg::lc_tx_test_true_strict(lc_cpu_en_i), 2) &&
-      $past(lc_ctrl_pkg::lc_tx_test_true_strict(pwrmgr_cpu_en_i), 2) &&
+      ($past(lc_ctrl_pkg::lc_tx_test_true_strict(lc_cpu_en_i), 2) ||
+       $past(lc_ctrl_pkg::lc_tx_test_true_strict(lc_cpu_en_i), 3)) &&
+      ($past(lc_ctrl_pkg::lc_tx_test_true_strict(pwrmgr_cpu_en_i), 2) ||
+       $past(lc_ctrl_pkg::lc_tx_test_true_strict(pwrmgr_cpu_en_i), 3)) &&
       $past(!fatal_core_err))
 
   // Alert assertions for reg_we onehot check

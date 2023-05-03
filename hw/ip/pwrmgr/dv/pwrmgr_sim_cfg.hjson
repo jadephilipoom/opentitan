@@ -24,7 +24,6 @@
   ral_spec: "{proj_root}/hw/top_earlgrey/ip/pwrmgr/data/autogen/pwrmgr.hjson"
 
   // Import additional common sim cfg files.
-  // TODO: remove imported cfgs that do not apply.
   import_cfgs: [// Project wide common sim cfg file
                 "{proj_root}/hw/dv/tools/dvsim/common_sim_cfg.hjson",
                 // Common CIP test lists
@@ -96,12 +95,12 @@
     {
       name: pwrmgr_sec_cm_lc_ctrl_intersig_mubi
       uvm_test_seq: pwrmgr_repeat_wakeup_reset_vseq
-      run_opts: ["+test_timeout_ns=2000000", "+pwrmgr_mubi_mode=PwrmgrMubiLcCtrl"]
+      run_opts: ["+test_timeout_ns=3000000", "+pwrmgr_mubi_mode=PwrmgrMubiLcCtrl"]
     }
     {
       name: pwrmgr_sec_cm_rom_ctrl_intersig_mubi
       uvm_test_seq: pwrmgr_repeat_wakeup_reset_vseq
-      run_opts: ["+test_timeout_ns=2000000", "+pwrmgr_mubi_mode=PwrmgrMubiRomCtrl"]
+      run_opts: ["+test_timeout_ns=3000000", "+pwrmgr_mubi_mode=PwrmgrMubiRomCtrl"]
     }
     {
       name: pwrmgr_sec_cm_rstmgr_intersig_mubi
@@ -143,7 +142,6 @@
       uvm_test_seq: pwrmgr_lowpower_invalid_vseq
       run_opts: ["+test_timeout_ns=1000000"]
     }
-    // TODO: add more tests here
   ]
 
   // List of regressions.

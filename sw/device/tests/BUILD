@@ -183,22 +183,10 @@ opentitan_functest(
 opentitan_functest(
     name = "alert_handler_reverse_ping_in_deep_sleep_test",
     srcs = ["alert_handler_reverse_ping_in_deep_sleep_test.c"],
-    cw310 = cw310_params(
-        timeout = "moderate",
-        tags = ["broken"],  # FIXME #16822 Test hangs on isolated runs
-    ),
     targets = [
-        # The test requires to run for > 0.2s, thus not recommended for
-        # Verilator as this will slow down CI too much. It should still
-        # be run as part of the DV nightly regression.
-        "verilator",
         "cw310_test_rom",
         "dv",
     ],
-    verilator = verilator_params(
-        timeout = "eternal",
-        tags = ["broken"],  # FIXME #16822 Test hangs on isolated runs
-    ),
     deps = [
         "//hw/top_earlgrey:alert_handler_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
@@ -206,6 +194,7 @@ opentitan_functest(
         "//sw/device/lib/base:mmio",
         "//sw/device/lib/dif:alert_handler",
         "//sw/device/lib/dif:aon_timer",
+        "//sw/device/lib/dif:flash_ctrl",
         "//sw/device/lib/dif:pwrmgr",
         "//sw/device/lib/dif:rstmgr",
         "//sw/device/lib/dif:rv_plic",
@@ -215,6 +204,7 @@ opentitan_functest(
         "//sw/device/lib/testing:alert_handler_testutils",
         "//sw/device/lib/testing:aon_timer_testutils",
         "//sw/device/lib/testing:isr_testutils",
+        "//sw/device/lib/testing:keymgr_testutils",
         "//sw/device/lib/testing:pwrmgr_testutils",
         "//sw/device/lib/testing:rstmgr_testutils",
         "//sw/device/lib/testing:rv_plic_testutils",
@@ -300,6 +290,7 @@ opentitan_functest(
         "//sw/device/lib/testing:aon_timer_testutils",
         "//sw/device/lib/testing:flash_ctrl_testutils",
         "//sw/device/lib/testing:isr_testutils",
+        "//sw/device/lib/testing:keymgr_testutils",
         "//sw/device/lib/testing:pwrmgr_testutils",
         "//sw/device/lib/testing:rand_testutils",
         "//sw/device/lib/testing:rstmgr_testutils",
@@ -1384,6 +1375,7 @@ opentitan_functest(
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing:entropy_testutils",
         "//sw/device/lib/testing:otbn_testutils",
+        "//sw/device/lib/testing:profile",
         "//sw/device/lib/testing:rv_plic_testutils",
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/otbn/crypto:p256_ecdsa",
@@ -1483,6 +1475,7 @@ opentitan_functest(
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing:entropy_testutils",
         "//sw/device/lib/testing:otbn_testutils",
+        "//sw/device/lib/testing:profile",
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/otbn/crypto:rsa",
     ],
@@ -1728,6 +1721,29 @@ opentitan_functest(
         "//sw/device/lib/runtime:print",
         "//sw/device/lib/testing:spi_device_testutils",
         "//sw/device/lib/testing:spi_flash_testutils",
+        "//sw/device/lib/testing:spi_host_testutils",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
+opentitan_functest(
+    name = "spi_host_irq_test",
+    srcs = ["spi_host_irq_test.c"],
+    targets = ["cw310_test_rom"],  # Can only run on CW310 board right now.
+    deps = [
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/arch:device",
+        "//sw/device/lib/base:memory",
+        "//sw/device/lib/base:mmio",
+        "//sw/device/lib/dif:rv_plic",
+        "//sw/device/lib/dif:spi_host",
+        "//sw/device/lib/runtime:hart",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/runtime:print",
+        "//sw/device/lib/testing:rv_plic_testutils",
+        "//sw/device/lib/testing:spi_device_testutils",
+        "//sw/device/lib/testing:spi_flash_testutils",
+        "//sw/device/lib/testing:spi_host_testutils",
         "//sw/device/lib/testing/test_framework:ottf_main",
     ],
 )
@@ -1919,6 +1935,7 @@ opentitan_functest(
     targets = [
         "verilator",
         "cw310_test_rom",
+        "dv",
     ],
     verilator = verilator_params(
         timeout = "long",
@@ -1956,6 +1973,7 @@ opentitan_functest(
         "//sw/device/lib/runtime:print",
         "//sw/device/lib/testing:pinmux_testutils",
         "//sw/device/lib/testing:usb_testutils",
+        "//sw/device/lib/testing:usb_testutils_streams",
         "//sw/device/lib/testing/test_framework:ottf_main",
     ],
 )
@@ -1963,9 +1981,6 @@ opentitan_functest(
 opentitan_functest(
     name = "rstmgr_alert_info_test",
     srcs = ["rstmgr_alert_info_test.c"],
-    cw310 = cw310_params(
-        tags = ["broken"],  # FIXME #16576 fails in non-CI environments
-    ),
     targets = [
         "cw310_test_rom",
         "verilator",
@@ -1998,6 +2013,7 @@ opentitan_functest(
         "//sw/device/lib/testing:alert_handler_testutils",
         "//sw/device/lib/testing:aon_timer_testutils",
         "//sw/device/lib/testing:flash_ctrl_testutils",
+        "//sw/device/lib/testing:keymgr_testutils",
         "//sw/device/lib/testing:rstmgr_testutils",
         "//sw/device/lib/testing:rv_plic_testutils",
         "//sw/device/lib/testing/test_framework:ottf_main",
@@ -2122,7 +2138,6 @@ bitstream_splice(
     src = "//hw/bitstream:test_rom",
     data = ":power_virus_systemtest_otp_img_rma",
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = ["vivado"],
     update_usr_access = True,
     visibility = ["//visibility:private"],
 )
@@ -2132,7 +2147,6 @@ opentitan_functest(
     srcs = ["power_virus_systemtest.c"],
     cw310 = cw310_params(
         bitstream = ":power_virus_systemtest_bitstream",
-        tags = ["vivado"],
         test_cmds = [
             "--rom-kind={rom_kind}",
             "--bitstream=\"$(location {bitstream})\"",

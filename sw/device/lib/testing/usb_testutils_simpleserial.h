@@ -15,6 +15,7 @@
 typedef struct usb_testutils_ss_ctx {
   usb_testutils_ctx_t *ctx;
   int ep;
+  bool sending;
   dif_usbdev_buffer_t cur_buf;
   int cur_cpos;
   union usb_ss_b2w {
@@ -29,9 +30,12 @@ typedef struct usb_testutils_ss_ctx {
  *
  * @param ssctx instance context
  * @param c byte to send
+ * @return `kOk(res)` Where `res` is true if the character was accepted for
+ * transmission
  */
-void usb_testutils_simpleserial_send_byte(usb_testutils_ss_ctx_t *ssctx,
-                                          uint8_t c);
+OT_WARN_UNUSED_RESULT
+status_t usb_testutils_simpleserial_send_byte(usb_testutils_ss_ctx_t *ssctx,
+                                              uint8_t c);
 
 /**
  * Initialize a simpleserial endpoint
@@ -40,9 +44,11 @@ void usb_testutils_simpleserial_send_byte(usb_testutils_ss_ctx_t *ssctx,
  * @param ctx initialized usbdev context
  * @param ep endpoint number for this instance
  * @param got_byte callback function for when a byte is received
+ * @return The result of the operation
  */
-void usb_testutils_simpleserial_init(usb_testutils_ss_ctx_t *ssctx,
-                                     usb_testutils_ctx_t *ctx, int ep,
-                                     void (*got_byte)(uint8_t));
+OT_WARN_UNUSED_RESULT
+status_t usb_testutils_simpleserial_init(usb_testutils_ss_ctx_t *ssctx,
+                                         usb_testutils_ctx_t *ctx, int ep,
+                                         void (*got_byte)(uint8_t));
 
 #endif  // OPENTITAN_SW_DEVICE_LIB_TESTING_USB_TESTUTILS_SIMPLESERIAL_H_

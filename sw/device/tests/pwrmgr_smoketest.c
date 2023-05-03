@@ -47,33 +47,34 @@ bool test_main(void) {
 
   // Notice we are clearing rstmgr's RESET_INFO, so after the aon wakeup there
   // is only one bit set.
-  if (pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) {
+  if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) == true) {
     LOG_INFO("POR reset");
 
-    CHECK(rstmgr_testutils_reset_info_any(&rstmgr, kDifRstmgrResetInfoPor));
+    CHECK(UNWRAP(
+        rstmgr_testutils_reset_info_any(&rstmgr, kDifRstmgrResetInfoPor)));
 
     // Prepare rstmgr for a reset.
-    rstmgr_testutils_pre_reset(&rstmgr);
+    CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
 
     CHECK_STATUS_OK(
         aon_timer_testutils_wakeup_config(&aon_timer, wakeup_threshold));
     // Deep sleep.
-    pwrmgr_testutils_enable_low_power(&pwrmgr,
-                                      kDifPwrmgrWakeupRequestSourceFive, 0);
+    CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+        &pwrmgr, kDifPwrmgrWakeupRequestSourceFive, 0));
 
     // Enter low power mode.
     LOG_INFO("Issue WFI to enter sleep");
     wait_for_interrupt();
 
-  } else if (pwrmgr_testutils_is_wakeup_reason(
-                 &pwrmgr, kDifPwrmgrWakeupRequestSourceFive)) {
+  } else if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(
+                 &pwrmgr, kDifPwrmgrWakeupRequestSourceFive)) == true) {
     LOG_INFO("Wakeup reset");
 
-    CHECK(rstmgr_testutils_is_reset_info(&rstmgr,
-                                         kDifRstmgrResetInfoLowPowerExit));
+    CHECK(UNWRAP(rstmgr_testutils_is_reset_info(
+        &rstmgr, kDifRstmgrResetInfoLowPowerExit)));
     LOG_INFO("Aon timer wakeup detected");
-    rstmgr_testutils_post_reset(&rstmgr, kDifRstmgrResetInfoLowPowerExit, 0, 0,
-                                0, 0);
+    CHECK_STATUS_OK(rstmgr_testutils_post_reset(
+        &rstmgr, kDifRstmgrResetInfoLowPowerExit, 0, 0, 0, 0));
 
     return true;
   } else {

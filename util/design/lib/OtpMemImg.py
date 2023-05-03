@@ -9,19 +9,31 @@ memory for simulations and FPGA emulation.
 import copy
 import logging as log
 import random
-from typing import Tuple
+from pathlib import Path
+from typing import List, Tuple
 
-from mubi.prim_mubi import mubi_value_as_int
-
-from lib.common import (check_bool, check_int, ecc_encode, permute_bits,
-                        random_or_hexvalue, validate_data_perm_option)
+from lib import common
 from lib.LcStEnc import LcStEnc
 from lib.OtpMemMap import OtpMemMap
 from lib.Present import Present
+from mako.template import Template
+from mubi.prim_mubi import mubi_value_as_int
 
 # Seed diversification constant for OtpMemImg (this enables to use
 # the same seed for different classes)
 OTP_IMG_SEED_DIVERSIFIER = 1941661965323525198146
+
+_OTP_SW_SKIP_FROM_HEADER = ('VENDOR_TEST', 'LIFE_CYCLE')
+_OTP_SW_SKIP_DIGEST_FIELDS = ('HW_CFG_DIGEST', 'SECRET0_DIGEST',
+                              'SECRET1_DIGEST', 'SECRET2_DIGEST')
+_OTP_SW_WRITE_BYTE_ALIGNMENT = {
+    'CREATOR_SW_CFG': 4,
+    'OWNER_SW_CFG': 4,
+    'HW_CFG': 4,
+    'SECRET0': 8,
+    'SECRET1': 8,
+    'SECRET2': 8,
+}
 
 
 def _present_64bit_encrypt(plain, key):
@@ -118,10 +130,10 @@ def _to_memfile_with_ecc(data, annotation, config,
 
         # ECC encode
         word_bin = format(word, bin_format_str)
-        word_bin = ecc_encode(config, word_bin)
+        word_bin = common.ecc_encode(config, word_bin)
         # Pad to word boundary and permute data if needed
         word_bin = ('0' * bit_padding) + word_bin
-        word_bin = permute_bits(word_bin, data_perm)
+        word_bin = common.permute_bits(word_bin, data_perm)
         word_hex = format(int(word_bin, 2), hex_format_str)
 
         # Build a MEM line containing this word's address in the memory map and
@@ -144,6 +156,34 @@ def _check_unused_keys(dict_to_check, msg_postfix=""):
         log.info("Unused key {} in {}".format(key, msg_postfix))
     if dict_to_check:
         raise RuntimeError('Aborting due to unused keys in config dict')
+
+
+def _int_to_hex_array(val: int, size: int, alignment: int) -> List[str]:
+    '''Converts `val` long value into list of hex strings.
+
+    Args:
+        val: Input value.
+        size: Target output size in number of bytes.
+        alignment: Number of bytes to be bundled into a single hex value.
+    Returns:
+        A list of string hex values using little-endian encoding.
+    '''
+    fmt_str = '{:0' + str(size * 2) + 'x}'
+    val_hex = fmt_str.format(val)
+
+    bytes_hex = []
+    for i in range(0, len(val_hex), 2):
+        bytes_hex.append(val_hex[i:i + 2])
+
+    if len(bytes_hex) % alignment != 0:
+        raise ValueError(len(bytes_hex))
+
+    word_list = []
+    for i in range(0, len(bytes_hex), alignment):
+        word_list.append("".join(bytes_hex[i:i + alignment]))
+
+    word_list.reverse()
+    return [f"0x{y}" for y in word_list]
 
 
 class OtpMemImg(OtpMemMap):
@@ -176,7 +216,7 @@ class OtpMemImg(OtpMemMap):
         if 'seed' not in img_config:
             raise RuntimeError('Missing seed in configuration.')
 
-        img_config['seed'] = check_int(img_config['seed'])
+        img_config['seed'] = common.check_int(img_config['seed'])
         log.info('Seed: {0:x}'.format(img_config['seed']))
         log.info('')
 
@@ -219,7 +259,7 @@ class OtpMemImg(OtpMemMap):
 
         # Only partitions with a hardware digest can be locked.
         part.setdefault('lock', 'false')
-        part['lock'] = check_bool(part['lock'])
+        part['lock'] = common.check_bool(part['lock'])
         if part['lock'] and not \
            mmap_part['hw_digest']:
             raise RuntimeError(
@@ -233,7 +273,7 @@ class OtpMemImg(OtpMemMap):
             part.setdefault('state', 'RAW')
             part.setdefault('count', 0)
 
-            part['count'] = check_int(part['count'])
+            part['count'] = common.check_int(part['count'])
             if len(part['items']) > 0:
                 raise RuntimeError(
                     'Life cycle items cannot directly be overridden')
@@ -288,14 +328,14 @@ class OtpMemImg(OtpMemMap):
             mubi_str = "mubi "
             mubi_val_str = " kMultiBitBool{}".format(item_width)
             item.setdefault("value", "false")
-            item["value"] = check_bool(item["value"])
+            item["value"] = common.check_bool(item["value"])
             mubi_val_str += "True" if item["value"] else "False"
             item["value"] = mubi_value_as_int(item["value"], item_width)
         else:
             mubi_str = ""
             mubi_val_str = ""
             item.setdefault('value', '0x0')
-            random_or_hexvalue(item, 'value', item_width)
+            common.random_or_hexvalue(item, 'value', item_width)
 
         mmap_item['value'] = item['value']
 
@@ -451,7 +491,7 @@ class OtpMemImg(OtpMemMap):
         self.data_perm = list(
             range(total_bitlen)) if not data_perm else data_perm
 
-        validate_data_perm_option(total_bitlen, self.data_perm)
+        common.validate_data_perm_option(total_bitlen, self.data_perm)
 
     def streamout_memfile(self) -> Tuple[str, int]:
         '''Streamout of memory image in MEM file format
@@ -483,3 +523,57 @@ class OtpMemImg(OtpMemMap):
 
         return _to_memfile_with_ecc(data, annotation, self.lc_state.config,
                                     self.data_perm)
+
+    def generate_headerfile(self, outfile: str, fileheader: str,
+                            templatefile: Path) -> str:
+        '''Generates header file with provided `header` and `templatefile`.
+
+        Args:
+            outfile: Output file path. Used to generate include guards.
+            fileheader: Header to be appended to autogenerated file.
+            templatefile: Mako template used to generate header file.
+        Returns:
+            Generated file in string format.
+        '''
+        data = {}
+        for part in self.config['partitions']:
+            if part['name'] in _OTP_SW_SKIP_FROM_HEADER:
+                continue
+            items = []
+            for item in part["items"]:
+                if 'value' not in item.keys(
+                ) or item['name'] in _OTP_SW_SKIP_DIGEST_FIELDS:
+                    continue
+
+                alignment = _OTP_SW_WRITE_BYTE_ALIGNMENT[part['name']]
+
+                # TODO: Handle aggregation of fields to match write boundary.
+                if item['size'] < alignment:
+                    continue
+                assert (item['size'] %
+                        alignment) == 0, "invalid field alignment"
+
+                items.append({
+                    'name':
+                    item['name'],
+                    'values':
+                    _int_to_hex_array(item['value'], item['size'], alignment),
+                    'ismubi':
+                    item['ismubi'],
+                    'num_items':
+                    item['size'] / alignment,
+                })
+            data[part['name']] = {
+                'alignment': alignment,
+                'items': items,
+            }
+
+        include_guard = common.path_to_include_guard(outfile)
+
+        with open(templatefile, 'r') as tplfile:
+            tpl = Template(tplfile.read())
+            result = tpl.render(include_guard=include_guard,
+                                fileheader=fileheader,
+                                data=data)
+
+        return result

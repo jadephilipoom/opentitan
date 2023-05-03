@@ -118,9 +118,10 @@ static void go_to_sleep(void) {
   // Wakeup source is from sysrst_ctrl (source one).
   LOG_INFO("Going to sleep.");
   test_status_set(kTestStatusInWfi);
-  rstmgr_testutils_pre_reset(&rstmgr);
-  pwrmgr_testutils_enable_low_power(&pwrmgr, kDifPwrmgrWakeupRequestSourceOne,
-                                    /*pwrmgr_domain_config=*/0);
+  CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+      &pwrmgr, kDifPwrmgrWakeupRequestSourceOne,
+      /*pwrmgr_domain_config=*/0));
   wait_for_interrupt();
 }
 

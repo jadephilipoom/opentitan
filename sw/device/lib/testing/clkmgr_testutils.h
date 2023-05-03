@@ -5,6 +5,7 @@
 #ifndef OPENTITAN_SW_DEVICE_LIB_TESTING_CLKMGR_TESTUTILS_H_
 #define OPENTITAN_SW_DEVICE_LIB_TESTING_CLKMGR_TESTUTILS_H_
 
+#include "sw/device/lib/base/status.h"
 #include "sw/device/lib/dif/dif_clkmgr.h"
 #include "sw/device/lib/runtime/ibex.h"
 #include "sw/device/lib/testing/test_framework/check.h"
@@ -17,11 +18,12 @@
  * @param clock The transactional clock ID.
  * @return The transactional block's clock status.
  */
-inline bool clkmgr_testutils_get_trans_clock_status(
+static inline bool clkmgr_testutils_get_trans_clock_status(
     const dif_clkmgr_t *clkmgr, dif_clkmgr_hintable_clock_t clock) {
   dif_toggle_t state;
-  CHECK_DIF_OK(dif_clkmgr_hintable_clock_get_enabled(clkmgr, clock, &state));
-  return state == kDifToggleEnabled;
+  dif_result_t res =
+      dif_clkmgr_hintable_clock_get_enabled(clkmgr, clock, &state);
+  return res == kDifOk && state == kDifToggleEnabled;
 }
 
 /**
@@ -36,17 +38,20 @@ inline bool clkmgr_testutils_get_trans_clock_status(
  * @param clock The transactional clock ID.
  * @param exp_clock_enabled Expected clock status.
  * @param timeout_usec Timeout in microseconds.
+ * @return The result of the operation.
  */
-inline void clkmgr_testutils_check_trans_clock_gating(
+OT_WARN_UNUSED_RESULT
+inline status_t clkmgr_testutils_check_trans_clock_gating(
     const dif_clkmgr_t *clkmgr, dif_clkmgr_hintable_clock_t clock,
     bool exp_clock_enabled, uint32_t timeout_usec) {
-  CHECK_DIF_OK(dif_clkmgr_hintable_clock_set_hint(clkmgr, clock, 0x0));
+  TRY(dif_clkmgr_hintable_clock_set_hint(clkmgr, clock, 0x0));
 
-  IBEX_SPIN_FOR(clkmgr_testutils_get_trans_clock_status(clkmgr, clock) ==
-                    exp_clock_enabled,
-                timeout_usec);
+  IBEX_TRY_SPIN_FOR(clkmgr_testutils_get_trans_clock_status(clkmgr, clock) ==
+                        exp_clock_enabled,
+                    timeout_usec);
 
-  CHECK_DIF_OK(dif_clkmgr_hintable_clock_set_hint(clkmgr, clock, 0x1));
+  TRY(dif_clkmgr_hintable_clock_set_hint(clkmgr, clock, 0x1));
+  return OK_STATUS();
 }
 
 /**
@@ -63,11 +68,13 @@ const char *clkmgr_testutils_measurement_name(dif_clkmgr_measure_clock_t clock);
  * @param clock The clock to be measured.
  * @param lo_threshold Expected minimum cycle count.
  * @param hi_threshold Expected maximum cycle count.
+ * @return The result of the operation.
  */
-void clkmgr_testutils_enable_clock_count(const dif_clkmgr_t *clkmgr,
-                                         dif_clkmgr_measure_clock_t clock,
-                                         uint32_t lo_threshold,
-                                         uint32_t hi_threshold);
+OT_WARN_UNUSED_RESULT
+status_t clkmgr_testutils_enable_clock_count(const dif_clkmgr_t *clkmgr,
+                                             dif_clkmgr_measure_clock_t clock,
+                                             uint32_t lo_threshold,
+                                             uint32_t hi_threshold);
 
 /**
  * Enables all clock measurements with expected thresholds.
@@ -80,8 +87,10 @@ void clkmgr_testutils_enable_clock_count(const dif_clkmgr_t *clkmgr,
  * @param external_clk If true the external clock is enabled.
  * @param low_speed If true and external clock is enabled, the external
  *                  clock is running at 48 Mhz.
+ * @return The result of the operation.
  */
-void clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
+OT_WARN_UNUSED_RESULT
+status_t clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
     const dif_clkmgr_t *clkmgr, bool jitter_enabled, bool external_clk,
     bool low_speed);
 
@@ -89,10 +98,10 @@ void clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
  * Checks that there are no clock measurement errors.
  *
  * @param clkmgr A clkmgr DIF handle.
- * @return False if any measurement has errors.
+ * @return Return `kInternal` if any measurement has errors, otherwise `kOk(0)`.
  */
 OT_WARN_UNUSED_RESULT
-bool clkmgr_testutils_check_measurement_counts(const dif_clkmgr_t *clkmgr);
+status_t clkmgr_testutils_check_measurement_counts(const dif_clkmgr_t *clkmgr);
 
 /**
  * Check all measurement enables.
@@ -100,25 +109,31 @@ bool clkmgr_testutils_check_measurement_counts(const dif_clkmgr_t *clkmgr);
  * @param clkmgr A clkmgr DIF handle.
  * @param expected_status The expected status of the enables.
  * @return False if any enable status is unexpected.
+ * @return Return `kInternal` in case of errors, otherwise `kOk(res)`, where
+ * `res` is false if any enable status is unexpected`.
  */
 OT_WARN_UNUSED_RESULT
-bool clkmgr_testutils_check_measurement_enables(const dif_clkmgr_t *clkmgr,
-                                                dif_toggle_t expected_status);
+status_t clkmgr_testutils_check_measurement_enables(
+    const dif_clkmgr_t *clkmgr, dif_toggle_t expected_status);
 
 /**
  * Disable all clock measurements.
  *
  * @param clkmgr A clkmgr DIF handle.
+ * @return The result of the operation.
  */
-void clkmgr_testutils_disable_clock_counts(const dif_clkmgr_t *clkmgr);
+OT_WARN_UNUSED_RESULT
+status_t clkmgr_testutils_disable_clock_counts(const dif_clkmgr_t *clkmgr);
 
 /**
- * Switch to use external clock and wait until the switching is done
+ * Switch to use external clock and wait until the switching is done.
  *
  * @param clkmgr A clkmgr DIF handle.
  * @param is_low_speed Is external clock in low speed mode or not.
+ * @return The result of the operation.
  */
-void clkmgr_testutils_enable_external_clock_and_wait_for_completion(
+OT_WARN_UNUSED_RESULT
+status_t clkmgr_testutils_enable_external_clock_blocking(
     const dif_clkmgr_t *clkmgr, bool is_low_speed);
 
 /**
@@ -127,16 +142,18 @@ void clkmgr_testutils_enable_external_clock_and_wait_for_completion(
  * @param clkmgr A clkmgr DIF handle.
  * @param clock_id The transactional clock ID.
  * @param expected_state Expected clock state.
+ * @return Return `kInternal` in case of errors, otherwise `kOk(0)`.
  */
 #define CLKMGR_TESTUTILS_CHECK_CLOCK_HINT(clkmgr, clock_id, expected_state) \
-  do {                                                                      \
+  ({                                                                        \
     dif_toggle_t clock_state;                                               \
-    CHECK_DIF_OK(dif_clkmgr_hintable_clock_get_enabled(&clkmgr, clock_id,   \
-                                                       &clock_state));      \
-    CHECK(clock_state == expected_state,                                    \
-          "Clock enabled state is (%d) and not as expected (%d).",          \
-          clock_state, expected_state);                                     \
-  } while (0)
+    TRY(dif_clkmgr_hintable_clock_get_enabled(&clkmgr, clock_id,            \
+                                              &clock_state));               \
+    TRY_CHECK(clock_state == expected_state,                                \
+              "Clock enabled state is (%d) and not as expected (%d).",      \
+              clock_state, expected_state);                                 \
+    OK_STATUS();                                                            \
+  })
 
 /**
  * Set and verifies the given clock state.
@@ -145,13 +162,24 @@ void clkmgr_testutils_enable_external_clock_and_wait_for_completion(
  * @param clock_id The transactional clock ID.
  * @param new_state Clock state to be set.
  * @param expected_state Expected clock state.
+ * @return Return `kInternal` in case of errors, otherwise `kOk(0)`.
  */
 #define CLKMGR_TESTUTILS_SET_AND_CHECK_CLOCK_HINT(clkmgr, clock_id, new_state, \
                                                   expected_state)              \
-  do {                                                                         \
-    CHECK_DIF_OK(                                                              \
-        dif_clkmgr_hintable_clock_set_hint(&clkmgr, clock_id, new_state));     \
-    CLKMGR_TESTUTILS_CHECK_CLOCK_HINT(clkmgr, clock_id, expected_state);       \
-  } while (0)
+  ({                                                                           \
+    /* The hintable clock shall be read immediately after setting it, so we    \
+     * handle the error afterwards.*/                                          \
+    dif_result_t set_res =                                                     \
+        dif_clkmgr_hintable_clock_set_hint(&clkmgr, clock_id, new_state);      \
+    dif_toggle_t clock_state;                                                  \
+    dif_result_t get_res = dif_clkmgr_hintable_clock_get_enabled(              \
+        &clkmgr, clock_id, &clock_state);                                      \
+    TRY(set_res);                                                              \
+    TRY(get_res);                                                              \
+    TRY_CHECK(clock_state == expected_state,                                   \
+              "Clock enabled state is (%d) and not as expected (%d).",         \
+              clock_state, expected_state);                                    \
+    OK_STATUS();                                                               \
+  })
 
 #endif  // OPENTITAN_SW_DEVICE_LIB_TESTING_CLKMGR_TESTUTILS_H_

@@ -11,12 +11,12 @@ These specifications include:
 
 
 
-*   [Signature Verification Module [sigverify]]()
+*   [Signature Verification Module [sigverify]](sigverify.md)
 *   [Boot Policy Module [bootpolicy]]()
 *   [Address space unlock module [unlock]]()
-*   [Bootstrap module [bootstrap]]()
+*   [Bootstrap module [bootstrap]](bootstrap.md)
 *   [Bootstrap decoding]()
-*   [Shutdown Module [shutdown]]()
+*   [Shutdown Module [shutdown]](shutdown.md)
 *   [Chip-Specific Startup [startup]]()
 *   [Mask ROM Pin Configuration [pinconfig]]()
 *   [Memory Protection [memprotect]](memory_protection.md)
@@ -174,7 +174,7 @@ See the [[memory protection]](memory_protection.md) specification for details.
 *   Initialize the shutdown module with values from OTP.
 *   Loads alert configurations and alert class configurations from OTP into the alert handler block.
 
-See the [[shutdown]]() specification for details.
+See the [[shutdown]](shutdown.md) specification for details.
 
 
 ### ROM.PINMUX-INIT
@@ -206,10 +206,10 @@ See the [[pin configuration]]() specification for details.
 
 
 *   Read the value of the strapping pins.
-    *   If they indicate bootstrap mode and if bootstrap is permitted (via OTP `ROM_BOOTSTRAP_EN`), perform the bootstrap protocol as specified in the [Bootstrap Spec].
+    *   If they indicate bootstrap mode and if bootstrap is permitted (via OTP `ROM_BOOTSTRAP_DIS`), perform the bootstrap protocol as specified in the [Bootstrap Spec].
     *   For all other values, continue booting without bootstrap mode.
 
-See the [[bootstrap]]() specification for details.
+See the [[bootstrap]](bootstrap.md) specification for details.
 
 
 ### ROM.KEYMGR-INIT
@@ -239,7 +239,7 @@ See the [[bootpolicy]]() specification for details.
         *   If validation fails, exit `main` with kErroMaskRomBootFailed, thus entering ROM.SHUTDOWN.
         *   If validation succeeds proceed to the next step.
 
-See the [[sigverify]]() specification for details.
+See the [[sigverify]](sigverify.md) specification for details.
 
 
 ### ROM.BOOT-ROM\_EXT
@@ -267,4 +267,4 @@ See the [[sigverify]]() specification for details.
     *   Scramble SRAM.
     *   Hang (WFI) and wait for watchdog reset.
 
-See the [[shutdown]]() specification for details.
+See the [[shutdown]](shutdown.md) specification for details.

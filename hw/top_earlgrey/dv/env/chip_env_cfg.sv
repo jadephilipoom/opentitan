@@ -14,7 +14,7 @@ class chip_env_cfg #(type RAL_T = chip_ral_pkg::chip_reg_block) extends cip_base
   // Write logs from sw test to separate log file as well, in addition to the simulator log file.
   bit                 write_sw_logs_to_file = 1'b1;
 
-  // use spi or backdoor to load bootstrap
+  // use spi or backdoor to load bootstrap on the next boot
   bit                 use_spi_load_bootstrap = 0;
 
   // chip top interfaces
@@ -78,6 +78,7 @@ class chip_env_cfg #(type RAL_T = chip_ral_pkg::chip_reg_block) extends cip_base
   sw_test_status_vif sw_test_status_vif;
   ast_supply_vif     ast_supply_vif;
   ast_ext_clk_vif    ast_ext_clk_vif;
+  usb20_vif          usb20_vif;
 
   // Number of RAM tiles for each RAM instance.
   uint num_ram_main_tiles;

@@ -42,9 +42,30 @@ otbn_library(
 )
 
 otbn_library(
+    name = "lcm",
+    srcs = [
+        "lcm.s",
+    ],
+)
+
+otbn_library(
     name = "modexp",
     srcs = [
         "modexp.s",
+    ],
+)
+
+otbn_library(
+    name = "montmul",
+    srcs = [
+        "montmul.s",
+    ],
+)
+
+otbn_library(
+    name = "mul",
+    srcs = [
+        "mul.s",
     ],
 )
 
@@ -110,6 +131,30 @@ otbn_binary(
     ],
     deps = [
         ":modexp",
+        ":montmul",
+    ],
+)
+
+otbn_library(
+    name = "rsa_keygen",
+    srcs = [
+        "rsa_keygen.s",
+    ],
+)
+
+otbn_binary(
+    name = "run_rsa_keygen",
+    srcs = [
+        "run_rsa_keygen.s",
+    ],
+    deps = [
+        ":div",
+        ":gcd",
+        ":lcm",
+        ":montmul",
+        ":mul",
+        ":primality",
+        ":rsa_keygen",
     ],
 )
 
@@ -178,6 +223,16 @@ otbn_binary(
     name = "p256_key_from_seed_sca",
     srcs = [
         "p256_key_from_seed_sca.s",
+    ],
+    deps = [
+        ":p256",
+    ],
+)
+
+otbn_binary(
+    name = "p256_mod_inv_sca",
+    srcs = [
+        "p256_mod_inv_sca.s",
     ],
     deps = [
         ":p256",

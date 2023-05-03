@@ -36,17 +36,17 @@ bool test_main(void) {
   // Notice we are clearing rstmgr's RESET_INFO, so after the power glitch there
   // is only one bit set.
 
-  if (rstmgr_testutils_is_reset_info(&rstmgr, kDifRstmgrResetInfoPor)) {
+  if (UNWRAP(rstmgr_testutils_is_reset_info(&rstmgr, kDifRstmgrResetInfoPor))) {
     LOG_INFO("Powered up for the first time, begin test");
 
-    CHECK(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0));
+    CHECK(UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) == true);
 
-    rstmgr_testutils_pre_reset(&rstmgr);
+    CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
 
     // Configure shallow sleep.
-    pwrmgr_testutils_enable_low_power(
+    CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
         &pwrmgr, kDifPwrmgrWakeupRequestSourceFive,
-        kDifPwrmgrDomainOptionMainPowerInLowPower);
+        kDifPwrmgrDomainOptionMainPowerInLowPower));
 
     // This causes core_sleeping to rise and triggers the injection of the
     // power glitch. Enter shallow sleep mode.
@@ -56,8 +56,8 @@ bool test_main(void) {
   } else {
     LOG_INFO("Checking reset status.");
     LOG_INFO("EXP: 0x%x", (kDifRstmgrResetInfoPowerUnstable));
-    rstmgr_testutils_post_reset(&rstmgr, kDifRstmgrResetInfoPowerUnstable, 0, 0,
-                                0, 0);
+    CHECK_STATUS_OK(rstmgr_testutils_post_reset(
+        &rstmgr, kDifRstmgrResetInfoPowerUnstable, 0, 0, 0, 0));
     LOG_INFO(
         "Reset status indicates a main power glitch and low power exit reset");
   }

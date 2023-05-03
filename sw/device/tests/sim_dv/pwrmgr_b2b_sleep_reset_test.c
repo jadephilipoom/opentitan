@@ -161,7 +161,7 @@ bool test_main(void) {
   prgm_push_button_wakeup();
 
   // Prepare rstmgr for a reset.
-  rstmgr_testutils_pre_reset(&rstmgr);
+  CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
 
   // This is mark for sv sequence to prepare to asserting parallel event.
   LOG_INFO("ready for power down");
@@ -171,12 +171,12 @@ bool test_main(void) {
       aon_timer_testutils_wakeup_config(&aon_timer, wakeup_threshold));
 
   // Deep sleep.
-  pwrmgr_testutils_enable_low_power(
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
       &pwrmgr,
       (kDifPwrmgrWakeupRequestSourceOne | kDifPwrmgrWakeupRequestSourceTwo |
        kDifPwrmgrWakeupRequestSourceThree | kDifPwrmgrWakeupRequestSourceFour |
        kDifPwrmgrWakeupRequestSourceFive | kDifPwrmgrWakeupRequestSourceSix),
-      0);
+      0));
 
   // Enter low power mode.
   wait_for_interrupt();

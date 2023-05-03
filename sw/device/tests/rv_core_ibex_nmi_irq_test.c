@@ -60,21 +60,24 @@ enum {
 const int kNumTestIterations = 3;
 
 static void alert_handler_config(void) {
+  uint32_t cycles[3] = {0};
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kEscalationPhase0Micros, &cycles[0]));
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kEscalationPhase2Micros, &cycles[1]));
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(kIrqDeadlineMicros,
+                                                             &cycles[2]));
   dif_alert_handler_escalation_phase_t esc_phases[] = {
       {.phase = kDifAlertHandlerClassStatePhase0,
        .signal = 0,
-       .duration_cycles =
-           alert_handler_testutils_get_cycles_from_us(kEscalationPhase0Micros)},
+       .duration_cycles = cycles[0]},
       {.phase = kDifAlertHandlerClassStatePhase2,
        .signal = 3,
-       .duration_cycles = alert_handler_testutils_get_cycles_from_us(
-           kEscalationPhase2Micros)}};
-
+       .duration_cycles = cycles[1]}};
   dif_alert_handler_class_config_t class_config[] = {{
       .auto_lock_accumulation_counter = kDifToggleDisabled,
       .accumulator_threshold = 0,
-      .irq_deadline_cycles =
-          alert_handler_testutils_get_cycles_from_us(kIrqDeadlineMicros),
+      .irq_deadline_cycles = cycles[2],
       .escalation_phases = esc_phases,
       .escalation_phases_len = ARRAYSIZE(esc_phases),
       .crashdump_escalation_phase = kDifAlertHandlerClassStatePhase3,
@@ -93,8 +96,9 @@ static void alert_handler_config(void) {
       .ping_timeout = 0,
   };
 
-  alert_handler_testutils_configure_all(&alert_handler, config,
-                                        /*lock=*/kDifToggleDisabled);
+  CHECK_STATUS_OK(
+      alert_handler_testutils_configure_all(&alert_handler, config,
+                                            /*lock=*/kDifToggleDisabled));
 }
 
 /**
@@ -294,7 +298,5 @@ bool test_main(void) {
   CHECK(ext_irq_fired == false, "Unexpected external interrupt triggered.");
   // Double check that the system has not been reset due to escalation and that
   // the reset reason is still POR.
-  pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0);
-
-  return true;
+  return UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0));
 }

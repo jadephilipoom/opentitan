@@ -11,6 +11,7 @@
 #include "sw/device/lib/base/mmio.h"
 #include "sw/device/lib/dif/dif_alert_handler.h"
 #include "sw/device/lib/dif/dif_aon_timer.h"
+#include "sw/device/lib/dif/dif_flash_ctrl.h"
 #include "sw/device/lib/dif/dif_pwrmgr.h"
 #include "sw/device/lib/dif/dif_rstmgr.h"
 #include "sw/device/lib/dif/dif_rv_plic.h"
@@ -19,6 +20,7 @@
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/alert_handler_testutils.h"
 #include "sw/device/lib/testing/aon_timer_testutils.h"
+#include "sw/device/lib/testing/keymgr_testutils.h"
 #include "sw/device/lib/testing/pwrmgr_testutils.h"
 #include "sw/device/lib/testing/rstmgr_testutils.h"
 #include "sw/device/lib/testing/rv_plic_testutils.h"
@@ -48,6 +50,7 @@ static_assert(
     kTestParamWakeupThresholdUsec > 175000,
     "Invalid kTestParamWakeupThresholdUsec. See test plan for more details.");
 
+static dif_flash_ctrl_state_t flash_ctrl;
 static dif_rv_plic_t plic;
 static dif_pwrmgr_t pwrmgr;
 static dif_rstmgr_t rstmgr;
@@ -78,6 +81,10 @@ static void init_peripherals(void) {
   CHECK_DIF_OK(dif_aon_timer_init(
       mmio_region_from_addr(TOP_EARLGREY_AON_TIMER_AON_BASE_ADDR), &aon_timer));
 
+  CHECK_DIF_OK(dif_flash_ctrl_init_state(
+      &flash_ctrl,
+      mmio_region_from_addr(TOP_EARLGREY_FLASH_CTRL_CORE_BASE_ADDR)));
+
   // Enable all the alert_handler interrupts used in this test.
   rv_plic_testutils_irq_range_enable(&plic, kPlicTarget,
                                      kTopEarlgreyPlicIrqIdAlertHandlerClassa,
@@ -107,21 +114,23 @@ static void alert_handler_config(void) {
     loc_alerts[i] = i;
     loc_alert_classes[i] = kDifAlertHandlerClassB;
   }
-
+  uint32_t cycles = 0;
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kTestParamAlertHandlerPhase0EscalationDurationUsec, &cycles));
   dif_alert_handler_escalation_phase_t esc_phases[] = {
       {
           .phase = kDifAlertHandlerClassStatePhase0,
           .signal = 0,
-          .duration_cycles = alert_handler_testutils_get_cycles_from_us(
-              kTestParamAlertHandlerPhase0EscalationDurationUsec),
+          .duration_cycles = cycles,
       },
   };
 
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kTestParamAlertHandlerIrqDeadlineUsec, &cycles));
   dif_alert_handler_class_config_t class_config = {
       .auto_lock_accumulation_counter = kDifToggleDisabled,
       .accumulator_threshold = 0,
-      .irq_deadline_cycles = alert_handler_testutils_get_cycles_from_us(
-          kTestParamAlertHandlerIrqDeadlineUsec),
+      .irq_deadline_cycles = cycles,
       .escalation_phases = esc_phases,
       .escalation_phases_len = ARRAYSIZE(esc_phases),
       .crashdump_escalation_phase = kDifAlertHandlerClassStatePhase1,
@@ -132,6 +141,8 @@ static void alert_handler_config(void) {
 
   dif_alert_handler_class_t classes[] = {kDifAlertHandlerClassA,
                                          kDifAlertHandlerClassB};
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kTestParamAlertHandlerPingTimeoutUsec, &cycles));
   dif_alert_handler_config_t config = {
       .alerts = alerts,
       .alert_classes = alert_classes,
@@ -142,12 +153,11 @@ static void alert_handler_config(void) {
       .classes = classes,
       .class_configs = class_configs,
       .classes_len = ARRAYSIZE(class_configs),
-      .ping_timeout = alert_handler_testutils_get_cycles_from_us(
-          kTestParamAlertHandlerPingTimeoutUsec),
+      .ping_timeout = cycles,
   };
 
-  alert_handler_testutils_configure_all(&alert_handler, config,
-                                        kDifToggleEnabled);
+  CHECK_STATUS_OK(alert_handler_testutils_configure_all(&alert_handler, config,
+                                                        kDifToggleEnabled));
   // Enables alert handler irq.
   CHECK_DIF_OK(dif_alert_handler_irq_set_enabled(
       &alert_handler, kDifAlertHandlerIrqClassa, kDifToggleEnabled));
@@ -169,6 +179,15 @@ static void check_local_alerts(void) {
 }
 
 /**
+ * Resets the chip.
+ */
+static void chip_sw_reset(void) {
+  CHECK_DIF_OK(dif_rstmgr_software_device_reset(&rstmgr));
+  busy_spin_micros(100);
+  CHECK(false, "Should have reset before this line");
+}
+
+/**
  * External ISR.
  *
  * Handles all peripheral interrupts on Ibex. PLIC asserts an external interrupt
@@ -180,10 +199,31 @@ void ottf_external_isr(void) { interrupt_serviced = true; }
 bool test_main(void) {
   init_peripherals();
 
-  if (pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) {
+  // We need to initialize the info FLASH partitions storing the Creator and
+  // Owner secrets to avoid getting the flash controller into a fatal error
+  // state.
+  if (kDeviceType == kDeviceFpgaCw310) {
+    dif_rstmgr_reset_info_bitfield_t rst_info = rstmgr_testutils_reason_get();
+    if (rst_info & kDifRstmgrResetInfoPor) {
+      CHECK_STATUS_OK(keymgr_testutils_flash_init(&flash_ctrl, &kCreatorSecret,
+                                                  &kOwnerSecret));
+      chip_sw_reset();
+    }
+  }
+
+  if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) == true) {
     LOG_INFO("POR reset");
-    CHECK(rstmgr_testutils_reset_info_any(&rstmgr, kDifRstmgrResetInfoPor));
-    rstmgr_testutils_pre_reset(&rstmgr);
+
+    dif_rstmgr_reset_info_t reset_info = kDifRstmgrResetInfoPor;
+
+    // Update the expected `reset_info` value for the FPGA target, as we have
+    // a soft reset required to apply the info flash page configuration.
+    if (kDeviceType == kDeviceFpgaCw310) {
+      reset_info = kDifRstmgrResetInfoSw;
+    }
+
+    CHECK(UNWRAP(rstmgr_testutils_reset_info_any(&rstmgr, reset_info)));
+    CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
 
     alert_handler_config();
 
@@ -196,7 +236,7 @@ bool test_main(void) {
 
     // Sleep longer in FPGA and silicon targets.
     if (kDeviceType != kDeviceSimDV && kDeviceType != kDeviceSimVerilator) {
-      uint32_t wakeup_threshold_new = wakeup_threshold * 100;
+      uint32_t wakeup_threshold_new = wakeup_threshold * 50;
       CHECK(wakeup_threshold_new > wakeup_threshold,
             "Detected wakeup_threshold overflow.");
       wakeup_threshold = wakeup_threshold_new;
@@ -211,16 +251,16 @@ bool test_main(void) {
     // Enable and enter deep sleep.
     CHECK_STATUS_OK(
         aon_timer_testutils_wakeup_config(&aon_timer, wakeup_threshold));
-    pwrmgr_testutils_enable_low_power(&pwrmgr,
-                                      kDifPwrmgrWakeupRequestSourceFive, 0);
+    CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+        &pwrmgr, kDifPwrmgrWakeupRequestSourceFive, 0));
     wait_for_interrupt();
     CHECK(false, "Fail to enter in low power mode!");
     OT_UNREACHABLE();
-  } else if (pwrmgr_testutils_is_wakeup_reason(
-                 &pwrmgr, kDifPwrmgrWakeupRequestSourceFive)) {
+  } else if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(
+                 &pwrmgr, kDifPwrmgrWakeupRequestSourceFive)) == true) {
     LOG_INFO("Wakeup reset");
-    CHECK(rstmgr_testutils_is_reset_info(&rstmgr,
-                                         kDifRstmgrResetInfoLowPowerExit));
+    CHECK(UNWRAP(rstmgr_testutils_is_reset_info(
+        &rstmgr, kDifRstmgrResetInfoLowPowerExit)));
     CHECK_STATUS_OK(aon_timer_testutils_shutdown(&aon_timer));
 
     // At this point the test has verified that the reset reason is low power

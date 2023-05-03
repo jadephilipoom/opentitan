@@ -260,6 +260,15 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   li   t0, SW_STRAP_2_INSEL
   sw   t0, (SW_STRAP_2_PERIPH * 4)(a0)
 
+  // Spin for a minimum of 5us worth of cycles (assuming 100MHz clock), while we
+  // wait for the RMA strap pull enables to propagate to the physical pads.
+  // Since this is a wait loop, disable the watchdog.
+  csrw mcycle, zero
+  li   t0, PINMUX_PAD_ATTR_PROP_CYCLES
+.L_rma_strap_pu_spin_cycles_loop:
+  csrr t1, mcycle
+  bltu t1, t0, .L_rma_strap_pu_spin_cycles_loop
+
   // Read the strap GPIOs and check their value.
   li   a0, TOP_EARLGREY_GPIO_BASE_ADDR
   lw   t0, GPIO_DATA_IN_REG_OFFSET(a0)
@@ -305,6 +314,14 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   unimp
 
 .L_rma_spin_skip:
+  // Skip the `entropy_src` health checks configuration if the
+  // `RNG_HEALTH_CONFIG_DIGEST` is not programmed. The default digest value is
+  // 0 given that it is stored in a software OTP partition.
+  li   a0, (TOP_EARLGREY_OTP_CTRL_CORE_BASE_ADDR + \
+            OTP_CTRL_SW_CFG_WINDOW_REG_OFFSET)
+  lw t0, OTP_CTRL_PARAM_CREATOR_SW_CFG_RNG_HEALTH_CONFIG_DIGEST_OFFSET(a0)
+  beqz t0, .L_entropy_enable
+
   // Copy the entropy source health checks configuration thresholds from OTP.
   li   a0, (TOP_EARLGREY_ENTROPY_SRC_BASE_ADDR + \
             ENTROPY_SRC_REPCNT_THRESHOLDS_REG_OFFSET)
@@ -322,8 +339,10 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   lw t1, OTP_CTRL_PARAM_CREATOR_SW_CFG_RNG_ALERT_THRESHOLD_OFFSET(a1)
   sw t1, ENTROPY_SRC_ALERT_THRESHOLD_REG_OFFSET(a0)
 
+.L_entropy_enable:
   // The following sequence enables the minimum level of entropy required to
   // initialize memory scrambling, as well as the entropy distribution network.
+  li a0, TOP_EARLGREY_ENTROPY_SRC_BASE_ADDR
 
   // Note for BOOT_ROM initialization the FIPS_ENABLE bit is set to kMultiBitBool4False
   // to prevent the release of FIPS entropy until all the thresholds are set

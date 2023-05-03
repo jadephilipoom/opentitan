@@ -52,11 +52,26 @@ def get_otp_images():
         "//hw/ip/otp_ctrl/data:img_dev_initial",
         "//hw/ip/otp_ctrl/data:img_dev_individualized",
         "//hw/ip/otp_ctrl/data:img_rma",
+        "//hw/ip/otp_ctrl/data:img_test_locked0",
+        "//hw/ip/otp_ctrl/data:img_test_locked1",
+        "//hw/ip/otp_ctrl/data:img_test_locked2",
+        "//hw/ip/otp_ctrl/data:img_test_locked3",
+        "//hw/ip/otp_ctrl/data:img_test_locked4",
+        "//hw/ip/otp_ctrl/data:img_test_locked5",
+        "//hw/ip/otp_ctrl/data:img_test_locked6",
         "//hw/ip/otp_ctrl/data:img_test_unlocked0",
+        "//hw/ip/otp_ctrl/data:img_test_unlocked1",
+        "//hw/ip/otp_ctrl/data:img_test_unlocked2",
+        "//hw/ip/otp_ctrl/data:img_test_unlocked3",
+        "//hw/ip/otp_ctrl/data:img_test_unlocked4",
+        "//hw/ip/otp_ctrl/data:img_test_unlocked5",
+        "//hw/ip/otp_ctrl/data:img_test_unlocked6",
+        "//hw/ip/otp_ctrl/data:img_test_unlocked7",
         "//hw/ip/otp_ctrl/data:img_prod",
         "//hw/ip/otp_ctrl/data:img_prod_end",
         "//hw/ip/otp_ctrl/data:img_exec_disabled",
         "//hw/ip/otp_ctrl/data:img_bootstrap_disabled",
+        "//hw/ip/otp_ctrl/data:img_raw",
     ]
 
     out = []
@@ -216,6 +231,93 @@ otp_image = rule(
         "data_perm": attr.label(
             default = "//hw/ip/otp_ctrl/data:data_perm",
             doc = "Post-processing option to trigger permuting bit positions in memfile.",
+        ),
+        "verbose": attr.bool(
+            default = False,
+            doc = "Display progress messages from image-generation tool.",
+        ),
+        "_tool": attr.label(
+            default = "//util/design:gen-otp-img",
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+)
+
+def _otp_image_header(ctx):
+    output = ctx.actions.declare_file(ctx.attr.name + ".h")
+    args = ctx.actions.args()
+    if not ctx.attr.verbose:
+        args.add("--quiet")
+    args.add("--lc-state-def", ctx.file.lc_state_def)
+    args.add("--mmap-def", ctx.file.mmap_def)
+    args.add("--img-seed", ctx.attr.img_seed[BuildSettingInfo].value)
+    args.add("--lc-seed", ctx.attr.lc_seed[BuildSettingInfo].value)
+    args.add("--otp-seed", ctx.attr.otp_seed[BuildSettingInfo].value)
+    args.add("--img-cfg", ctx.file.src)
+    args.add("--header-template", ctx.file.header_template)
+    args.add("--header-out", "{}/{}.h".format(output.dirname, ctx.attr.name))
+    args.add_all(ctx.files.overlays, before_each = "--add-cfg")
+    ctx.actions.run(
+        outputs = [output],
+        inputs = [
+            ctx.file.src,
+            ctx.file.header_template,
+            ctx.file.lc_state_def,
+            ctx.file.mmap_def,
+        ] + ctx.files.overlays,
+        arguments = [args],
+        executable = ctx.executable._tool,
+    )
+    return [
+        CcInfo(compilation_context = cc_common.create_compilation_context(
+            includes = depset([output.dirname]),
+            headers = depset([output]),
+            defines = depset(["RULE_NAME=\"{}\"".format(ctx.label.name)]),
+        )),
+        DefaultInfo(files = depset([output]), runfiles = ctx.runfiles(files = [output])),
+        OutputGroupInfo(
+            header = depset([output]),
+        ),
+    ]
+
+otp_image_header = rule(
+    implementation = _otp_image_header,
+    attrs = {
+        "src": attr.label(
+            allow_single_file = [".json", ".hjson"],
+            doc = "Image configuration file in Hjson format.",
+        ),
+        "overlays": attr.label_list(
+            allow_files = [".json", ".hjson"],
+            doc = "Additional image configuration file(s) in Hjson format to override src. Overlays are applied in the order provided.",
+        ),
+        "lc_state_def": attr.label(
+            allow_single_file = True,
+            default = "//hw/ip/lc_ctrl/data:lc_ctrl_state.hjson",
+            doc = "Life-cycle state definition file in Hjson format.",
+        ),
+        "mmap_def": attr.label(
+            allow_single_file = True,
+            default = "//hw/ip/otp_ctrl/data:otp_ctrl_mmap.hjson",
+            doc = "OTP Controller memory map file in Hjson format.",
+        ),
+        "img_seed": attr.label(
+            default = "//hw/ip/otp_ctrl/data:img_seed",
+            doc = "Configuration override seed used to randomize field values in an OTP image.",
+        ),
+        "lc_seed": attr.label(
+            default = "//hw/ip/otp_ctrl/data:lc_seed",
+            doc = "Configuration override seed used to randomize LC netlist constants.",
+        ),
+        "otp_seed": attr.label(
+            default = "//hw/ip/otp_ctrl/data:otp_seed",
+            doc = "Configuration override seed used to randomize OTP netlist constants.",
+        ),
+        "header_template": attr.label(
+            allow_single_file = True,
+            default = "//hw/ip/otp_ctrl/data:otp_ctrl_img.h.tpl",
+            doc = "OTP image header template.",
         ),
         "verbose": attr.bool(
             default = False,

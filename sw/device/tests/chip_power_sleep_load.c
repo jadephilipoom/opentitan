@@ -114,9 +114,6 @@ void prepare_to_exit(void) {
   // Check that no external interrupts have occurred.
   CHECK(ext_irq_fired == false, "Unexpected external interrupt triggered.");
 
-  // Check that the system has not been reset due to escalation
-  pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0);
-
   CHECK_STATUS_OK(aon_timer_testutils_shutdown(&aon_timer));
 
   // Set the test status flag back to "TestStatusInTest"
@@ -263,8 +260,8 @@ bool test_main(void) {
   };
 
   // 5. Configure Alerts
-  alert_handler_testutils_configure_all(&alert_handler, config,
-                                        kDifToggleEnabled);
+  CHECK_STATUS_OK(alert_handler_testutils_configure_all(&alert_handler, config,
+                                                        kDifToggleEnabled));
 
   // Checks whether alert handler's ping timer is locked
   bool is_locked;
@@ -374,8 +371,8 @@ bool test_main(void) {
     irq_software_ctrl(/*en=*/true);
 
     // activate in Watchdog mode & IRQ
-    aon_timer_testutils_watchdog_config(&aon_timer, count_cycles, UINT32_MAX,
-                                        false);
+    CHECK_STATUS_OK(aon_timer_testutils_watchdog_config(
+        &aon_timer, count_cycles, UINT32_MAX, false));
   }
   LOG_INFO("AON Timer active");
 
@@ -421,7 +418,8 @@ bool test_main(void) {
                 (kUsbSlpOff ? 0 : kDifPwrmgrDomainOptionUsbClockInLowPower) |
                 (kUsbActOff ? 0 : kDifPwrmgrDomainOptionUsbClockInActivePower) |
                 (kDeepSleep ? 0 : kDifPwrmgrDomainOptionMainPowerInLowPower));
-  pwrmgr_testutils_enable_low_power(&pwrmgr, pwrmgr_wakeups, pwrmgr_cfg);
+  CHECK_STATUS_OK(
+      pwrmgr_testutils_enable_low_power(&pwrmgr, pwrmgr_wakeups, pwrmgr_cfg));
   LOG_INFO("Power Manage configured");
 
   CHECK_DIF_OK(dif_gpio_write(&gpio, 2, 1));

@@ -103,7 +103,7 @@ static void usb_receipt_callback_1(uint8_t c) {
  */
 static void usb_send_str(const char *string, usb_testutils_ss_ctx_t *ss_ctx) {
   for (int i = 0; string[i] != 0; ++i) {
-    usb_testutils_simpleserial_send_byte(ss_ctx, string[i]);
+    CHECK_STATUS_OK(usb_testutils_simpleserial_send_byte(ss_ctx, string[i]));
   }
 }
 
@@ -211,23 +211,26 @@ void _ottf_main(void) {
   CHECK_DIF_OK(dif_spi_device_send(&spi, "SPI!", 4, /*bytes_sent=*/NULL));
 
   // The TI phy always uses a differential TX interface
-  usb_testutils_init(&usbdev, pinflip, differential_xcvr,
-                     differential_xcvr && !uphy);
+  CHECK_STATUS_OK(usb_testutils_init(&usbdev, pinflip, differential_xcvr,
+                                     differential_xcvr && !uphy));
 
-  usb_testutils_controlep_init(&usbdev_control, &usbdev, 0, config_descriptors,
-                               sizeof(config_descriptors), NULL, 0);
+  CHECK_STATUS_OK(usb_testutils_controlep_init(
+      &usbdev_control, &usbdev, 0, config_descriptors,
+      sizeof(config_descriptors), NULL, 0));
+
   while (usbdev_control.device_state != kUsbTestutilsDeviceConfigured) {
-    usb_testutils_poll(&usbdev);
+    CHECK_STATUS_OK(usb_testutils_poll(&usbdev));
   }
-  usb_testutils_simpleserial_init(&simple_serial0, &usbdev, 1,
-                                  usb_receipt_callback_0);
-  usb_testutils_simpleserial_init(&simple_serial1, &usbdev, 2,
-                                  usb_receipt_callback_1);
+
+  CHECK_STATUS_OK(usb_testutils_simpleserial_init(&simple_serial0, &usbdev, 1,
+                                                  usb_receipt_callback_0));
+  CHECK_STATUS_OK(usb_testutils_simpleserial_init(&simple_serial1, &usbdev, 2,
+                                                  usb_receipt_callback_1));
 
   bool say_hello = true;
   bool pass_signaled = false;
   while (true) {
-    usb_testutils_poll(&usbdev);
+    CHECK_STATUS_OK(usb_testutils_poll(&usbdev));
 
     gpio_state = demo_gpio_to_log_echo(&gpio, gpio_state);
     demo_spi_to_log_echo(&spi);
@@ -251,8 +254,10 @@ void _ottf_main(void) {
         uint32_t usb_stat = REG32(USBDEV_BASE_ADDR + USBDEV_USBSTAT_REG_OFFSET);
         LOG_INFO("I%04x-%08x", usb_irq_state, usb_stat);
       } else {
-        usb_testutils_simpleserial_send_byte(&simple_serial0, rcv_char);
-        usb_testutils_simpleserial_send_byte(&simple_serial1, rcv_char + 1);
+        CHECK_STATUS_OK(
+            usb_testutils_simpleserial_send_byte(&simple_serial0, rcv_char));
+        CHECK_STATUS_OK(usb_testutils_simpleserial_send_byte(&simple_serial1,
+                                                             rcv_char + 1));
       }
     }
     if (say_hello && usb_chars_recved_total > 2) {

@@ -76,7 +76,7 @@ package edn_env_pkg;
   typedef enum int {
     EdnSfifoRescmdErrTest = 0,
     EdnSfifoGencmdErrTest = 1,
-    EdnErrTest            = 2,
+    EdnSfifoOutputErrTest = 2,
     EdnAckSmErrTest       = 20,
     EdnMainSmErrTest      = 21,
     EdnCntrErrTest        = 22,
@@ -84,6 +84,14 @@ package edn_env_pkg;
     EdnFifoReadErrTest    = 29,
     EdnFifoStateErrTest   = 30
   } err_code_test_e;
+
+  typedef enum int {
+    edn_enable_field_alert    = 0,
+    boot_req_mode_field_alert = 1,
+    auto_req_mode_field_alert = 2,
+    cmd_fifo_rst_field_alert  = 3,
+    edn_bus_cmp_alert         = 12
+  } recov_alert_bit_e;
 
   typedef enum int {
     sfifo_rescmd = 0,

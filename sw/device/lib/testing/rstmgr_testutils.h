@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+#include "sw/device/lib/base/status.h"
 #include "sw/device/lib/dif/dif_rstmgr.h"
 
 /**
@@ -14,22 +15,24 @@
  *
  * @param rstmgr A reset manager handle.
  * @param info A bit mask of reset reasons.
- *
- * @return True if the reset_info CSR matches info.
+ * @return `kOk(res)` Where `res` is true if the reset_info CSR matches info or
+ * `kInternal` in case of error.
  */
-bool rstmgr_testutils_is_reset_info(const dif_rstmgr_t *rstmgr,
-                                    dif_rstmgr_reset_info_bitfield_t info);
+OT_WARN_UNUSED_RESULT
+status_t rstmgr_testutils_is_reset_info(const dif_rstmgr_t *rstmgr,
+                                        dif_rstmgr_reset_info_bitfield_t info);
 
 /**
  * Determines if the reset info contains any of the reasons in `info`.
  *
  * @param rstmgr A reset manager handle.
  * @param info A bit mask of reset reasons.
- *
- * @return True if the reset info contains any of the reasons in `info`.
+ * @return `kOk(res)` Where `res` is true if the reset info contains any of the
+ * reasons in `info` or `kInternal` in case of error.
  */
-bool rstmgr_testutils_reset_info_any(const dif_rstmgr_t *rstmgr,
-                                     dif_rstmgr_reset_info_bitfield_t info);
+OT_WARN_UNUSED_RESULT
+status_t rstmgr_testutils_reset_info_any(const dif_rstmgr_t *rstmgr,
+                                         dif_rstmgr_reset_info_bitfield_t info);
 
 /**
  * Compares the given alert dump against the device's.
@@ -41,8 +44,10 @@ bool rstmgr_testutils_reset_info_any(const dif_rstmgr_t *rstmgr,
  * @param rstmgr A reset manager handle.
  * @param expected_alert_dump An array holding the expected alert dump.
  * @param dump_size The size of the expected_alert_dump array.
+ * @return The result of the operation.
  */
-void rstmgr_testutils_compare_alert_info(
+OT_WARN_UNUSED_RESULT
+status_t rstmgr_testutils_compare_alert_info(
     const dif_rstmgr_t *rstmgr,
     dif_rstmgr_alert_info_dump_segment_t *expected_alert_dump,
     size_t dump_size);
@@ -57,8 +62,10 @@ void rstmgr_testutils_compare_alert_info(
  * @param rstmgr A reset manager handle.
  * @param expected_cpu_dump An array holding the expected cpu dump.
  * @param dump_size The size of the expected_cpu_dump array.
+ * @return The result of the operation.
  */
-void rstmgr_testutils_compare_cpu_info(
+OT_WARN_UNUSED_RESULT
+status_t rstmgr_testutils_compare_cpu_info(
     const dif_rstmgr_t *rstmgr,
     dif_rstmgr_cpu_info_dump_segment_t *expected_cpu_dump, size_t dump_size);
 
@@ -66,8 +73,10 @@ void rstmgr_testutils_compare_cpu_info(
  * Prepares the rstmgr for a reset scenario.
  *
  * @param rstmgr A reset manager handle.
+ * @return The result of the operation.
  */
-void rstmgr_testutils_pre_reset(const dif_rstmgr_t *rstmgr);
+OT_WARN_UNUSED_RESULT
+status_t rstmgr_testutils_pre_reset(const dif_rstmgr_t *rstmgr);
 
 /**
  * Checks state after a reset.
@@ -84,8 +93,10 @@ void rstmgr_testutils_pre_reset(const dif_rstmgr_t *rstmgr);
  * @param expected_cpu_dump An array with the expected contents of the cpu_info
  *                          CSR.
  * @param cpu_dump_size The size of the expected_cpu_dump array.
+ * @return The result of the operation.
  */
-void rstmgr_testutils_post_reset(
+OT_WARN_UNUSED_RESULT
+status_t rstmgr_testutils_post_reset(
     const dif_rstmgr_t *rstmgr,
     dif_rstmgr_reset_info_bitfield_t expected_reset_info,
     dif_rstmgr_alert_info_dump_segment_t *expected_alert_dump,

@@ -259,6 +259,16 @@ cc_library(
 )
 
 cc_library(
+    name = "profile",
+    srcs = ["profile.c"],
+    hdrs = ["profile.h"],
+    deps = [
+        "//sw/device/lib/runtime:ibex",
+        "//sw/device/lib/testing/test_framework:check",
+    ],
+)
+
+cc_library(
     name = "pwrmgr_testutils",
     srcs = ["pwrmgr_testutils.c"],
     hdrs = ["pwrmgr_testutils.h"],
@@ -363,6 +373,18 @@ cc_library(
 )
 
 cc_library(
+    name = "spi_host_testutils",
+    srcs = ["spi_host_testutils.c"],
+    hdrs = ["spi_host_testutils.h"],
+    target_compatible_with = [OPENTITAN_CPU],
+    deps = [
+        "//sw/device/lib/base:status",
+        "//sw/device/lib/dif:spi_host",
+        "//sw/device/lib/testing/test_framework:check",
+    ],
+)
+
+cc_library(
     name = "spi_flash_testutils",
     srcs = [
         "spi_flash_emulator.c",
@@ -406,6 +428,17 @@ cc_library(
     name = "usb_testutils_simpleserial",
     srcs = ["usb_testutils_simpleserial.c"],
     hdrs = ["usb_testutils_simpleserial.h"],
+    target_compatible_with = [OPENTITAN_CPU],
+    deps = [
+        ":usb_testutils",
+        "//sw/device/lib/testing/test_framework:check",
+    ],
+)
+
+cc_library(
+    name = "usb_testutils_streams",
+    srcs = ["usb_testutils_streams.c"],
+    hdrs = ["usb_testutils_streams.h"],
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
         ":usb_testutils",

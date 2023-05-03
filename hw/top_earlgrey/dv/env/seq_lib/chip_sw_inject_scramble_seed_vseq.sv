@@ -61,7 +61,7 @@ class chip_sw_inject_scramble_seed_vseq extends chip_sw_base_vseq;
     `uvm_info(`gfn, "Received C side acknowledgement", UVM_LOW)
 
     // setup triggers to bootstrap during the second run
-    cfg.chip_vif.sw_straps_if.drive({3{1'b1}});
+    cfg.use_spi_load_bootstrap = 1'b1;
 
     `DV_SPINWAIT(wait(cfg.sw_logger_vif.printed_log ==
                       "Boot strap requested");,
@@ -71,6 +71,7 @@ class chip_sw_inject_scramble_seed_vseq extends chip_sw_base_vseq;
     `uvm_info(`gfn, "Received C side acknowledgement", UVM_LOW)
 
     spi_device_load_bootstrap({cfg.sw_images[SwTypeTestSlotA], ".64.vmem"});
+    cfg.use_spi_load_bootstrap = 1'b0;
 
     // After bootstrap, we need to write the expected values again,
     // since the boot-strap process wiped out the previous version.

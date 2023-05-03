@@ -61,8 +61,8 @@ bool test_main(void) {
 
     // The actual expiration of the watchdog is unimportant, as the test
     // mainly checks the count.
-    aon_timer_testutils_watchdog_config(&aon_timer, UINT32_MAX, UINT32_MAX,
-                                        true);
+    CHECK_STATUS_OK(aon_timer_testutils_watchdog_config(&aon_timer, UINT32_MAX,
+                                                        UINT32_MAX, true));
     CHECK_STATUS_OK(aon_timer_testutils_wakeup_config(&aon_timer, wkup_cycles));
 
     busy_spin_micros(IDLE_TIME_US);
@@ -73,9 +73,9 @@ bool test_main(void) {
     CHECK(wdog_cnt >= wkup_cnt);
 
     // Deep sleep.
-    pwrmgr_testutils_enable_low_power(&pwrmgr,
-                                      kDifPwrmgrWakeupRequestSourceFive,
-                                      /*domain_config=*/0);
+    CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+        &pwrmgr, kDifPwrmgrWakeupRequestSourceFive,
+        /*domain_config=*/0));
 
     // Enter low power mode.
     LOG_INFO("Issue WFI to enter sleep");

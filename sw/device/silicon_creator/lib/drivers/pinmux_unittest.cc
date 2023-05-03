@@ -5,8 +5,11 @@
 #include "sw/device/silicon_creator/lib/drivers/pinmux.h"
 
 #include "gtest/gtest.h"
+#include "sw/device/lib/arch/device.h"
 #include "sw/device/lib/base/mmio.h"
 #include "sw/device/lib/base/mock_abs_mmio.h"
+#include "sw/device/silicon_creator/lib/base/chip.h"
+#include "sw/device/silicon_creator/lib/base/mock_csr.h"
 #include "sw/device/silicon_creator/lib/drivers/mock_otp.h"
 #include "sw/device/silicon_creator/testing/rom_test.h"
 
@@ -23,6 +26,7 @@ class PinmuxTest : public rom_test::RomTest {
   uint32_t base_ = TOP_EARLGREY_PINMUX_AON_BASE_ADDR;
   rom_test::MockAbsMmio mmio_;
   rom_test::MockOtp otp_;
+  mock_csr::MockCsr csr_;
 };
 
 class InitTest : public PinmuxTest {
@@ -69,16 +73,27 @@ class InitTest : public PinmuxTest {
   };
 };
 
+TEST_F(InitTest, PadAttrPropagationDelay) {
+  const uint64_t kCpuClockPeriodNs = 1'000'000'000 / kClockFreqCpuHz;
+  const uint64_t kCpuCyclesIn5Micros = 5000 / kCpuClockPeriodNs;
+  EXPECT_EQ(PINMUX_PAD_ATTR_PROP_CYCLES, kCpuCyclesIn5Micros);
+}
+
 TEST_F(InitTest, WithBootstrap) {
   // The inputs that will be configured.
-  EXPECT_CALL(otp_, read32(OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_BOOTSTRAP_EN_OFFSET))
-      .WillOnce(Return(kHardenedBoolTrue));
+  EXPECT_CALL(otp_,
+              read32(OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_BOOTSTRAP_DIS_OFFSET))
+      .WillOnce(Return(kHardenedBoolFalse));
   EXPECT_ABS_WRITE32(RegPadAttr(kTopEarlgreyMuxedPadsIoc0),
                      {{PINMUX_MIO_PAD_ATTR_0_PULL_EN_0_BIT, 1}});
   EXPECT_ABS_WRITE32(RegPadAttr(kTopEarlgreyMuxedPadsIoc1),
                      {{PINMUX_MIO_PAD_ATTR_0_PULL_EN_0_BIT, 1}});
   EXPECT_ABS_WRITE32(RegPadAttr(kTopEarlgreyMuxedPadsIoc2),
                      {{PINMUX_MIO_PAD_ATTR_0_PULL_EN_0_BIT, 1}});
+  EXPECT_CSR_WRITE(CSR_REG_MCYCLE, 0);
+  for (size_t i = 0; i < 6; ++i) {
+    EXPECT_CSR_READ(CSR_REG_MCYCLE, i * 100);
+  }
   EXPECT_ABS_WRITE32(RegInSel(kTopEarlgreyPinmuxPeripheralInGpioGpio22),
                      kTopEarlgreyPinmuxInselIoc0)
   EXPECT_ABS_WRITE32(RegInSel(kTopEarlgreyPinmuxPeripheralInGpioGpio23),
@@ -97,8 +112,9 @@ TEST_F(InitTest, WithBootstrap) {
 
 TEST_F(InitTest, WithoutBootstrap) {
   // The inputs that will be configured.
-  EXPECT_CALL(otp_, read32(OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_BOOTSTRAP_EN_OFFSET))
-      .WillOnce(Return(kHardenedBoolFalse));
+  EXPECT_CALL(otp_,
+              read32(OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_BOOTSTRAP_DIS_OFFSET))
+      .WillOnce(Return(kHardenedBoolTrue));
   EXPECT_ABS_WRITE32(RegInSel(kTopEarlgreyPinmuxPeripheralInUart0Rx),
                      kTopEarlgreyPinmuxInselIoc3);
 

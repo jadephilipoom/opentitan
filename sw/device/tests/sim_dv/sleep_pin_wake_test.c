@@ -80,7 +80,7 @@ bool test_main(void) {
   dif_pinmux_index_t wakeup_detector_selected =
       rand_testutils_gen32_range(0, PINMUX_PARAM_N_WKUP_DETECT - 1);
 
-  if (pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) {
+  if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) == true) {
     LOG_INFO("Test in POR phase");
 
     LOG_INFO("pinmux_init end");
@@ -153,15 +153,15 @@ bool test_main(void) {
                           kDifPwrmgrDomainOptionUsbClockInActivePower;
     }
     // Enter low power
-    pwrmgr_testutils_enable_low_power(
-        &pwrmgr, kDifPwrmgrWakeupRequestSourceThree, pwrmgr_domain_cfg);
+    CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+        &pwrmgr, kDifPwrmgrWakeupRequestSourceThree, pwrmgr_domain_cfg));
 
     LOG_INFO("Entering low power mode.");
     wait_for_interrupt();
   }
 
-  if (pwrmgr_testutils_is_wakeup_reason(&pwrmgr,
-                                        kDifPwrmgrWakeupRequestSourceThree)) {
+  if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(
+          &pwrmgr, kDifPwrmgrWakeupRequestSourceThree)) == true) {
     LOG_INFO("Test in post-sleep pin wakeup phase");
     uint32_t wakeup_cause;
     CHECK_DIF_OK(dif_pinmux_wakeup_cause_get(&pinmux, &wakeup_cause));

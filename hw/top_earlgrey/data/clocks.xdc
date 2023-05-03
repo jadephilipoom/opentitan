@@ -48,8 +48,8 @@ set rv_jtag_tck_inv_pin  \
     [get_nets -segments -of_objects \
       [get_pins top_earlgrey/u_pinmux_aon/u_pinmux_strap_sampling/u_pinmux_jtag_buf_rv/prim_clock_buf_tck/gen_xilinx.u_impl_xilinx/gen_fpga_buf.gen_bufg.bufg_i/I]]]
 
-set_clock_sense -negative ${lc_jtag_tck_pin}
-set_clock_sense -negative ${rv_jtag_tck_pin}
+set_clock_sense -negative ${lc_jtag_tck_inv_pin}
+set_clock_sense -negative ${rv_jtag_tck_inv_pin}
 
 # Assign input and output delays.
 # Note that incidental combinatorial paths through the pinmux do not get removed
@@ -107,4 +107,4 @@ set_clock_groups -group ${clks_10_unbuf} -group ${clks_48_unbuf} -group ${clks_a
 
 ## The usb calibration handling inside ast is assumed to be async to the outside world
 ## even though its interface is also a usb clock.
-set_false_path -from [get_clocks clk_usb_48mhz] -to [get_pins u_ast/u_usb_clk/u_ref_pulse_sync/u_sync*/u_sync_1/gen_*/q_o_reg[0]/D]
+set_false_path -from ${clks_48_unbuf} -to [get_pins u_ast/u_usb_clk/u_ref_pulse_sync/u_sync*/u_sync_1/gen_*/q_o_reg[0]/D]

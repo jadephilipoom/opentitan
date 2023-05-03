@@ -485,9 +485,12 @@ impl<T: Flavor> Transport for Hyperdebug<T> {
     fn capabilities(&self) -> Result<Capabilities> {
         Ok(Capabilities::new(
             Capability::UART
+                | Capability::UART_NONBLOCKING
                 | Capability::GPIO
                 | Capability::GPIO_MONITORING
                 | Capability::SPI
+                | Capability::SPI_DUAL
+                | Capability::SPI_QUAD
                 | Capability::I2C,
         ))
     }

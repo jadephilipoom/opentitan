@@ -149,6 +149,51 @@ otbn_consttime_test(
 )
 
 otbn_sim_test(
+    name = "lcm_test",
+    srcs = [
+        "lcm_test.s",
+    ],
+    exp = "lcm_test.exp",
+    deps = [
+        "//sw/otbn/crypto:div",
+        "//sw/otbn/crypto:gcd",
+        "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:mul",
+    ],
+)
+
+otbn_consttime_test(
+    name = "lcm_consttime",
+    # All inputs are in DMEM; no registers are secret.
+    secrets = ["dmem"],
+    subroutine = "lcm",
+    deps = [
+        ":lcm_test",
+    ],
+)
+
+otbn_sim_test(
+    name = "mul_test",
+    srcs = [
+        "mul_test.s",
+    ],
+    exp = "mul_test.exp",
+    deps = [
+        "//sw/otbn/crypto:mul",
+    ],
+)
+
+otbn_consttime_test(
+    name = "mul_consttime",
+    # All inputs are in DMEM; no registers are secret.
+    secrets = ["dmem"],
+    subroutine = "bignum_mul",
+    deps = [
+        ":mul_test",
+    ],
+)
+
+otbn_sim_test(
     name = "p256_base_mult_test",
     srcs = [
         "p256_base_mult_test.s",
@@ -418,7 +463,7 @@ otbn_sim_test(
     ],
     exp = "primality_test.exp",
     deps = [
-        "//sw/otbn/crypto:modexp",
+        "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:primality",
     ],
 )
@@ -431,7 +476,7 @@ otbn_sim_test(
     ],
     exp = "primality_test_witness_test.exp",
     deps = [
-        "//sw/otbn/crypto:modexp",
+        "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:primality",
     ],
 )
@@ -444,7 +489,7 @@ otbn_sim_test(
     ],
     exp = "primality_test_witness_negative_test.exp",
     deps = [
-        "//sw/otbn/crypto:modexp",
+        "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:primality",
     ],
 )
@@ -457,7 +502,7 @@ otbn_sim_test(
     ],
     exp = "primality_negative_test.exp",
     deps = [
-        "//sw/otbn/crypto:modexp",
+        "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:primality",
     ],
 )
@@ -547,6 +592,38 @@ otbn_sim_test(
 )
 
 otbn_sim_test(
+    name = "modinv_f4_test",
+    srcs = [
+        "modinv_f4_test.s",
+    ],
+    exp = "modinv_f4_test.exp",
+    deps = [
+        "//sw/otbn/crypto:div",
+        "//sw/otbn/crypto:gcd",
+        "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
+        "//sw/otbn/crypto:primality",
+        "//sw/otbn/crypto:rsa_keygen",
+    ],
+)
+
+otbn_consttime_test(
+    name = "modinv_f4_consttime_test",
+    initial_constants = [
+        "x20:20",
+        "x21:21",
+    ],
+    # All secrets are stored in DMEM; timing is permitted to depend on the
+    # number of limbs.
+    secrets = ["dmem"],
+    subroutine = "modinv_f4",
+    deps = [
+        ":modinv_f4_test",
+    ],
+)
+
+otbn_sim_test(
     name = "poly_pointwise_dilithium_test",
     srcs = [
         "poly_pointwise_dilithium_test.s",
@@ -565,6 +642,34 @@ otbn_sim_test(
     exp = "poly_add_dilithium_test.exp",
     deps = [
         "//sw/otbn/crypto/handwritten:poly_add_dilithium",
+            ],
+)
+
+otbn_sim_test(
+    name = "relprime_f4_test",
+    srcs = [
+        "relprime_f4_test.s",
+    ],
+    exp = "relprime_f4_test.exp",
+    deps = [
+        "//sw/otbn/crypto:div",
+        "//sw/otbn/crypto:gcd",
+        "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
+        "//sw/otbn/crypto:primality",
+        "//sw/otbn/crypto:rsa_keygen",
+    ],
+)
+
+otbn_consttime_test(
+    name = "relprime_f4_consttime_test",
+    # All secrets are stored in DMEM; timing is permitted to depend on the
+    # number of limbs.
+    secrets = ["dmem"],
+    subroutine = "relprime_f4",
+    deps = [
+        ":relprime_f4_test",
     ],
 )
 
@@ -590,6 +695,24 @@ otbn_sim_py_test(
         ":poly_pointwise_dilithium_test",
         ":poly_add_dilithium_test",
         ":poly_sub_dilithium_test",
+        ],
+)
+otbn_sim_test(
+    name = "rsa_keygen_checkpq_test",
+    # This test is very long because it runs multiple primality tests.
+    timeout = "eternal",
+    srcs = [
+        "rsa_keygen_checkpq_test.s",
+    ],
+    exp = "rsa_keygen_checkpq_test.exp",
+    deps = [
+        "//sw/otbn/crypto:div",
+        "//sw/otbn/crypto:gcd",
+        "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
+        "//sw/otbn/crypto:primality",
+        "//sw/otbn/crypto:rsa_keygen",
     ],
 )
 
@@ -602,6 +725,7 @@ otbn_sim_test(
     exp = "rsa_1024_dec_test.exp",
     deps = [
         "//sw/otbn/crypto:modexp",
+        "//sw/otbn/crypto:montmul",
     ],
 )
 
@@ -613,6 +737,7 @@ otbn_sim_test(
     exp = "rsa_1024_enc_test.exp",
     deps = [
         "//sw/otbn/crypto:modexp",
+        "//sw/otbn/crypto:montmul",
     ],
 )
 

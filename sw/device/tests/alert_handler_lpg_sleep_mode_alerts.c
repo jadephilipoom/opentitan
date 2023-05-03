@@ -171,16 +171,18 @@ static void alert_handler_config(uint32_t ping_timeout) {
       kDifAlertHandlerClassA, kDifAlertHandlerClassA, kDifAlertHandlerClassA,
       kDifAlertHandlerClassA};
 
+  uint32_t cycles = 0;
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(200, &cycles));
   dif_alert_handler_escalation_phase_t esc_phases[] = {{
       .phase = kDifAlertHandlerClassStatePhase0,
       .signal = 0,
-      .duration_cycles = alert_handler_testutils_get_cycles_from_us(200),
+      .duration_cycles = cycles,
   }};
 
   dif_alert_handler_class_config_t class_config = {
       .auto_lock_accumulation_counter = kDifToggleDisabled,
       .accumulator_threshold = 0,
-      .irq_deadline_cycles = alert_handler_testutils_get_cycles_from_us(200),
+      .irq_deadline_cycles = cycles,
       .escalation_phases = esc_phases,
       .escalation_phases_len = ARRAYSIZE(esc_phases),
       .crashdump_escalation_phase = kDifAlertHandlerClassStatePhase1,
@@ -204,8 +206,8 @@ static void alert_handler_config(uint32_t ping_timeout) {
       .ping_timeout = ping_timeout,
   };
 
-  alert_handler_testutils_configure_all(&alert_handler, config,
-                                        kDifToggleEnabled);
+  CHECK_STATUS_OK(alert_handler_testutils_configure_all(&alert_handler, config,
+                                                        kDifToggleEnabled));
   // Enables alert handler irq.
   CHECK_DIF_OK(dif_alert_handler_irq_set_enabled(
       &alert_handler, kDifAlertHandlerIrqClassa, kDifToggleEnabled));
@@ -281,9 +283,9 @@ static void enter_low_power(bool deep_sleep) {
 
   // Set the wake_up trigger as AON timer module
   // (kDifPwrmgrWakeupRequestSourceFive).
-  pwrmgr_testutils_enable_low_power(
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
       &pwrmgr, /*wake_up_request_source*/ kDifPwrmgrWakeupRequestSourceFive,
-      cfg);
+      cfg));
   wait_for_interrupt();
 }
 
@@ -294,8 +296,8 @@ static void enter_low_power(bool deep_sleep) {
 static void check_wakeup_reason(void) {
   dif_pwrmgr_wakeup_reason_t wakeup_reason;
   CHECK_DIF_OK(dif_pwrmgr_wakeup_reason_get(&pwrmgr, &wakeup_reason));
-  CHECK(pwrmgr_testutils_is_wakeup_reason(
-            &pwrmgr, kDifPwrmgrWakeupRequestSourceFive) == true,
+  CHECK(UNWRAP(pwrmgr_testutils_is_wakeup_reason(
+            &pwrmgr, kDifPwrmgrWakeupRequestSourceFive)) == true,
         "wakeup reason wrong exp:%d  obs:%d", kDifPwrmgrWakeupRequestSourceFive,
         wakeup_reason);
 }
@@ -407,7 +409,7 @@ static void execute_test_phases(uint8_t test_phase, uint32_t ping_timeout_cyc) {
   }
 
   // Power-on reset
-  if (pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0) /*POR reset*/) {
+  if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) == true) {
     LOG_INFO("POR reset");
 
     // Increment the test_step counter for the next test step
@@ -426,8 +428,9 @@ static void execute_test_phases(uint8_t test_phase, uint32_t ping_timeout_cyc) {
 
     // Enter normal sleep mode.
     enter_low_power(/*deep_sleep=*/false);
-  } else if (pwrmgr_testutils_is_wakeup_reason(
-                 &pwrmgr, kDifPwrmgrWakeupRequestSourceFive) /*AON timer*/) {
+  } else if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(
+                 &pwrmgr, kDifPwrmgrWakeupRequestSourceFive)) ==
+             true /*AON timer*/) {
     // Cleanup after wakeup
     cleanup_wakeup_src();
 

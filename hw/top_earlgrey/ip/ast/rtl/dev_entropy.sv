@@ -51,19 +51,16 @@ logic [7-1:0] fast_cnt;
 logic [(1<<EntropyRateWidth)-1:0] erate_cnt, dev_rate;
 
 // Sync dev_rate_i to Device clock
-// A simplified synchrnization is used instead of a pulse synchronize.
-// The rate might go through a different value for one clk_dev_i cycle.
-// In most cases the rate will be set ahead of the dev_en_i
 logic [EntropyRateWidth-1:0] dev_rate_sync;
 
-prim_flop_2sync #(
+prim_multibit_sync #(
   .Width ( EntropyRateWidth ),
   .ResetValue ( {EntropyRateWidth{1'b0}} )
 ) u_erate_sync (
   .clk_i ( clk_dev_i ) ,
   .rst_ni ( rst_dev_ni ),
-  .d_i ( dev_rate_i[EntropyRateWidth-1:0] ),
-  .q_o ( dev_rate_sync[EntropyRateWidth-1:0] )
+  .data_i ( dev_rate_i[EntropyRateWidth-1:0] ),
+  .data_o ( dev_rate_sync[EntropyRateWidth-1:0] )
 );
 
 // Fastest rate to init the LFSR

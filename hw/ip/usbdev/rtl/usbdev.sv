@@ -102,11 +102,11 @@ module usbdev
 
   // AV fifo just stores buffer numbers
   localparam int AVFifoWidth = NBufWidth;
-  localparam int AVFifoDepth = 4;
+  localparam int AVFifoDepth = 8;
 
   // RX fifo stores              buf# +  size(0-MaxPktSizeByte)  + EP# + Type
   localparam int RXFifoWidth = NBufWidth + (1+SizeWidth)         +  4  + 1;
-  localparam int RXFifoDepth = 4;
+  localparam int RXFifoDepth = 8;
 
   usbdev_reg2hw_t reg2hw, reg2hw_regtop;
   usbdev_hw2reg_t hw2reg, hw2reg_regtop;
@@ -699,8 +699,8 @@ module usbdev
     reg2hw.alert_test.qe
   };
 
-  // TODO: stub alerts
-  localparam logic [NumAlerts-1:0] AlertIsFatal = {1'b1};
+  // Alerts not stubbed off because registers and T-L access still present.
+  localparam logic [NumAlerts-1:0] AlertIsFatal = {NumAlerts{1'b1}};
   for (genvar i = 0; i < NumAlerts; i++) begin : gen_alert_tx
     prim_alert_sender #(
       .AsyncOn(AlertAsyncOn[i]),

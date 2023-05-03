@@ -212,6 +212,21 @@ cc_library(
     ],
 )
 
+opentitan_functest(
+    name = "rsa_verify_functest",
+    srcs = ["rsa_verify_functest.c"],
+    verilator = verilator_params(
+        timeout = "long",
+        tags = [
+            "manual",
+        ],
+    ),
+    deps = [
+        ":rsa_verify",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
 cc_library(
     name = "spx_verify",
     srcs = ["spx_verify.c"],
@@ -223,6 +238,22 @@ cc_library(
         "//sw/device/silicon_creator/lib/drivers:hmac",
         "//sw/device/silicon_creator/lib/drivers:lifecycle",
         "//sw/device/silicon_creator/lib/drivers:otp",
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:verify",
+    ],
+)
+
+opentitan_functest(
+    name = "spx_verify_functest",
+    srcs = ["spx_verify_functest.c"],
+    verilator = verilator_params(
+        timeout = "long",
+        tags = [
+            "manual",
+        ],
+    ),
+    deps = [
+        ":spx_verify",
+        "//sw/device/lib/testing/test_framework:ottf_main",
     ],
 )
 
@@ -276,22 +307,6 @@ cc_test(
         ":sigverify",
         "//sw/device/silicon_creator/testing:rom_test",
         "@googletest//:gtest_main",
-    ],
-)
-
-opentitan_functest(
-    name = "sigverify_functest",
-    srcs = ["sigverify_functest.c"],
-    verilator = verilator_params(
-        timeout = "long",
-        tags = [
-            "manual",
-        ],
-    ),
-    deps = [
-        ":sigverify",
-        "//sw/device/lib/testing/test_framework:ottf_main",
-        "//sw/device/silicon_creator/lib/base:sec_mmio",
     ],
 )
 

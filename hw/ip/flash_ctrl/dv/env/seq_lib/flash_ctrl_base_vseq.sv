@@ -51,6 +51,7 @@ class flash_ctrl_base_vseq extends cip_base_vseq #(
 
   // Check permission and page range of info partition
   // Set exp recov_err alert if check fails
+  // Make sure your flash_op has right otf_addr associated with addr
   function bit check_info_part(flash_op_t flash_op, string str);
     bit drop = 0;
     int bank, page, end_page, loop;
@@ -108,18 +109,14 @@ class flash_ctrl_base_vseq extends cip_base_vseq #(
     if (cfg.skip_init == 0) begin
        csr_wr(.ptr(ral.init), .value(1));
        `DV_SPINWAIT(wait(cfg.flash_ctrl_vif.rd_buf_en == 1 || cfg.skip_init_buf_en == 1);,
-                    "Timed out waiting for rd_buf_en",
+                    $sformatf("Timed out waiting for rd_buf_en (%0d)",
+                              cfg.wait_rd_buf_en_timeout_ns),
                     cfg.wait_rd_buf_en_timeout_ns)
     end
   endtask : pre_start
 
-  virtual task hw_info_cfg_update();
-  endtask
-
-  virtual task dut_shutdown();
-    // check for pending flash_ctrl operations and wait for them to complete
-    // TODO
-  endtask : dut_shutdown
+  // Place holder for override
+  virtual task hw_info_cfg_update(); endtask
 
   // Reset the Flash Device
   virtual task reset_flash();
@@ -323,7 +320,7 @@ class flash_ctrl_base_vseq extends cip_base_vseq #(
 
   // Wait for prog fifo to not be full.
   virtual task wait_flash_ctrl_prog_fifo_not_full();
-    // TODO: if intr enabled, then check interrupt, else check status.
+    // if intr enabled, 'flash_ctrl_intr_write' task is used.
     bit prog_full;
     csr_spinwait(.ptr(ral.status.prog_full),
                  .compare_op(CompareOpNe),
@@ -332,7 +329,7 @@ class flash_ctrl_base_vseq extends cip_base_vseq #(
 
   // Wait for rd fifo to not be empty.
   virtual task wait_flash_ctrl_rd_fifo_not_empty();
-    // TODO: if intr enabled, then check interrupt, else check status.
+    // if intr enabled, 'flash_ctrl_intr_read' task is used.
     bit read_empty;
     csr_spinwait(.ptr(ral.status.rd_empty),
                  .compare_op(CompareOpNe),
@@ -406,7 +403,7 @@ class flash_ctrl_base_vseq extends cip_base_vseq #(
   virtual task flash_ctrl_intr_read(flash_op_t flash_op, ref data_q_t rdata);
     uvm_reg_data_t data;
     bit[31:0] intr_st;
-    int       rd_timeout_ns = 200000; // 200 us
+    int       rd_timeout_ns = 400000; // 400 us
     int       curr_rd, rd_idx = 0;
 
     `uvm_info("flash_ctrl_intr_read", $sformatf("num_rd:%0d",
@@ -935,7 +932,8 @@ class flash_ctrl_base_vseq extends cip_base_vseq #(
 
   // Task to Program the Entire Flash Memory
   virtual task flash_ctrl_write_extra(flash_op_t flash_op, data_q_t data,
-                                      bit check_match = 1, bit scr_en = 0);
+                                      bit check_match = 1, bit scr_en = 0,
+                                      bit ecc_en = 0);
 
     // Local Signals
     uvm_reg_data_t           reg_data;
@@ -1025,7 +1023,7 @@ class flash_ctrl_base_vseq extends cip_base_vseq #(
     if (cfg.seq_cfg.check_mem_post_tran) begin
       flash_op_copy.otf_addr = flash_op_copy.addr;
       flash_op_copy.otf_addr[BusAddrByteW-2:OTFHostId] = 'h0;
-      cfg.flash_mem_bkdr_read_check(flash_op_copy, exp_data, check_match, scr_en);
+      cfg.flash_mem_bkdr_read_check(flash_op_copy, exp_data, check_match, scr_en, ecc_en);
     end
   endtask : flash_ctrl_write_extra
 
@@ -1383,7 +1381,7 @@ class flash_ctrl_base_vseq extends cip_base_vseq #(
   endtask
 
   task init_controller(bit non_blocking = 0);
-    int wait_timeout_ns = 50000; // 50 us
+    int wait_timeout_ns = 200_000; // 200 us
 
     csr_wr(.ptr(ral.init), .value(1));
     `uvm_info(`gfn,"init_controller: OTP",UVM_LOW)
@@ -1431,6 +1429,8 @@ class flash_ctrl_base_vseq extends cip_base_vseq #(
         item.dq.push_back(data[31:0]);
         item.dq.push_back(data[63:32]);
         // only scr/ecc enable counts.
+        // cfg.ovrd_src_dis can be randomized in directed test.
+        // Otherwise, it has the same default value as HW_INO_CFG_OVERRIDE
         if (page != 3) begin
           item.region.scramble_en = prim_mubi_pkg::mubi4_and_hi(
                                     flash_ctrl_pkg::CfgAllowRead.scramble_en,

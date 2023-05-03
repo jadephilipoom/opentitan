@@ -14,6 +14,8 @@ import flash_ctrl_reg_pkg::*; (
   input clk_i,
   input rst_ni,
 
+  input lc_ctrl_pkg::lc_tx_t lc_escalate_en_i,
+
   input mubi4_t flash_disable_i,
 
   // interface selection
@@ -252,7 +254,7 @@ import flash_ctrl_reg_pkg::*; (
     hw_page_cfg = hw_page_cfg_pre;
     hw_page_cfg.scramble_en = prim_mubi_pkg::mubi4_and_hi(hw_page_cfg_pre.scramble_en,
                                                           mubi4_t'(~hw_info_scramble_dis_i));
-    hw_page_cfg.ecc_en = prim_mubi_pkg::mubi4_and_hi(hw_page_cfg_pre.scramble_en,
+    hw_page_cfg.ecc_en = prim_mubi_pkg::mubi4_and_hi(hw_page_cfg_pre.ecc_en,
                                                      mubi4_t'(~hw_info_ecc_dis_i));
   end
 
@@ -316,7 +318,7 @@ import flash_ctrl_reg_pkg::*; (
   assign erase_done_o = erase_done_i | txn_err;
   assign error_o = txn_err;
 
-  // if no onigoing erase operation, immediately return
+  // if no ongoing erase operation, immediately return
   // if ongoing erase operation, wait for flash phy return
   logic erase_valid;
   assign erase_valid = pg_erase_o | bk_erase_o;
@@ -363,8 +365,13 @@ import flash_ctrl_reg_pkg::*; (
                                                                     info_bk_erase_en})
 
   // When no transactions are allowed, the output request should always be 0.
-  // TODO (#17692): temp add ##[0:2] to unblock CI issues.
-  `ASSERT(NoReqWhenErr_A, no_allowed_txn |-> ##[0:2] ~req_o)
+  // The assertion is disabled during escalation since req_o takes a few cycles to
+  // go to 0 if escalation is asserted mid transaction.
+  `ASSERT(NoReqWhenErr_A, no_allowed_txn |-> ~req_o,
+      clk_i, !rst_ni || lc_ctrl_pkg::lc_tx_test_true_loose(lc_escalate_en_i))
 
+  // This signal is only used in the assertion above.
+  lc_ctrl_pkg::lc_tx_t unused_escalate_en;
+  assign unused_escalate_en = lc_escalate_en_i;
 
 endmodule // flash_erase_ctrl

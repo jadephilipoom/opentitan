@@ -175,28 +175,34 @@ static void alert_handler_config(void) {
   dif_alert_handler_alert_t alerts[] = {kTopEarlgreyAlertIdPwrmgrAonFatalFault};
   dif_alert_handler_class_t alert_classes[] = {kDifAlertHandlerClassA};
 
+  uint32_t cycles[4] = {0};
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kEscalationPhase0Micros, &cycles[0]));
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kEscalationPhase1Micros, &cycles[1]));
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kEscalationPhase2Micros, &cycles[2]));
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(10, &cycles[3]));
+
   dif_alert_handler_escalation_phase_t esc_phases[] = {
       {.phase = kDifAlertHandlerClassStatePhase0,
        .signal = 0,
        .duration_cycles =
-           alert_handler_testutils_get_cycles_from_us(kEscalationPhase0Micros) *
-           alert_handler_testutils_cycle_rescaling_factor()},
+           cycles[0] * alert_handler_testutils_cycle_rescaling_factor()},
       {.phase = kDifAlertHandlerClassStatePhase1,
        .signal = 1,
        .duration_cycles =
-           alert_handler_testutils_get_cycles_from_us(kEscalationPhase1Micros) *
-           alert_handler_testutils_cycle_rescaling_factor()},
+           cycles[1] * alert_handler_testutils_cycle_rescaling_factor()},
       {.phase = kDifAlertHandlerClassStatePhase2,
        .signal = 3,
        .duration_cycles =
-           alert_handler_testutils_get_cycles_from_us(kEscalationPhase2Micros) *
-           alert_handler_testutils_cycle_rescaling_factor()}};
+           cycles[2] * alert_handler_testutils_cycle_rescaling_factor()}};
 
   dif_alert_handler_class_config_t class_config[] = {{
       .auto_lock_accumulation_counter = kDifToggleDisabled,
       .accumulator_threshold = 0,
-      .irq_deadline_cycles = alert_handler_testutils_get_cycles_from_us(10) *
-                             alert_handler_testutils_cycle_rescaling_factor(),
+      .irq_deadline_cycles =
+          cycles[3] * alert_handler_testutils_cycle_rescaling_factor(),
       .escalation_phases = esc_phases,
       .escalation_phases_len = ARRAYSIZE(esc_phases),
       .crashdump_escalation_phase = kDifAlertHandlerClassStatePhase3,
@@ -213,8 +219,8 @@ static void alert_handler_config(void) {
       .ping_timeout = 0,
   };
 
-  alert_handler_testutils_configure_all(&alert_handler, config,
-                                        kDifToggleEnabled);
+  CHECK_STATUS_OK(alert_handler_testutils_configure_all(&alert_handler, config,
+                                                        kDifToggleEnabled));
   // Enables alert handler irq.
   CHECK_DIF_OK(dif_alert_handler_irq_set_enabled(
       &alert_handler, kDifAlertHandlerIrqClassa, kDifToggleEnabled));
@@ -241,8 +247,8 @@ static void config_escalate(dif_aon_timer_t *aon_timer,
       (uint32_t)kWdogBiteMicros, (uint32_t)bite_cycles);
 
   // Setup the wdog bark and bite timeouts.
-  aon_timer_testutils_watchdog_config(aon_timer, bark_cycles, bite_cycles,
-                                      false);
+  CHECK_STATUS_OK(aon_timer_testutils_watchdog_config(aon_timer, bark_cycles,
+                                                      bite_cycles, false));
 
   // Trigger the alert handler to escalate.
   dif_pwrmgr_alert_t alert = kDifPwrmgrAlertFatalFault;
@@ -299,8 +305,8 @@ static void normal_sleep_sysrst(const dif_pwrmgr_t *pwrmgr) {
            kDifPwrmgrDomainOptionCoreClockInLowPower |
            kDifPwrmgrDomainOptionIoClockInLowPower |
            kDifPwrmgrDomainOptionMainPowerInLowPower;
-  pwrmgr_testutils_enable_low_power(pwrmgr, kDifPwrmgrWakeupRequestSourceOne,
-                                    config);
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+      pwrmgr, kDifPwrmgrWakeupRequestSourceOne, config));
   LOG_INFO("Normal sleep set for sysrst");
 
   // Enter in low power mode.
@@ -329,8 +335,8 @@ static void config_wdog(const dif_aon_timer_t *aon_timer,
   LOG_INFO("Wdog will bark after %u us and bite after %u us",
            (uint32_t)bark_time_us, (uint32_t)bite_time_us);
   // Setup the wdog bark and bite timeouts.
-  aon_timer_testutils_watchdog_config(aon_timer, bark_cycles, bite_cycles,
-                                      false);
+  CHECK_STATUS_OK(aon_timer_testutils_watchdog_config(aon_timer, bark_cycles,
+                                                      bite_cycles, false));
   // Set wdog as a reset source.
   CHECK_DIF_OK(dif_pwrmgr_set_request_sources(pwrmgr, kDifPwrmgrReqTypeReset,
                                               kDifPwrmgrResetRequestSourceTwo,
@@ -384,8 +390,8 @@ static void normal_sleep_wdog(const dif_pwrmgr_t *pwrmgr) {
            kDifPwrmgrDomainOptionMainPowerInLowPower;
 
   // Enter in low power mode.
-  pwrmgr_testutils_enable_low_power(pwrmgr, kDifPwrmgrWakeupRequestSourceTwo,
-                                    config);
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+      pwrmgr, kDifPwrmgrWakeupRequestSourceTwo, config));
   LOG_INFO("Normal sleep set for watchdog");
   wait_for_interrupt();
 }
@@ -404,12 +410,12 @@ static void normal_sleep_por(const dif_pwrmgr_t *pwrmgr) {
            kDifPwrmgrDomainOptionMainPowerInLowPower;
 
   // Program the pwrmgr to go to deep sleep state (clocks off).
-  pwrmgr_testutils_enable_low_power(
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
       pwrmgr,
       (kDifPwrmgrWakeupRequestSourceOne | kDifPwrmgrWakeupRequestSourceTwo |
        kDifPwrmgrWakeupRequestSourceThree | kDifPwrmgrWakeupRequestSourceFour |
        kDifPwrmgrWakeupRequestSourceFive | kDifPwrmgrWakeupRequestSourceSix),
-      config);
+      config));
   LOG_INFO("ready for pad por");
   // Enter in low power mode.
   wait_for_interrupt();
@@ -488,7 +494,7 @@ bool test_main(void) {
           "entry reset");
       LOG_INFO("Let SV wait timer reset");
       // actually the same test as normal sleep + watchdog
-      rstmgr_testutils_pre_reset(&rstmgr);
+      CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
       sleep_wdog_bite_test(&aon_timer, &pwrmgr, 200);
       normal_sleep_wdog(&pwrmgr);
       timer_on(kEscalationPhase0MicrosCpu);
@@ -500,7 +506,7 @@ bool test_main(void) {
           "with sw_req");
       LOG_INFO("Let SV wait timer reset");
       // Executing the wdog bite reset during sleep test.
-      rstmgr_testutils_pre_reset(&rstmgr);
+      CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
 
       // Assert reeset req
       CHECK_DIF_OK(dif_rstmgr_software_device_reset(&rstmgr));
@@ -513,7 +519,7 @@ bool test_main(void) {
       LOG_INFO("Booting and setting normal sleep followed by watchdog reset");
       LOG_INFO("Let SV wait timer reset");
       // Executing the wdog bite reset during sleep test.
-      rstmgr_testutils_pre_reset(&rstmgr);
+      CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
       sleep_wdog_bite_test(&aon_timer, &pwrmgr, 200);
       normal_sleep_wdog(&pwrmgr);
       timer_on(kEscalationPhase0MicrosCpu);

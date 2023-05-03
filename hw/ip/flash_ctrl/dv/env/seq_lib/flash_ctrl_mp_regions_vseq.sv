@@ -201,7 +201,6 @@ class flash_ctrl_mp_regions_vseq extends flash_ctrl_base_vseq;
 
       cfg.scb_h.expected_alert["recov_err"].expected = 0;
     end
-
     // Send info region access and bank erase
     exp_alert_cnt = 0;
     cfg.scb_h.alert_count["recov_err"] = 0;
@@ -215,8 +214,6 @@ class flash_ctrl_mp_regions_vseq extends flash_ctrl_base_vseq;
       //clean scb mem
       cfg.reset_scb_mem();
 
-      // TODO Add FlashPartInfo1,FlashPartInfo2 support and change to
-      // !(flash_op.partition inside {FlashPartData});)
       `DV_CHECK_MEMBER_RANDOMIZE_WITH_FATAL(flash_op,
                                             flash_op.partition == FlashPartInfo;)
       `uvm_info(`gfn, $sformatf("BANK ERASE PART %0p", flash_op), UVM_LOW)
@@ -265,6 +262,7 @@ class flash_ctrl_mp_regions_vseq extends flash_ctrl_base_vseq;
       `uvm_info("do_mp_reg", $sformatf("size:%0d tail:%0d bank:%0d addr:%x",
                                   size, tail, bank, tmp_addr), UVM_MEDIUM)
       for (int i = 0; i < size; i++) begin
+        flash_op.otf_addr = flash_op.addr[OTFBankId-1:0];
         if  (flash_op.partition == FlashPartData) begin
           page = cfg.addr2page(flash_op.addr);
           my_region = get_region_from_page(page);

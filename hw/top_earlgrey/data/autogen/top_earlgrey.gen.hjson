@@ -809,7 +809,7 @@
           width: 1
           inst_name: spi_device
           default: ""
-          top_signame: ast_ram_2p_cfg
+          top_signame: ast_spi_ram_2p_cfg
           index: -1
         }
         {
@@ -1533,6 +1533,7 @@
       }
       param_decl:
       {
+        SecVolatileRawUnlockEn: top_pkg::SecVolatileRawUnlockEn
         ChipGen: 16'h 0000
         ChipRev: 16'h 0000
         IdcodeValue: jtag_id_pkg::JTAG_IDCODE
@@ -1549,6 +1550,24 @@
       memory: {}
       param_list:
       [
+        {
+          name: SecVolatileRawUnlockEn
+          desc:
+            '''
+            Disable (0) or enable (1) volatile RAW UNLOCK capability.
+            If enabled, it is possible to perform a volatile RAW -> TEST_UNLOCKED0 transition
+            without programming the OTP. This is a useful fallback mode in case the OTP is
+            not working correctly.
+
+            IMPORTANT NOTE: This should only be used in test chips. The parameter must be set
+            to 0 in production tapeouts since this weakens the security posture of the RAW
+            UNLOCK mechanism.
+            '''
+          type: bit
+          default: top_pkg::SecVolatileRawUnlockEn
+          expose: "true"
+          name_top: SecLcCtrlVolatileRawUnlockEn
+        }
         {
           name: RndCnstLcKeymgrDivInvalid
           desc: Compile-time random bits for lc state group diversification value
@@ -2019,6 +2038,27 @@
           width: 1
           default: "'0"
           inst_name: lc_ctrl
+          index: -1
+        }
+        {
+          name: strap_en_override
+          desc:
+            '''
+            This signal transitions from 0 -> 1 by the lc_ctrl manager after volatile RAW_UNLOCK in order to re-sample the HW straps.
+            The signal stays at 1 until reset.
+            Note that this is only used in test chips when SecVolatileRawUnlockEn = 1.
+            Otherwise this signal is tied off to 0.
+            '''
+          struct: logic
+          type: uni
+          act: req
+          width: 1
+          default: 1'b0
+          inst_name: lc_ctrl
+          package: ""
+          end_idx: -1
+          top_type: broadcast
+          top_signame: lc_ctrl_strap_en_override
           index: -1
         }
         {
@@ -2555,7 +2595,7 @@
           width: 1
           inst_name: usbdev
           default: ""
-          top_signame: ast_ram_2p_cfg
+          top_signame: ast_usb_ram_2p_cfg
           index: -1
         }
         {
@@ -3675,15 +3715,34 @@
         Aon
       ]
       attr: templated
+      param_decl:
+      {
+        SecVolatileRawUnlockEn: top_pkg::SecVolatileRawUnlockEn
+      }
       clock_connections:
       {
         clk_i: clkmgr_aon_clocks.clk_io_div4_powerup
         clk_aon_i: clkmgr_aon_clocks.clk_aon_powerup
       }
-      param_decl: {}
       memory: {}
       param_list:
       [
+        {
+          name: SecVolatileRawUnlockEn
+          desc:
+            '''
+            Disable (0) or enable (1) volatile RAW UNLOCK capability.
+            If enabled, the strap_en_override_i input can be used to re-sample the straps at runtime.
+
+            IMPORTANT NOTE: This should only be used in test chips. The parameter must be set
+            to 0 in production tapeouts since this weakens the security posture of the RAW
+            UNLOCK mechanism.
+            '''
+          type: bit
+          default: top_pkg::SecVolatileRawUnlockEn
+          expose: "true"
+          name_top: SecPinmuxAonVolatileRawUnlockEn
+        }
         {
           name: TargetCfg
           desc: Target specific pinmux configuration.
@@ -3872,6 +3931,25 @@
           inst_name: pinmux_aon
           package: ""
           top_signame: pwrmgr_aon_strap
+          index: -1
+        }
+        {
+          name: strap_en_override
+          desc:
+            '''
+            This signal transitions from 0 -> 1 by the lc_ctrl manager after volatile RAW_UNLOCK in order to re-sample the HW straps.
+            The signal must stay at 1 until reset.
+            Note that this is only used in test chips when SecVolatileRawUnlockEn = 1.
+            Otherwise this signal is unused.
+            '''
+          struct: logic
+          type: uni
+          act: rcv
+          width: 1
+          default: 1'b0
+          inst_name: pinmux_aon
+          package: ""
+          top_signame: lc_ctrl_strap_en_override
           index: -1
         }
         {
@@ -6517,6 +6595,11 @@
         }
         {
           name: cs_aes_halt
+          desc:
+            '''
+            Coordinate activity between CSRNG's AES and Entropy Source's SHA3.
+            When CSRNG gets a request and its AES is not active, it acknowledges and until the request has dropped neither runs its AES nor drops the acknowledge.
+            '''
           struct: cs_aes_halt
           package: entropy_src_pkg
           type: req_rsp
@@ -6600,6 +6683,14 @@
       param_list:
       [
         {
+          name: EsFifoDepth
+          desc: Number of 384-bit entries in the esfinal FIFO
+          type: int
+          default: "4"
+          expose: "true"
+          name_top: EntropySrcEsFifoDepth
+        }
+        {
           name: Stub
           desc: Stub out the core of entropy_src logic
           type: bit
@@ -6624,6 +6715,17 @@
         }
         {
           name: cs_aes_halt
+          desc:
+            '''
+            Coordinate activity between CSRNG's AES and Entropy Source's SHA3.
+            The idea is that Entropy Source requests CSRNG's AES to halt and waits for CSRNG to acknowledge before it starts its SHA3.
+            While SHA3 runs, Entropy Source keeps the request high.
+            CSRNG may not drop the acknowledge before Entropy Source drops the request.
+
+            Current limitations:
+            1. During startup and in Firmware Override - Extract & Insert mode, Entropy Source makes no AES Halt requests but still activates its SHA3 engine.
+            2. Outside Firmware Override - Extract & Insert mode, Entropy Source may activate its SHA3 engine without requesting AES Halt, but no more than for 24 Keccak rounds (24 clock cycles) every 512 clock cycles.
+            '''
           struct: cs_aes_halt
           package: entropy_src_pkg
           type: req_rsp
@@ -7860,14 +7962,30 @@
           struct: ram_2p_cfg
           package: prim_ram_2p_pkg
           type: uni
-          name: ram_2p_cfg
+          name: spi_ram_2p_cfg
           act: rcv
           inst_name: ast
           width: 1
           default: ""
           end_idx: -1
           top_type: broadcast
-          top_signame: ast_ram_2p_cfg
+          top_signame: ast_spi_ram_2p_cfg
+          index: -1
+          external: true
+          conn_type: true
+        }
+        {
+          struct: ram_2p_cfg
+          package: prim_ram_2p_pkg
+          type: uni
+          name: usb_ram_2p_cfg
+          act: rcv
+          inst_name: ast
+          width: 1
+          default: ""
+          end_idx: -1
+          top_type: broadcast
+          top_signame: ast_usb_ram_2p_cfg
           index: -1
           external: true
           conn_type: true
@@ -7923,9 +8041,12 @@
         sram_ctrl_ret_aon.cfg
         rv_core_ibex.ram_cfg
       ]
-      ast.ram_2p_cfg:
+      ast.spi_ram_2p_cfg:
       [
         spi_device.ram_cfg
+      ]
+      ast.usb_ram_2p_cfg:
+      [
         usbdev.ram_cfg
       ]
       ast.rom_cfg:
@@ -8145,6 +8266,10 @@
       lc_ctrl.lc_keymgr_div:
       [
         keymgr.lc_keymgr_div
+      ]
+      lc_ctrl.strap_en_override:
+      [
+        pinmux_aon.strap_en_override
       ]
       lc_ctrl.lc_dft_en:
       [
@@ -8506,7 +8631,8 @@
       ast.lc_dft_en: ""
       ast.obs_ctrl: obs_ctrl
       ast.ram_1p_cfg: ram_1p_cfg
-      ast.ram_2p_cfg: ram_2p_cfg
+      ast.spi_ram_2p_cfg: spi_ram_2p_cfg
+      ast.usb_ram_2p_cfg: usb_ram_2p_cfg
       ast.rom_cfg: rom_cfg
       clkmgr_aon.jitter_en: clk_main_jitter_en
       clkmgr_aon.io_clk_byp_req: io_clk_byp_req
@@ -15169,7 +15295,7 @@
         width: 1
         inst_name: spi_device
         default: ""
-        top_signame: ast_ram_2p_cfg
+        top_signame: ast_spi_ram_2p_cfg
         index: -1
       }
       {
@@ -16016,6 +16142,27 @@
         index: -1
       }
       {
+        name: strap_en_override
+        desc:
+          '''
+          This signal transitions from 0 -> 1 by the lc_ctrl manager after volatile RAW_UNLOCK in order to re-sample the HW straps.
+          The signal stays at 1 until reset.
+          Note that this is only used in test chips when SecVolatileRawUnlockEn = 1.
+          Otherwise this signal is tied off to 0.
+          '''
+        struct: logic
+        type: uni
+        act: req
+        width: 1
+        default: 1'b0
+        inst_name: lc_ctrl
+        package: ""
+        end_idx: -1
+        top_type: broadcast
+        top_signame: lc_ctrl_strap_en_override
+        index: -1
+      }
+      {
         name: tl
         struct: tl
         package: tlul_pkg
@@ -16353,7 +16500,7 @@
         width: 1
         inst_name: usbdev
         default: ""
-        top_signame: ast_ram_2p_cfg
+        top_signame: ast_usb_ram_2p_cfg
         index: -1
       }
       {
@@ -17222,6 +17369,25 @@
         inst_name: pinmux_aon
         package: ""
         top_signame: pwrmgr_aon_strap
+        index: -1
+      }
+      {
+        name: strap_en_override
+        desc:
+          '''
+          This signal transitions from 0 -> 1 by the lc_ctrl manager after volatile RAW_UNLOCK in order to re-sample the HW straps.
+          The signal must stay at 1 until reset.
+          Note that this is only used in test chips when SecVolatileRawUnlockEn = 1.
+          Otherwise this signal is unused.
+          '''
+        struct: logic
+        type: uni
+        act: rcv
+        width: 1
+        default: 1'b0
+        inst_name: pinmux_aon
+        package: ""
+        top_signame: lc_ctrl_strap_en_override
         index: -1
       }
       {
@@ -18620,6 +18786,11 @@
       }
       {
         name: cs_aes_halt
+        desc:
+          '''
+          Coordinate activity between CSRNG's AES and Entropy Source's SHA3.
+          When CSRNG gets a request and its AES is not active, it acknowledges and until the request has dropped neither runs its AES nor drops the acknowledge.
+          '''
         struct: cs_aes_halt
         package: entropy_src_pkg
         type: req_rsp
@@ -18682,6 +18853,17 @@
       }
       {
         name: cs_aes_halt
+        desc:
+          '''
+          Coordinate activity between CSRNG's AES and Entropy Source's SHA3.
+          The idea is that Entropy Source requests CSRNG's AES to halt and waits for CSRNG to acknowledge before it starts its SHA3.
+          While SHA3 runs, Entropy Source keeps the request high.
+          CSRNG may not drop the acknowledge before Entropy Source drops the request.
+
+          Current limitations:
+          1. During startup and in Firmware Override - Extract & Insert mode, Entropy Source makes no AES Halt requests but still activates its SHA3 engine.
+          2. Outside Firmware Override - Extract & Insert mode, Entropy Source may activate its SHA3 engine without requesting AES Halt, but no more than for 24 Keccak rounds (24 clock cycles) every 512 clock cycles.
+          '''
         struct: cs_aes_halt
         package: entropy_src_pkg
         type: req_rsp
@@ -19997,14 +20179,30 @@
         struct: ram_2p_cfg
         package: prim_ram_2p_pkg
         type: uni
-        name: ram_2p_cfg
+        name: spi_ram_2p_cfg
         act: rcv
         inst_name: ast
         width: 1
         default: ""
         end_idx: -1
         top_type: broadcast
-        top_signame: ast_ram_2p_cfg
+        top_signame: ast_spi_ram_2p_cfg
+        index: -1
+        external: true
+        conn_type: true
+      }
+      {
+        struct: ram_2p_cfg
+        package: prim_ram_2p_pkg
+        type: uni
+        name: usb_ram_2p_cfg
+        act: rcv
+        inst_name: ast
+        width: 1
+        default: ""
+        end_idx: -1
+        top_type: broadcast
+        top_signame: ast_usb_ram_2p_cfg
         index: -1
         external: true
         conn_type: true
@@ -20131,14 +20329,26 @@
       {
         package: prim_ram_2p_pkg
         struct: ram_2p_cfg
-        signame: ram_2p_cfg_i
+        signame: spi_ram_2p_cfg_i
         width: 1
         type: uni
         default: ""
         direction: in
         conn_type: true
         index: -1
-        netname: ast_ram_2p_cfg
+        netname: ast_spi_ram_2p_cfg
+      }
+      {
+        package: prim_ram_2p_pkg
+        struct: ram_2p_cfg
+        signame: usb_ram_2p_cfg_i
+        width: 1
+        type: uni
+        default: ""
+        direction: in
+        conn_type: true
+        index: -1
+        netname: ast_usb_ram_2p_cfg
       }
       {
         package: prim_rom_pkg
@@ -20708,7 +20918,18 @@
       {
         package: prim_ram_2p_pkg
         struct: ram_2p_cfg
-        signame: ast_ram_2p_cfg
+        signame: ast_spi_ram_2p_cfg
+        width: 1
+        type: uni
+        end_idx: -1
+        act: rcv
+        suffix: ""
+        default: prim_ram_2p_pkg::RAM_2P_CFG_DEFAULT
+      }
+      {
+        package: prim_ram_2p_pkg
+        struct: ram_2p_cfg
+        signame: ast_usb_ram_2p_cfg
         width: 1
         type: uni
         end_idx: -1
@@ -21441,6 +21662,17 @@
         act: req
         suffix: ""
         default: "'0"
+      }
+      {
+        package: ""
+        struct: logic
+        signame: lc_ctrl_strap_en_override
+        width: 1
+        type: uni
+        end_idx: -1
+        act: req
+        suffix: ""
+        default: 1'b0
       }
       {
         package: lc_ctrl_pkg

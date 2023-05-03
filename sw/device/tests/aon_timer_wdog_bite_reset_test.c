@@ -44,8 +44,8 @@ static void config_wdog(const dif_aon_timer_t *aon_timer,
                                               kDifToggleEnabled));
 
   // Setup the wdog bark and bite timeouts.
-  aon_timer_testutils_watchdog_config(aon_timer, bark_cycles, bite_cycles,
-                                      false);
+  CHECK_STATUS_OK(aon_timer_testutils_watchdog_config(aon_timer, bark_cycles,
+                                                      bite_cycles, false));
 }
 
 /**
@@ -86,8 +86,8 @@ static void sleep_wdog_bite_test(const dif_aon_timer_t *aon_timer,
   config_wdog(aon_timer, pwrmgr, bark_time_us, bite_time_us);
 
   // Program the pwrmgr to go to deep sleep state (clocks off).
-  pwrmgr_testutils_enable_low_power(pwrmgr, kDifPwrmgrWakeupRequestSourceTwo,
-                                    0);
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+      pwrmgr, kDifPwrmgrWakeupRequestSourceTwo, 0));
   // Enter in low power mode.
   wait_for_interrupt();
   // If we arrive here the test must fail.

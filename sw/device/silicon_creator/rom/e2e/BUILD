@@ -6,6 +6,8 @@ load(
     "//rules:opentitan_test.bzl",
     "DEFAULT_TEST_FAILURE_MSG",
     "DEFAULT_TEST_SUCCESS_MSG",
+    "OPENTITANTOOL_OPENOCD_DATA_DEPS",
+    "OPENTITANTOOL_OPENOCD_TEST_CMDS",
     "cw310_params",
     "dv_params",
     "opentitan_functest",
@@ -81,12 +83,6 @@ otp_json(
     name = "otp_json_default",
     partitions = [
         otp_partition(
-            name = "OWNER_SW_CFG",
-            items = {
-                "OWNER_SW_CFG_ROM_BOOTSTRAP_EN": "0x739",
-            },
-        ),
-        otp_partition(
             name = "CREATOR_SW_CFG",
             items = {
                 "CREATOR_SW_CFG_ROM_EXEC_EN": "0xffffffff",
@@ -127,7 +123,7 @@ bitstream_splice(
     src = "//hw/bitstream:rom",
     data = ":otp_img_default",
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = ["vivado"] + maybe_skip_in_ci(CONST.LCV.RMA),
+    tags = maybe_skip_in_ci(CONST.LCV.RMA),
     update_usr_access = True,
     visibility = ["//visibility:private"],
 )
@@ -137,7 +133,7 @@ opentitan_functest(
     srcs = ["empty_test.c"],
     cw310 = cw310_params(
         bitstream = ":bitstream_default_otp",
-        tags = ["vivado"] + maybe_skip_in_ci(CONST.LCV.RMA),
+        tags = maybe_skip_in_ci(CONST.LCV.RMA),
     ),
     signed = True,
     targets = [
@@ -319,7 +315,6 @@ rom_e2e_keymgr_init_configs = [
         src = "//hw/bitstream:rom",
         data = ":otp_img_keymgr_{}".format(config["name"]),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"],
         visibility = ["//visibility:private"],
     )
     for config in rom_e2e_keymgr_init_configs
@@ -330,7 +325,6 @@ rom_e2e_keymgr_init_configs = [
         name = "rom_e2e_keymgr_init_{}".format(config["name"]),
         cw310 = cw310_params(
             bitstream = ":bitstream_keymgr_{}".format(config["name"]),
-            tags = ["vivado"],
         ),
         dv = dv_params(
             otp = ":otp_img_keymgr_{}".format(config["name"]),
@@ -403,30 +397,30 @@ opentitan_functest(
 )
 
 [otp_image(
-    name = "otp_img_e2e_bootstrap_entry_{}".format(lc_state.lower()),
-    src = "//hw/ip/otp_ctrl/data:otp_json_{}".format(lc_state.lower()),
+    name = "otp_img_e2e_bootstrap_entry_{}".format(lc_state),
+    src = "//hw/ip/otp_ctrl/data:otp_json_{}".format(lc_state),
     overlays = STD_OTP_OVERLAYS,
-) for lc_state in structs.to_dict(CONST.LCV)]
+) for lc_state, _ in get_lc_items()]
 
 # Splice OTP images into bitstreams
 [
     bitstream_splice(
-        name = "bitstream_e2e_bootstrap_entry_{}".format(lc_state.lower()),
+        name = "bitstream_e2e_bootstrap_entry_{}".format(lc_state),
         src = "//hw/bitstream:rom",
-        data = ":otp_img_e2e_bootstrap_entry_{}".format(lc_state.lower()),
+        data = ":otp_img_e2e_bootstrap_entry_{}".format(lc_state),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+        tags = maybe_skip_in_ci(lc_state_val),
         update_usr_access = True,
     )
-    for lc_state, lc_state_val in structs.to_dict(CONST.LCV).items()
+    for lc_state, lc_state_val in get_lc_items()
 ]
 
 [
     opentitan_functest(
-        name = "e2e_bootstrap_entry_{}".format(lc_state.lower()),
+        name = "e2e_bootstrap_entry_{}".format(lc_state),
         cw310 = cw310_params(
-            bitstream = ":bitstream_e2e_bootstrap_entry_{}".format(lc_state.lower()),
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            bitstream = ":bitstream_e2e_bootstrap_entry_{}".format(lc_state),
+            tags = maybe_skip_in_ci(lc_state_val),
             test_cmds = [
                 "--rom-kind=rom",
                 "--bitstream=\"$(location {bitstream})\"",
@@ -440,15 +434,18 @@ opentitan_functest(
         signed = False,
         targets = ["cw310_rom"],
         test_harness = "//sw/host/tests/rom/e2e_bootstrap_entry",
-        deps = [":bitstream_e2e_bootstrap_entry_{}".format(lc_state.lower())],
+        deps = [":bitstream_e2e_bootstrap_entry_{}".format(lc_state)],
     )
-    for lc_state, lc_state_val in structs.to_dict(CONST.LCV).items()
+    for lc_state, lc_state_val in get_lc_items()
 ]
 
 test_suite(
     name = "rom_e2e_bootstrap_entry",
     tags = ["manual"],
-    tests = [":e2e_bootstrap_entry_{}".format(lc_state.lower()) for lc_state in structs.to_dict(CONST.LCV)],
+    tests = [
+        ":e2e_bootstrap_entry_{}".format(lc_state)
+        for lc_state, _ in get_lc_items()
+    ],
 )
 
 otp_json(
@@ -458,7 +455,7 @@ otp_json(
             name = "CREATOR_SW_CFG",
             items = {
                 "CREATOR_SW_CFG_RMA_SPIN_EN": hex(CONST.TRUE),
-                "CREATOR_SW_CFG_RMA_SPIN_CYCLES": "10",
+                "CREATOR_SW_CFG_RMA_SPIN_CYCLES": "0x2000000",
             },
         ),
         otp_partition(
@@ -497,9 +494,6 @@ bitstream_splice(
     src = "//hw/bitstream:rom",
     data = ":otp_img_bootstrap_rma",
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = [
-        "vivado",
-    ],
     update_usr_access = True,
     visibility = ["//visibility:private"],
 )
@@ -511,20 +505,10 @@ opentitan_functest(
         bitstream = ":bitstream_bootstrap_rma",
         tags = [
             "jtag",
-            "vivado",
         ],
-        test_cmds = [
-            "--rom-kind=rom",
-            "--bitstream=\"$(rootpath {bitstream})\"",
-            "--bootstrap=\"$(rootpath {flash})\"",
-            "--openocd=\"$(rootpath //third_party/openocd:openocd_bin)\"",
-            "--openocd-adapter-config=\"$(rootpath //third_party/openocd:jtag_adapter_cfg)\"",
-        ],
+        test_cmds = OPENTITANTOOL_OPENOCD_TEST_CMDS,
     ),
-    data = [
-        "//third_party/openocd:jtag_adapter_cfg",
-        "//third_party/openocd:openocd_bin",
-    ],
+    data = OPENTITANTOOL_OPENOCD_DATA_DEPS,
     key = LC_KEY_TYPES[CONST.LCV.PROD][0],
     targets = ["cw310_rom"],
     test_harness = "//sw/host/tests/rom/e2e_bootstrap_rma",
@@ -541,9 +525,6 @@ opentitan_functest(
     name = "e2e_bootstrap_disabled",
     cw310 = cw310_params(
         bitstream = "//hw/bitstream:rom_otp_bootstrap_disabled",
-        tags = [
-            "vivado",
-        ],
         test_cmds = [
             "--bitstream=\"$(location {bitstream})\"",
         ],
@@ -559,11 +540,11 @@ opentitan_functest(
 
 [
     bitstream_splice(
-        name = "bitstream_chip_specific_startup_{}".format(lc_state.lower()),
+        name = "bitstream_chip_specific_startup_{}".format(lc_state),
         src = "//hw/bitstream:rom",
-        data = ":otp_img_e2e_bootstrap_entry_{}".format(lc_state.lower()),
+        data = ":otp_img_e2e_bootstrap_entry_{}".format(lc_state),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+        tags = maybe_skip_in_ci(lc_state_val),
         update_usr_access = True,
     )
     for lc_state, lc_state_val in get_lc_items()
@@ -571,16 +552,16 @@ opentitan_functest(
 
 [
     opentitan_functest(
-        name = "e2e_chip_specific_startup_{}".format(lc_state.lower()),
+        name = "e2e_chip_specific_startup_{}".format(lc_state),
         srcs = ["chip_specific_startup.c"],
         args = [],
         cw310 = cw310_params(
-            bitstream = ":bitstream_chip_specific_startup_{}".format(lc_state.lower()),
-            otp = ":otp_img_e2e_bootstrap_entry_{}".format(lc_state.lower()),
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            bitstream = ":bitstream_chip_specific_startup_{}".format(lc_state),
+            otp = ":otp_img_e2e_bootstrap_entry_{}".format(lc_state),
+            tags = maybe_skip_in_ci(lc_state_val),
             test_cmds = [
                 "--rom-kind=rom",
-                "--bitstream=\"$(location //sw/device/silicon_creator/rom/e2e:bitstream_chip_specific_startup_{})\"".format(lc_state.lower()),
+                "--bitstream=\"$(location //sw/device/silicon_creator/rom/e2e:bitstream_chip_specific_startup_{})\"".format(lc_state),
                 "--bootstrap=\"$(location {flash})\"",
                 "--otp-unprogrammed",
             ],
@@ -776,7 +757,6 @@ opentitan_functest(
         src = "//hw/bitstream:rom",
         data = ":otp_img_shutdown_output_{}".format(lc_state),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"],
         update_usr_access = True,
     )
     for lc_state, _ in get_lc_items()
@@ -798,7 +778,7 @@ manifest({
             hex_digits(lc_state_val),
         ),
         otp = ":otp_img_shutdown_output_{}".format(lc_state),
-        tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+        tags = maybe_skip_in_ci(lc_state_val),
     ),
     dv = dv_params(
         otp = ":otp_img_shutdown_output_{}".format(lc_state),
@@ -891,51 +871,58 @@ BOOT_POLICY_NEWER_CASES = [
 ]
 
 [otp_image(
-    name = "otp_img_boot_policy_newer_{}".format(lc_state.lower()),
-    src = "//hw/ip/otp_ctrl/data:otp_json_{}".format(lc_state.lower()),
+    name = "otp_img_boot_policy_newer_{}".format(lc_state),
+    src = "//hw/ip/otp_ctrl/data:otp_json_{}".format(lc_state),
     overlays = STD_OTP_OVERLAYS,
-) for lc_state in structs.to_dict(CONST.LCV)]
+) for lc_state, _ in get_lc_items()]
 
 # Splice OTP images into bitstreams
 [
     bitstream_splice(
-        name = "bitstream_boot_policy_newer_{}".format(lc_state.lower()),
+        name = "bitstream_boot_policy_newer_{}".format(lc_state),
         src = "//hw/bitstream:rom",
-        data = ":otp_img_boot_policy_newer_{}".format(lc_state.lower()),
+        data = ":otp_img_boot_policy_newer_{}".format(lc_state),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"],
         update_usr_access = True,
     )
-    for lc_state in structs.to_dict(CONST.LCV)
+    for lc_state, _ in get_lc_items()
 ]
 
-[opentitan_functest(
-    name = "boot_policy_newer_{}_a_{}_b_{}".format(
-        lc_state.lower(),
-        t["a"],
-        t["b"],
-    ),
-    cw310 = cw310_params(
-        bitstream = ":bitstream_boot_policy_newer_{}".format(lc_state.lower()),
-        exit_success = t["exit_success"].format(hex_digits(lc_state_val)),
-        tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
-    ),
-    key = "multislot",
-    ot_flash_binary = ":sec_ver_{}_{}_image".format(
-        t["a"],
-        t["b"],
-    ),
-    targets = ["cw310_rom"],
-) for lc_state, lc_state_val in structs.to_dict(CONST.LCV).items() for t in BOOT_POLICY_NEWER_CASES]
+[
+    opentitan_functest(
+        name = "boot_policy_newer_{}_a_{}_b_{}".format(
+            lc_state,
+            t["a"],
+            t["b"],
+        ),
+        cw310 = cw310_params(
+            bitstream = ":bitstream_boot_policy_newer_{}".format(lc_state),
+            exit_success = t["exit_success"].format(hex_digits(lc_state_val)),
+            tags = maybe_skip_in_ci(lc_state_val),
+        ),
+        key = "multislot",
+        ot_flash_binary = ":sec_ver_{}_{}_image".format(
+            t["a"],
+            t["b"],
+        ),
+        targets = ["cw310_rom"],
+    )
+    for lc_state, lc_state_val in get_lc_items()
+    for t in BOOT_POLICY_NEWER_CASES
+]
 
 test_suite(
     name = "boot_policy_newer",
     tags = ["manual"],
-    tests = ["boot_policy_newer_{}_a_{}_b_{}".format(
-        lc_state.lower(),
-        t["a"],
-        t["b"],
-    ) for lc_state in structs.to_dict(CONST.LCV) for t in BOOT_POLICY_NEWER_CASES],
+    tests = [
+        "boot_policy_newer_{}_a_{}_b_{}".format(
+            lc_state,
+            t["a"],
+            t["b"],
+        )
+        for lc_state, _ in get_lc_items()
+        for t in BOOT_POLICY_NEWER_CASES
+    ],
 )
 
 BOOT_POLICY_ROLLBACK_CASES = [
@@ -989,7 +976,6 @@ otp_json(
         lc_state,
     ),
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = ["vivado"],
     update_usr_access = True,
     visibility = ["//visibility:private"],
 ) for lc_state, _ in get_lc_items()]
@@ -1004,7 +990,7 @@ otp_json(
         cw310 = cw310_params(
             bitstream = "bitstream_boot_policy_rollback_{}".format(lc_state),
             exit_success = t["exit_success"],
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         key = "multislot",
         ot_flash_binary = ":sec_ver_{}_{}_image".format(
@@ -1055,20 +1041,20 @@ otp_json(
 
 # OTP images that enable the watchdog.
 [otp_image(
-    name = "otp_img_watchdog_enable_{}".format(lc_state.lower()),
-    src = "//hw/ip/otp_ctrl/data:otp_json_{}".format(lc_state.lower()),
+    name = "otp_img_watchdog_enable_{}".format(lc_state),
+    src = "//hw/ip/otp_ctrl/data:otp_json_{}".format(lc_state),
     overlays = STD_OTP_OVERLAYS + [":otp_json_watchdog_enable"],
-) for lc_state in structs.to_dict(CONST.LCV)]
+) for lc_state, _ in get_lc_items()]
 
 # Bitstreams with the watchdog-enable OTP images spliced in.
 [bitstream_splice(
-    name = "bitstream_watchdog_enable_{}".format(lc_state.lower()),
+    name = "bitstream_watchdog_enable_{}".format(lc_state),
     src = "//hw/bitstream:rom",
-    data = ":otp_img_watchdog_enable_{}".format(lc_state.lower()),
+    data = ":otp_img_watchdog_enable_{}".format(lc_state),
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+    tags = maybe_skip_in_ci(lc_state_val),
     update_usr_access = True,
-) for lc_state, lc_state_val in structs.to_dict(CONST.LCV).items()]
+) for lc_state, lc_state_val in get_lc_items()]
 
 # Creates a binary that confirms the watchdog is enabled and a binary that
 # confirms the watchdog is disabled.
@@ -1098,18 +1084,18 @@ otp_json(
 
 WATCHDOG_TEST_CASES = {
     "disable": {
-        "DEV": "disabled",
-        "PROD": "disabled",
-        "PROD_END": "disabled",
-        "RMA": "disabled",
-        "TEST_UNLOCKED0": "disabled",
+        "dev": "disabled",
+        "prod": "disabled",
+        "prod_end": "disabled",
+        "rma": "disabled",
+        "test_unlocked0": "disabled",
     },
     "enable": {
-        "DEV": "enabled",
-        "PROD": "enabled",
-        "PROD_END": "enabled",
-        "RMA": "disabled",
-        "TEST_UNLOCKED0": "disabled",
+        "dev": "enabled",
+        "prod": "enabled",
+        "prod_end": "enabled",
+        "rma": "disabled",
+        "test_unlocked0": "disabled",
     },
 }
 
@@ -1126,32 +1112,36 @@ WATCHDOG_OTP = {
     "enable": ":otp_img_watchdog_enable_{}",
 }
 
-[opentitan_functest(
-    name = "watchdog_{}_{}".format(
-        otp_config,
-        lc_state.lower(),
-    ),
-    cw310 = cw310_params(
-        bitstream = WATCHDOG_BITSTREAM[otp_config].format(lc_state.lower()),
-        tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
-    ),
-    ot_flash_binary = ":test_watchdog_{}".format(WATCHDOG_TEST_CASES[otp_config][lc_state]),
-    targets = [
-        "cw310_rom",
-        "verilator",
-    ],
-    verilator = verilator_params(
-        timeout = "eternal",
-        otp = WATCHDOG_OTP[otp_config].format(lc_state.lower()),
-        rom = "//sw/device/silicon_creator/rom:rom_with_fake_keys",
-        # Test cases that enable the watchdog time out in verilator, cause
-        # unknown.
-        tags = ["broken"] if WATCHDOG_TEST_CASES[otp_config][lc_state] == "enabled" else [],
-    ),
-) for otp_config in [
-    "disable",
-    "enable",
-] for lc_state, lc_state_val in structs.to_dict(CONST.LCV).items()]
+[
+    opentitan_functest(
+        name = "watchdog_{}_{}".format(
+            otp_config,
+            lc_state,
+        ),
+        cw310 = cw310_params(
+            bitstream = WATCHDOG_BITSTREAM[otp_config].format(lc_state),
+            tags = maybe_skip_in_ci(lc_state_val),
+        ),
+        ot_flash_binary = ":test_watchdog_{}".format(WATCHDOG_TEST_CASES[otp_config][lc_state]),
+        targets = [
+            "cw310_rom",
+            "verilator",
+        ],
+        verilator = verilator_params(
+            timeout = "eternal",
+            otp = WATCHDOG_OTP[otp_config].format(lc_state),
+            rom = "//sw/device/silicon_creator/rom:rom_with_fake_keys",
+            # Test cases that enable the watchdog time out in verilator, cause
+            # unknown.
+            tags = ["broken"] if WATCHDOG_TEST_CASES[otp_config][lc_state] == "enabled" else [],
+        ),
+    )
+    for otp_config in [
+        "disable",
+        "enable",
+    ]
+    for lc_state, lc_state_val in get_lc_items()
+]
 
 test_suite(
     name = "rom_e2e_watchdog_reconfig",
@@ -1159,13 +1149,13 @@ test_suite(
     tests = [
         "watchdog_{}_{}".format(
             otp_config,
-            lc_state.lower(),
+            lc_state,
         )
         for otp_config in [
             "disable",
             "enable",
         ]
-        for lc_state in structs.to_dict(CONST.LCV)
+        for lc_state, _ in get_lc_items()
     ],
 )
 
@@ -1193,7 +1183,7 @@ ALERT_LC_STATES = get_lc_items(
     src = "//hw/bitstream:rom",
     data = ":otp_img_alert_{}".format(lc_state),
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+    tags = maybe_skip_in_ci(lc_state_val),
     update_usr_access = True,
 ) for lc_state, lc_state_val in ALERT_LC_STATES]
 
@@ -1224,7 +1214,7 @@ ALERT_LC_STATES = get_lc_items(
         ),
         cw310 = cw310_params(
             bitstream = ":bitstream_alert_{}".format(lc_state),
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         key = "fake_prod_key_0",
         ot_flash_binary = ":rom_e2e_alert_config_test_{}".format(lc_state),
@@ -1252,7 +1242,7 @@ otp_json(
             name = "OWNER_SW_CFG",
             items = {
                 # Enable bootstrap.
-                "OWNER_SW_CFG_ROM_BOOTSTRAP_EN": hex(CONST.TRUE),
+                "OWNER_SW_CFG_ROM_BOOTSTRAP_DIS": hex(CONST.FALSE),
                 # Report errors without any redaction.
                 "OWNER_SW_CFG_ROM_ERROR_REPORTING": hex(CONST.SHUTDOWN.REDACT.NONE),
                 # Enable class A alerts.
@@ -1322,7 +1312,7 @@ otp_alert_digest(
     src = "//hw/bitstream:rom",
     data = ":otp_img_shutdown_alert_{}".format(lc_state),
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+    tags = maybe_skip_in_ci(lc_state_val),
     update_usr_access = True,
 ) for lc_state, lc_state_val in ALERT_LC_STATES]
 
@@ -1348,7 +1338,7 @@ otp_alert_digest(
         name = "shutdown_alert_{}".format(lc_state),
         cw310 = cw310_params(
             bitstream = ":bitstream_shutdown_alert_{}".format(lc_state),
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         key = "fake_prod_key_0",
         ot_flash_binary = ":rom_e2e_shutdown_alert_config_test_{}".format(lc_state),
@@ -1450,7 +1440,6 @@ opentitan_flash_binary(
             t["name"],
         ),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"],
         update_usr_access = True,
         visibility = ["//visibility:private"],
     )
@@ -1470,7 +1459,7 @@ opentitan_flash_binary(
                 t["name"],
             ),
             exit_success = t["exit_success"][lc_state],
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         ot_flash_binary = ":empty_test_sigverify_mod_exp",
         targets = ["cw310_rom"],
@@ -1708,7 +1697,6 @@ BOOT_POLICY_BAD_MANIFEST_CASES = [
             sec_ver,
         ),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"],
         update_usr_access = True,
         visibility = ["//visibility:private"],
     )
@@ -1732,7 +1720,7 @@ BOOT_POLICY_BAD_MANIFEST_CASES = [
                 t.get("sec_ver", 0),
             ),
             exit_success = t["exit_success"],
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         key = "multislot",
         ot_flash_binary = "boot_policy_bad_manifest_{}_{}_img".format(
@@ -1746,7 +1734,6 @@ BOOT_POLICY_BAD_MANIFEST_CASES = [
         verilator = verilator_params(
             tags = [
                 # FIXME:#16056 Verilator fails to set up test.
-                "vivado",
                 "broken",
             ],
         ),
@@ -1859,7 +1846,7 @@ BOOT_DATA_RECOVERY_CASES = [
         case["default_boot_data"],
     ),
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = ["vivado"] + maybe_skip_in_ci(getattr(
+    tags = maybe_skip_in_ci(getattr(
         CONST.LCV,
         case["lc_state"].upper(),
     )),
@@ -1906,7 +1893,7 @@ BOOT_DATA_RECOVERY_CASES = [
                 case["default_boot_data"],
             ),
             exit_success = MSG_TEMPLATE_BFV.format(hex_digits(case["expected_bfv"])) if case["expected_bfv"] != None else MSG_PASS,
-            tags = ["vivado"] + maybe_skip_in_ci(getattr(
+            tags = maybe_skip_in_ci(getattr(
                 CONST.LCV,
                 case["lc_state"].upper(),
             )),
@@ -2011,7 +1998,6 @@ SHUTDOWN_WATCHDOG_CASES = [
             t["bite_threshold"],
         ),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"],
         update_usr_access = True,
         visibility = ["//visibility:private"],
     )
@@ -2031,7 +2017,7 @@ SHUTDOWN_WATCHDOG_CASES = [
                 t["bite_threshold"],
             ),
             exit_success = t["exit_success"],
-            tags = ["vivado"] + maybe_skip_in_ci(getattr(
+            tags = maybe_skip_in_ci(getattr(
                 CONST.LCV,
                 t["lc_state"].upper(),
             )),
@@ -2171,24 +2157,23 @@ BOOT_POLICY_VALID_CASES = [
 
 [
     otp_image(
-        name = "otp_img_boot_policy_valid_{}".format(lc_state.lower()),
-        src = "//hw/ip/otp_ctrl/data:otp_json_{}".format(lc_state.lower()),
+        name = "otp_img_boot_policy_valid_{}".format(lc_state),
+        src = "//hw/ip/otp_ctrl/data:otp_json_{}".format(lc_state),
         overlays = STD_OTP_OVERLAYS,
     )
-    for lc_state in structs.to_dict(CONST.LCV)
+    for lc_state, _ in get_lc_items()
 ]
 
 # Splice OTP images into bitstreams
 [
     bitstream_splice(
-        name = "bitstream_boot_policy_valid_{}".format(lc_state.lower()),
+        name = "bitstream_boot_policy_valid_{}".format(lc_state),
         src = "//hw/bitstream:rom",
-        data = ":otp_img_boot_policy_valid_{}".format(lc_state.lower()),
+        data = ":otp_img_boot_policy_valid_{}".format(lc_state),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"],
         update_usr_access = True,
     )
-    for lc_state in structs.to_dict(CONST.LCV)
+    for lc_state, _ in get_lc_items()
 ]
 
 [
@@ -2202,7 +2187,7 @@ BOOT_POLICY_VALID_CASES = [
             bitstream = "bitstream_boot_policy_valid_{}".format(lc_state),
             exit_failure = MSG_PASS if a["desc"] == b["desc"] and a["desc"] == "bad" else DEFAULT_TEST_FAILURE_MSG,
             exit_success = MSG_TEMPLATE_BFV.format(hex_digits(CONST.BFV.SIGVERIFY.BAD_RSA_SIGNATURE)) if a["desc"] == b["desc"] and a["desc"] == "bad" else MSG_PASS,
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         key = "multislot",
         ot_flash_binary = ":boot_policy_valid_img_a_{}_b_{}".format(
@@ -2251,7 +2236,6 @@ test_suite(
         meminfo = "//hw/bitstream:otp_mmi",
         tags = [
             "manual",
-            "vivado",
         ],
         update_usr_access = True,
         visibility = ["//visibility:private"],
@@ -2384,7 +2368,6 @@ SRAM_JTAG_INJECTION_GDB_SCRIPT = """
         rom_kind = "Rom",
         tags = [
             "cw310_rom",
-            "vivado",
         ],
     )
     for lc_state, _ in get_lc_items(
@@ -2413,7 +2396,7 @@ test_suite(
         srcs = ["epmp_init_test.c"],
         cw310 = cw310_params(
             bitstream = "//hw/bitstream:rom_otp_" + lc_state,
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         key = LC_KEY_TYPES[lc_state_val][0],
         local_defines = [
@@ -2479,7 +2462,6 @@ test_suite(
         rom_kind = "Rom",
         tags = [
             "cw310_rom",
-            "vivado",
         ] + maybe_skip_in_ci(lc_state_val),
     )
     for lc_state, lc_state_val in get_lc_items(
@@ -2538,7 +2520,6 @@ test_suite(
         rom_kind = "Rom",
         tags = [
             "cw310_rom",
-            "vivado",
         ] + maybe_skip_in_ci(lc_state_val),
     )
     for lc_state, lc_state_val in get_lc_items(
@@ -2602,7 +2583,6 @@ test_suite(
         rom_kind = "Rom",
         tags = [
             "cw310_rom",
-            "vivado",
         ] + maybe_skip_in_ci(lc_state_val),
     )
     for lc_state, lc_state_val in get_lc_items(
@@ -2693,7 +2673,6 @@ test_suite(
         rom_kind = "Rom",
         tags = [
             "cw310_rom",
-            "vivado",
         ] + maybe_skip_in_ci(lc_state_val),
     )
     for lc_state, lc_state_val in get_lc_items(
@@ -2761,7 +2740,6 @@ test_suite(
         rom_kind = "Rom",
         tags = [
             "cw310_rom",
-            "vivado",
         ] + maybe_skip_in_ci(lc_state_val),
     )
     for lc_state, lc_state_val in get_lc_items(
@@ -2833,7 +2811,6 @@ REDACT.update({"INVALID": 0x0})
             redact.lower(),
         ),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"],
         update_usr_access = True,
         visibility = ["//visibility:private"],
     )
@@ -2859,7 +2836,7 @@ REDACT.update({"INVALID": 0x0})
                 lc_state_val,
                 redact_val,
             ))),
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         signed = False,
         targets = ["cw310_rom"],
@@ -2985,7 +2962,7 @@ test_suite(
         src = "//hw/bitstream:rom",
         data = ":otp_img_sigverify_always_{}".format(lc_state),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+        tags = maybe_skip_in_ci(lc_state_val),
         update_usr_access = True,
     )
     for lc_state, lc_state_val in get_lc_items()
@@ -3029,7 +3006,7 @@ SIGVERIFY_BAD_CASES = [
                 hex_digits(lc_state_val),
             ),
             otp = ":otp_img_sigverify_always_{}".format(lc_state),
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         dv = dv_params(
             otp = ":otp_img_sigverify_always_{}".format(lc_state),
@@ -3083,7 +3060,7 @@ test_suite(
             lc_state,
         ),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+        tags = maybe_skip_in_ci(lc_state_val),
         update_usr_access = True,
         visibility = ["//visibility:private"],
     )
@@ -3109,7 +3086,7 @@ SIGVERIFY_FULL_KEY_SET = FAKE_ALL_KEYS
                 hex_digits(CONST.BFV.SIGVERIFY.BAD_RSA_KEY),
                 hex_digits(lc_state_val),
             ),
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         key = key,
         ot_flash_binary = "empty_test_slot_a",
@@ -3165,7 +3142,7 @@ otp_json(
             lc_state,
         ),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+        tags = maybe_skip_in_ci(lc_state_val),
         update_usr_access = True,
         visibility = ["//visibility:private"],
     )
@@ -3188,7 +3165,7 @@ otp_json(
                 hex_digits(CONST.BFV.SIGVERIFY.BAD_RSA_KEY),
                 hex_digits(lc_state_val),
             ) if lc_state_val != CONST.LCV.TEST_UNLOCKED0 else MSG_PASS,
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         key = key,
         ot_flash_binary = "empty_test_slot_a",
@@ -3265,7 +3242,7 @@ otp_json(
     src = "//hw/bitstream:rom",
     data = ":otp_img_sigverify_usage_constraints_{}".format(lc_state),
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+    tags = maybe_skip_in_ci(lc_state_val),
     update_usr_access = True,
     visibility = ["//visibility:private"],
 ) for lc_state, lc_state_val in get_lc_items()]
@@ -3452,7 +3429,7 @@ test_cases = device_id_test_cases + lc_state_test_cases + manuf_state_test_cases
         bitstream = t["bitstream"],
         exit_failure = t["exit_failure"],
         exit_success = t["exit_success"],
-        tags = ["vivado"] + maybe_skip_in_ci(t["lc_state_val"]),
+        tags = maybe_skip_in_ci(t["lc_state_val"]),
     ),
     manifest = manifest(
         dict(
@@ -3603,8 +3580,6 @@ test_suite(
         rom_kind = "Rom",
         tags = [
             "cw310_rom",
-            "exclusive",
-            "vivado",
         ] + maybe_skip_in_ci(lc_state_val),
     )
     for lc_state, lc_state_val in get_lc_items(
@@ -3690,7 +3665,7 @@ bitstream_splice(
     src = "//hw/bitstream:rom",
     data = ":otp_img_reset_ret_ram",
     meminfo = "//hw/bitstream:otp_mmi",
-    tags = ["vivado"] + maybe_skip_in_ci(CONST.LCV.RMA),
+    tags = maybe_skip_in_ci(CONST.LCV.RMA),
     update_usr_access = True,
     visibility = ["//visibility:private"],
 )
@@ -3700,7 +3675,7 @@ opentitan_functest(
     srcs = ["rom_e2e_ret_ram_init_test.c"],
     cw310 = cw310_params(
         bitstream = ":bitstream_reset_ret_ram",
-        tags = ["vivado"] + maybe_skip_in_ci(CONST.LCV.RMA),
+        tags = maybe_skip_in_ci(CONST.LCV.RMA),
     ),
     signed = True,
     targets = [
@@ -3721,7 +3696,7 @@ opentitan_functest(
     srcs = ["rom_e2e_ret_ram_keep_test.c"],
     cw310 = cw310_params(
         bitstream = "//hw/bitstream:rom",
-        tags = ["vivado"] + maybe_skip_in_ci(CONST.LCV.RMA),
+        tags = maybe_skip_in_ci(CONST.LCV.RMA),
     ),
     signed = True,
     targets = [
@@ -3781,7 +3756,7 @@ otp_json(
             lc_state,
         ),
         meminfo = "//hw/bitstream:otp_mmi",
-        tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+        tags = maybe_skip_in_ci(lc_state_val),
         update_usr_access = True,
         visibility = ["//visibility:private"],
     )
@@ -3795,7 +3770,7 @@ otp_json(
         cw310 = cw310_params(
             bitstream = ":bitstream_rom_ext_upgrade_interrupt_{}".format(lc_state),
             clear_bitstream = True,
-            tags = ["vivado"] + maybe_skip_in_ci(lc_state_val),
+            tags = maybe_skip_in_ci(lc_state_val),
         ),
         manifest = ":manifest_rom_ext_upgrade_interrupt",
         targets = [

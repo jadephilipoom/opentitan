@@ -23,7 +23,7 @@ class lc_ctrl_env_cfg extends cip_base_env_cfg #(
   lc_ctrl_vif lc_ctrl_vif;
 
   // Use JTAG for register accesses
-  // TODO: use multiple address maps
+  // ICEBOX(#18078) - unclear what this TODO refers to (use multiple address maps)
   bit jtag_csr;
   // Error injection configuration
   lc_ctrl_err_inj_t err_inj;
@@ -108,6 +108,9 @@ class lc_ctrl_env_cfg extends cip_base_env_cfg #(
     jtag_csr = 0;
 
     alert_max_delay = 2000;
+
+    // only support 1 outstanding TL items in tlul_adapter
+    m_tl_agent_cfg.max_outstanding_req = 1;
   endfunction
 
   virtual function void set_test_phase(lc_ctrl_test_phase_e test_phase);

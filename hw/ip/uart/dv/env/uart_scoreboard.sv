@@ -133,16 +133,14 @@ class uart_scoreboard extends cip_base_scoreboard #(.CFG_T(uart_env_cfg),
   endfunction
 
   virtual function void predict_tx_watermark_intr(uint tx_q_size = tx_q.size);
-    uint watermark = get_watermark_bytes_by_level(ral.fifo_ctrl.txilvl.get_mirrored_value(),
-                                                  UartTx);
+    uint watermark = get_watermark_bytes_by_level(ral.fifo_ctrl.txilvl.get_mirrored_value());
     intr_exp[TxWatermark] = get_non_sticky_interrupt(.cur_intr(intr_exp[TxWatermark]),
                                                      .new_intr(tx_q_size < watermark),
                                                      .triggered(tx_watermark_triggered));
   endfunction
 
   virtual function void predict_rx_watermark_intr(uint rx_q_size = rx_q.size);
-    uint watermark = get_watermark_bytes_by_level(ral.fifo_ctrl.rxilvl.get_mirrored_value(),
-                                                  UartRx);
+    uint watermark = get_watermark_bytes_by_level(ral.fifo_ctrl.rxilvl.get_mirrored_value());
     intr_exp[RxWatermark] = get_non_sticky_interrupt(
         .cur_intr(intr_exp[RxWatermark]),
         .new_intr(rx_q_size >= watermark && rx_enabled),
@@ -215,21 +213,37 @@ class uart_scoreboard extends cip_base_scoreboard #(.CFG_T(uart_env_cfg),
         if (write && channel == AddrChannel) begin
           uart_item tx_item = uart_item::type_id::create("tx_item");
 
-          tx_item.data = item.a_data;
-          if (tx_q.size() < UART_FIFO_DEPTH) begin
-            tx_q.push_back(tx_item);
-            `uvm_info(`gfn, $sformatf("After push one item, tx_q size: %0d", tx_q.size), UVM_HIGH)
-          end else begin
-            `uvm_info(`gfn, $sformatf(
-                "Drop tx item: %0h, tx_q size: %0d, uart_tx_clk_pulses: %0d",
-                csr.get_mirrored_value(), tx_q.size(), uart_tx_clk_pulses), UVM_MEDIUM)
-          end
           fork begin
-            int loc_tx_q_size = tx_q.size();
+            int loc_tx_q_size;
+            bit dec_q_size;
+
+            // Don't update tx_q til next negedge. The TX FIFO doesn't get written til the cycle
+            // after the write transaction so an immediate read of 'fifo_status' after the write
+            // doesn't see the increased depth. Waiting here ensures this is modeled correctly.
+            cfg.clk_rst_vif.wait_n_clks(1);
+
+            tx_item.data = item.a_data;
+            if (tx_q.size() < UART_FIFO_DEPTH) begin
+              tx_q.push_back(tx_item);
+              `uvm_info(`gfn, $sformatf("After push one item, tx_q size: %0d", tx_q.size), UVM_HIGH)
+            end else begin
+              `uvm_info(`gfn, $sformatf(
+                  "Drop tx item: %0h, tx_q size: %0d, uart_tx_clk_pulses: %0d",
+                  csr.get_mirrored_value(), tx_q.size(), uart_tx_clk_pulses), UVM_MEDIUM)
+            end
+
+            loc_tx_q_size = tx_q.size();
+            dec_q_size = 1'b0;
             // remove 1 when it's abort to be popped for transfer
-            if (tx_enabled && tx_processing_item_q.size == 0 && tx_q.size > 0) loc_tx_q_size--;
-            // use negedge to avoid race condition
-            cfg.clk_rst_vif.wait_n_clks(NUM_CLK_DLY_TO_UPDATE_TX_WATERMARK);
+            if (tx_enabled && tx_processing_item_q.size == 0 && tx_q.size > 0) begin
+              // Must decide if we're reducing the queue size used for watermark modelling now based
+              // upon the tx_q size immediately after the push. The actual watermark prediction
+              // occurs after update delay
+              dec_q_size = 1'b1;
+            end
+
+            // use negedge to avoid race condition with -1 as we've already waited a cycle above.
+            cfg.clk_rst_vif.wait_n_clks(NUM_CLK_DLY_TO_UPDATE_TX_WATERMARK - 1);
             if (ral.ctrl.slpbk.get_mirrored_value()) begin
               // if sys loopback is on, tx item isn't sent to uart pin but rx fifo
               uart_item tx_item = tx_q.pop_front();
@@ -240,6 +254,14 @@ class uart_scoreboard extends cip_base_scoreboard #(.CFG_T(uart_env_cfg),
             end else if (tx_enabled && tx_processing_item_q.size == 0 && tx_q.size > 0) begin
               tx_processing_item_q.push_back(tx_q.pop_front());
             end
+
+            if (dec_q_size) begin
+              // Predict before decrement to model scenario where watermark triggers due to going
+              // above then immediate dropping below the threshold as TX item gets immediate popped.
+              predict_tx_watermark_intr(loc_tx_q_size);
+              loc_tx_q_size--;
+            end
+
             predict_tx_watermark_intr(loc_tx_q_size);
           end join_none
         end // write && channel == AddrChannel
@@ -425,7 +447,7 @@ class uart_scoreboard extends cip_base_scoreboard #(.CFG_T(uart_env_cfg),
               rxlvl_exp = rx_q.size();
             end
             DataChannel: begin // check at data phase
-              bit [5:0] txlvl_act, rxlvl_act;
+              bit [7:0] txlvl_act, rxlvl_act;
 
               void'(csr.predict(.value(item.d_data), .kind(UVM_PREDICT_READ)));
               txlvl_act = ral.fifo_status.txlvl.get_mirrored_value();

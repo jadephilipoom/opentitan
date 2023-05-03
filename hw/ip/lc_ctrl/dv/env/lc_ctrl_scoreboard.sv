@@ -64,7 +64,6 @@ class lc_ctrl_scoreboard extends cip_base_scoreboard #(
   virtual task check_lc_output();
     forever begin
       @(posedge cfg.pwr_lc_vif.pins[LcPwrDoneRsp] && cfg.en_scb) begin
-        // TODO: add coverage
         dec_lc_state_e lc_state = dec_lc_state(lc_state_e'(cfg.lc_ctrl_vif.otp_i.state));
         lc_outputs_t   exp_lc_o = EXP_LC_OUTPUTS[int'(lc_state)];
         string         err_msg = $sformatf("LC_St %0s", lc_state.name);
@@ -83,7 +82,7 @@ class lc_ctrl_scoreboard extends cip_base_scoreboard #(
         if (cfg.err_inj.otp_secrets_valid_mubi_err && lc_state_e'(cfg.lc_ctrl_vif.otp_i.state)
             inside {LcStProd, LcStProdEnd, LcStDev}) begin
           exp_lc_o.lc_seed_hw_rd_en_o = cfg.otp_secrets_valid;
-          exp_lc_o.lc_creator_seed_sw_rw_en_o = ~cfg.otp_secrets_valid;
+          exp_lc_o.lc_creator_seed_sw_rw_en_o = lc_tx_t'(~cfg.otp_secrets_valid);
         end
 
         if (cfg.escalate_injected) begin
@@ -515,7 +514,7 @@ class lc_ctrl_scoreboard extends cip_base_scoreboard #(
     const lc_cnt_e LcCntIn = lc_cnt_e'(cfg.lc_ctrl_vif.otp_i.count);
     // Incremented LcCntIn - next() works because of encoding method
     const lc_cnt_e LcCntInInc = LcCntIn.next();
-    // TODO needs expanding for JTAG registers
+    // ICEBOX(#18078) - unclear what this TODO refers to (needs expanding for JTAG registers)
     const
     lc_state_e
     LcTargetState = encode_lc_state(

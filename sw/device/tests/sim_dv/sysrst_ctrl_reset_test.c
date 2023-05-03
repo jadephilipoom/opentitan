@@ -61,7 +61,7 @@ static void check_combo_reset(void) {
                                      .enabled = kDifToggleEnabled,
                                      .override_value = true}));
   // Prepare rstmgr for a reset with sysrst_ctrl (source one).
-  rstmgr_testutils_pre_reset(&rstmgr);
+  CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
   CHECK_DIF_OK(dif_pwrmgr_set_request_sources(&pwrmgr, kDifPwrmgrReqTypeReset,
                                               kDifPwrmgrResetRequestSourceOne,
                                               kDifToggleEnabled));
@@ -79,9 +79,9 @@ static void check_deep_sleep_wakeup(void) {
                         .enabled = kDifToggleEnabled}));
   // Setup low power.
   // Wakeup source is from sysrst_ctrl (source one).
-  rstmgr_testutils_pre_reset(&rstmgr);
-  pwrmgr_testutils_enable_low_power(&pwrmgr, kDifPwrmgrWakeupRequestSourceOne,
-                                    0);
+  CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+      &pwrmgr, kDifPwrmgrWakeupRequestSourceOne, 0));
   // Issue WFI and wait for reset condition.
   test_status_set(kTestStatusInWfi);
   wait_for_interrupt();
@@ -109,15 +109,15 @@ static void check_deep_sleep_reset(void) {
                                          kDifSysrstCtrlInputPowerButtonH2L}));
   // Setup low power.
   // Reset source is from sysrst_ctrl (source one).
-  rstmgr_testutils_pre_reset(&rstmgr);
+  CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
   CHECK_DIF_OK(dif_pwrmgr_set_request_sources(&pwrmgr, kDifPwrmgrReqTypeReset,
                                               kDifPwrmgrResetRequestSourceOne,
                                               kDifToggleEnabled));
   // Enable low power with wakeup source other than
   // sysrst_ctrl (e.g. source two) as we don't want
   // a wakeup request but instead a reset.
-  pwrmgr_testutils_enable_low_power(&pwrmgr, kDifPwrmgrWakeupRequestSourceTwo,
-                                    0);
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+      &pwrmgr, kDifPwrmgrWakeupRequestSourceTwo, 0));
   // Issue WFI and wait for reset condition.
   test_status_set(kTestStatusInWfi);
   wait_for_interrupt();

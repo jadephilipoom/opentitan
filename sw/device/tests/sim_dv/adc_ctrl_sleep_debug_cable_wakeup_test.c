@@ -125,12 +125,13 @@ bool test_main(void) {
       (kChannel1MinHighByte << 8) | kChannel1MinLowByte;
 
   // Assuming the chip hasn't slept yet, wakeup reason should be empty.
-  if (pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) {
+  if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) == true) {
     LOG_INFO("POR reset.");
     interrupt_expected = false;
     en_plic_irqs(&plic);
 
-    CHECK(rstmgr_testutils_is_reset_info(&rstmgr, kDifRstmgrResetInfoPor));
+    CHECK(UNWRAP(
+        rstmgr_testutils_is_reset_info(&rstmgr, kDifRstmgrResetInfoPor)));
 
     // Setup ADC configuration.
     configure_adc_ctrl(&adc_ctrl);
@@ -164,21 +165,21 @@ bool test_main(void) {
     CHECK_DIF_OK(dif_adc_ctrl_set_enabled(&adc_ctrl, kDifToggleEnabled));
 
     // Setup low power.
-    rstmgr_testutils_pre_reset(&rstmgr);
-    pwrmgr_testutils_enable_low_power(&pwrmgr, kDifPwrmgrWakeupRequestSourceTwo,
-                                      0);
+    CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
+    CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+        &pwrmgr, kDifPwrmgrWakeupRequestSourceTwo, 0));
     // Enter low power mode.
     LOG_INFO("Issued WFI to enter sleep.");
     test_status_set(kTestStatusInWfi);
     wait_for_interrupt();
-  } else if (pwrmgr_testutils_is_wakeup_reason(
-                 &pwrmgr, kDifPwrmgrWakeupRequestSourceTwo)) {
+  } else if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(
+                 &pwrmgr, kDifPwrmgrWakeupRequestSourceTwo)) == true) {
     LOG_INFO("Wakeup reset.");
     interrupt_expected = true;
     en_plic_irqs(&plic);
 
-    CHECK(rstmgr_testutils_is_reset_info(&rstmgr,
-                                         kDifRstmgrResetInfoLowPowerExit));
+    CHECK(UNWRAP(rstmgr_testutils_is_reset_info(
+        &rstmgr, kDifRstmgrResetInfoLowPowerExit)));
     uint16_t adc_value;
     CHECK_DIF_OK(dif_adc_ctrl_get_triggered_value(
         &adc_ctrl, kDifAdcCtrlChannel0, &adc_value));

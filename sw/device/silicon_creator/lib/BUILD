@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 load("//rules:opentitan.bzl", "OPENTITAN_CPU")
-load("//rules:opentitan_test.bzl", "opentitan_functest", "verilator_params")
+load("//rules:autogen.bzl", "autogen_chip_info")
+load("//rules:opentitan_test.bzl", "cw310_params", "opentitan_functest", "verilator_params")
 load("//rules:cross_platform.bzl", "dual_cc_device_library_of", "dual_cc_library", "dual_inputs")
 
 package(default_visibility = ["//visibility:public"])
@@ -272,6 +273,8 @@ filegroup(
     ],
 )
 
+autogen_chip_info(name = "chip_info")
+
 dual_cc_library(
     name = "shutdown",
     srcs = dual_inputs(
@@ -289,6 +292,7 @@ dual_cc_library(
             "@googletest//:gtest",
         ],
         shared = [
+            ":chip_info",
             ":error",
             ":epmp_defs",
             "//sw/device/lib/base:hardened",
@@ -337,24 +341,54 @@ dual_cc_library(
         host = ["mock_crc32.h"],
         shared = ["crc32.h"],
     ),
+    copts = dual_inputs(
+        device = [
+            "-menable-experimental-extensions",
+            "-march=rv32imc_zbr0p93",
+        ],
+    ),
+    target_compatible_with = dual_inputs(
+        # This target cannot be compiled host-side because it uses RISC-V
+        # instructions.
+        device = [OPENTITAN_CPU],
+    ),
     deps = dual_inputs(
         host = [
             "//sw/device/lib/base:global_mock",
-            "//sw/device/silicon_creator/testing:rom_test",
             "@googletest//:gtest",
         ],
         shared = [
             "//sw/device/lib/base:memory",
+            "//sw/device/lib/base:macros",
         ],
     ),
 )
 
-cc_test(
-    name = "crc32_unittest",
-    srcs = ["crc32_unittest.cc"],
+opentitan_functest(
+    name = "crc32_functest",
+    srcs = ["crc32_functest.c"],
     deps = [
-        dual_cc_device_library_of(":crc32"),
-        "//sw/device/silicon_creator/testing:rom_test",
-        "@googletest//:gtest_main",
+        ":crc32",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
+opentitan_functest(
+    name = "crc32_perftest",
+    srcs = ["crc32_perftest.c"],
+    cw310 = cw310_params(
+        tags = [
+            "manual",
+        ],
+    ),
+    targets = ["cw310_test_rom"],
+    deps = [
+        ":crc32",
+        "//sw/device/lib/base:macros",
+        "//sw/device/lib/runtime:ibex",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/lib/testing/test_framework:ottf_test_config",
     ],
 )

@@ -33,31 +33,33 @@ static uint32_t get_next_n_bits(
   return word;
 }
 
-alert_info_t alert_info_dump_to_struct(
-    const dif_rstmgr_alert_info_dump_segment_t *dump, int dump_size) {
+status_t alert_handler_testutils_info_parse(
+    const dif_rstmgr_alert_info_dump_segment_t *dump, int dump_size,
+    alert_handler_testutils_info_t *info) {
   int word_index = 0;
   int bit_index = 0;
-  alert_info_t info;
   for (int i = 0; i < ALERT_HANDLER_PARAM_N_CLASSES; ++i) {
-    info.class_esc_state[i] = get_next_n_bits(3, dump, &word_index, &bit_index);
+    info->class_esc_state[i] =
+        get_next_n_bits(3, dump, &word_index, &bit_index);
   }
   for (int i = 0; i < ALERT_HANDLER_PARAM_N_CLASSES; ++i) {
-    info.class_esc_cnt[i] = get_next_n_bits(32, dump, &word_index, &bit_index);
+    info->class_esc_cnt[i] = get_next_n_bits(32, dump, &word_index, &bit_index);
   }
   for (int i = 0; i < ALERT_HANDLER_PARAM_N_CLASSES; ++i) {
-    info.class_accum_cnt[i] =
+    info->class_accum_cnt[i] =
         get_next_n_bits(16, dump, &word_index, &bit_index);
   }
-  info.loc_alert_cause = get_next_n_bits(7, dump, &word_index, &bit_index);
-  CHECK(word_index < dump_size);
+  info->loc_alert_cause = get_next_n_bits(7, dump, &word_index, &bit_index);
+  TRY_CHECK(word_index < dump_size);
   for (int i = 0; i < ALERT_HANDLER_PARAM_N_ALERTS; ++i) {
-    info.alert_cause[i] = get_next_n_bits(1, dump, &word_index, &bit_index);
+    info->alert_cause[i] = get_next_n_bits(1, dump, &word_index, &bit_index);
   }
-  CHECK(word_index < dump_size);
-  return info;
+  TRY_CHECK(word_index < dump_size);
+  return OK_STATUS();
 }
 
-void alert_info_to_string(const alert_info_t *info) {
+void alert_handler_testutils_info_dump(
+    const alert_handler_testutils_info_t *info) {
   LOG_INFO("alert_info:");
   LOG_INFO("esc_state [0]=%x, [1]=%x, [2]=%x, [3]=%x", info->class_esc_state[0],
            info->class_esc_state[1], info->class_esc_state[2],
@@ -84,74 +86,71 @@ void alert_info_to_string(const alert_info_t *info) {
   }
 }
 
-void alert_handler_testutils_configure_all(
+status_t alert_handler_testutils_configure_all(
     const dif_alert_handler_t *alert_handler, dif_alert_handler_config_t config,
     dif_toggle_t locked) {
-  CHECK(alert_handler != NULL);
-  CHECK(dif_is_valid_toggle(locked));
+  TRY_CHECK(alert_handler != NULL);
+  TRY_CHECK(dif_is_valid_toggle(locked));
 
   // Check lengths of alert, local alert, and class arrays.
-  CHECK((config.alerts_len > 0 && config.alerts != NULL &&
-         config.alert_classes != NULL) ||
-        (config.alerts_len == 0 && config.alerts == NULL &&
-         config.alert_classes == NULL));
-  CHECK((config.local_alerts_len > 0 && config.local_alerts != NULL &&
-         config.local_alert_classes != NULL) ||
-        (config.local_alerts_len == 0 && config.local_alerts == NULL &&
-         config.local_alert_classes == NULL));
-  CHECK((config.classes_len > 0 && config.classes != NULL &&
-         config.class_configs != NULL) ||
-        (config.classes_len == 0 && config.classes == NULL &&
-         config.class_configs == NULL));
+  TRY_CHECK((config.alerts_len > 0 && config.alerts != NULL &&
+             config.alert_classes != NULL) ||
+            (config.alerts_len == 0 && config.alerts == NULL &&
+             config.alert_classes == NULL));
+  TRY_CHECK((config.local_alerts_len > 0 && config.local_alerts != NULL &&
+             config.local_alert_classes != NULL) ||
+            (config.local_alerts_len == 0 && config.local_alerts == NULL &&
+             config.local_alert_classes == NULL));
+  TRY_CHECK((config.classes_len > 0 && config.classes != NULL &&
+             config.class_configs != NULL) ||
+            (config.classes_len == 0 && config.classes == NULL &&
+             config.class_configs == NULL));
 
   // Check that the provided ping timeout actually fits in the timeout
   // register, which is smaller than a native word length.
-  CHECK(config.ping_timeout <=
-        ALERT_HANDLER_PING_TIMEOUT_CYC_SHADOWED_PING_TIMEOUT_CYC_SHADOWED_MASK);
+  TRY_CHECK(
+      config.ping_timeout <=
+      ALERT_HANDLER_PING_TIMEOUT_CYC_SHADOWED_PING_TIMEOUT_CYC_SHADOWED_MASK);
 
   // Configure and enable the requested alerts.
   for (int i = 0; i < config.alerts_len; ++i) {
-    CHECK_DIF_OK(dif_alert_handler_configure_alert(
-        alert_handler, config.alerts[i], config.alert_classes[i],
-        kDifToggleEnabled, locked));
+    TRY(dif_alert_handler_configure_alert(alert_handler, config.alerts[i],
+                                          config.alert_classes[i],
+                                          kDifToggleEnabled, locked));
   }
 
   // Configure and enable the requested local alerts.
   for (int i = 0; i < config.local_alerts_len; ++i) {
-    CHECK_DIF_OK(dif_alert_handler_configure_local_alert(
+    TRY(dif_alert_handler_configure_local_alert(
         alert_handler, config.local_alerts[i], config.local_alert_classes[i],
         kDifToggleEnabled, locked));
   }
 
   // Configure and enable the requested classes.
   for (int i = 0; i < config.classes_len; ++i) {
-    CHECK_DIF_OK(dif_alert_handler_configure_class(
-        alert_handler, config.classes[i], config.class_configs[i],
-        kDifToggleEnabled, locked));
+    TRY(dif_alert_handler_configure_class(alert_handler, config.classes[i],
+                                          config.class_configs[i],
+                                          kDifToggleEnabled, locked));
   }
 
   // Configure the ping timer.
-  CHECK_DIF_OK(dif_alert_handler_configure_ping_timer(
-      alert_handler, config.ping_timeout, kDifToggleEnabled, locked));
+  TRY(dif_alert_handler_configure_ping_timer(alert_handler, config.ping_timeout,
+                                             kDifToggleEnabled, locked));
+
+  return OK_STATUS();
 }
 
-uint32_t alert_handler_testutils_get_cycles_from_us(uint64_t microseconds) {
-  uint64_t cycles = udiv64_slow(microseconds * kClockFreqPeripheralHz, 1000000,
-                                /*rem_out=*/NULL);
-  CHECK(cycles < UINT32_MAX,
-        "The value 0x%08x%08x can't fit into the 32 bits timer counter.",
-        (cycles >> 32), (uint32_t)cycles);
-  return (uint32_t)cycles;
+status_t alert_handler_testutils_get_cycles_from_us(uint64_t microseconds,
+                                                    uint32_t *cycles) {
+  uint64_t cycles_ = udiv64_slow(microseconds * kClockFreqPeripheralHz, 1000000,
+                                 /*rem_out=*/NULL);
+  TRY_CHECK(cycles_ < UINT32_MAX,
+            "The value 0x%08x%08x can't fit into the 32 bits timer counter.",
+            (cycles_ >> 32), (uint32_t)cycles_);
+  *cycles = (uint32_t)cycles_;
+  return OK_STATUS();
 }
 
 uint32_t alert_handler_testutils_cycle_rescaling_factor() {
   return kDeviceType == kDeviceSimDV ? 1 : 10;
-}
-
-bool alert_handler_testutils_is_alert_active(
-    const dif_alert_handler_t *alert_handler, dif_alert_handler_alert_t alert) {
-  bool is_cause;
-  CHECK_DIF_OK(
-      dif_alert_handler_alert_is_cause(alert_handler, alert, &is_cause));
-  return is_cause;
 }

@@ -28,6 +28,7 @@ module top_earlgrey #(
   // parameters for otp_ctrl
   parameter OtpCtrlMemInitFile = "",
   // parameters for lc_ctrl
+  parameter bit SecLcCtrlVolatileRawUnlockEn = top_pkg::SecVolatileRawUnlockEn,
   parameter logic [15:0] LcCtrlChipGen = 16'h 0000,
   parameter logic [15:0] LcCtrlChipRev = 16'h 0000,
   parameter logic [31:0] LcCtrlIdcodeValue = jtag_id_pkg::JTAG_IDCODE,
@@ -46,6 +47,7 @@ module top_earlgrey #(
   // parameters for adc_ctrl_aon
   // parameters for pwm_aon
   // parameters for pinmux_aon
+  parameter bit SecPinmuxAonVolatileRawUnlockEn = top_pkg::SecVolatileRawUnlockEn,
   parameter pinmux_pkg::target_cfg_t PinmuxAonTargetCfg = pinmux_pkg::DefaultTargetCfg,
   // parameters for aon_timer_aon
   // parameters for sensor_ctrl
@@ -80,6 +82,7 @@ module top_earlgrey #(
   // parameters for csrng
   parameter aes_pkg::sbox_impl_e CsrngSBoxImpl = aes_pkg::SBoxImplCanright,
   // parameters for entropy_src
+  parameter int EntropySrcEsFifoDepth = 4,
   parameter bit EntropySrcStub = 0,
   // parameters for edn0
   // parameters for edn1
@@ -135,7 +138,8 @@ module top_earlgrey #(
   output lc_ctrl_pkg::lc_tx_t       ast_lc_dft_en_o,
   input  ast_pkg::ast_obs_ctrl_t       obs_ctrl_i,
   input  prim_ram_1p_pkg::ram_1p_cfg_t       ram_1p_cfg_i,
-  input  prim_ram_2p_pkg::ram_2p_cfg_t       ram_2p_cfg_i,
+  input  prim_ram_2p_pkg::ram_2p_cfg_t       spi_ram_2p_cfg_i,
+  input  prim_ram_2p_pkg::ram_2p_cfg_t       usb_ram_2p_cfg_i,
   input  prim_rom_pkg::rom_cfg_t       rom_cfg_i,
   output prim_mubi_pkg::mubi4_t       clk_main_jitter_en_o,
   output prim_mubi_pkg::mubi4_t       io_clk_byp_req_o,
@@ -523,7 +527,8 @@ module top_earlgrey #(
   // define inter-module signals
   ast_pkg::ast_obs_ctrl_t       ast_obs_ctrl;
   prim_ram_1p_pkg::ram_1p_cfg_t       ast_ram_1p_cfg;
-  prim_ram_2p_pkg::ram_2p_cfg_t       ast_ram_2p_cfg;
+  prim_ram_2p_pkg::ram_2p_cfg_t       ast_spi_ram_2p_cfg;
+  prim_ram_2p_pkg::ram_2p_cfg_t       ast_usb_ram_2p_cfg;
   prim_rom_pkg::rom_cfg_t       ast_rom_cfg;
   alert_pkg::alert_crashdump_t       alert_handler_crashdump;
   prim_esc_pkg::esc_rx_t [3:0] alert_handler_esc_rx;
@@ -590,6 +595,7 @@ module top_earlgrey #(
   otp_ctrl_pkg::lc_otp_vendor_test_req_t       lc_ctrl_lc_otp_vendor_test_req;
   otp_ctrl_pkg::lc_otp_vendor_test_rsp_t       lc_ctrl_lc_otp_vendor_test_rsp;
   lc_ctrl_pkg::lc_keymgr_div_t       lc_ctrl_lc_keymgr_div;
+  logic       lc_ctrl_strap_en_override;
   lc_ctrl_pkg::lc_tx_t       lc_ctrl_lc_dft_en;
   lc_ctrl_pkg::lc_tx_t       lc_ctrl_lc_nvm_debug_en;
   lc_ctrl_pkg::lc_tx_t       lc_ctrl_lc_hw_debug_en;
@@ -745,7 +751,8 @@ module top_earlgrey #(
   assign ast_lc_dft_en_o = lc_ctrl_lc_dft_en;
   assign ast_obs_ctrl = obs_ctrl_i;
   assign ast_ram_1p_cfg = ram_1p_cfg_i;
-  assign ast_ram_2p_cfg = ram_2p_cfg_i;
+  assign ast_spi_ram_2p_cfg = spi_ram_2p_cfg_i;
+  assign ast_usb_ram_2p_cfg = usb_ram_2p_cfg_i;
   assign ast_rom_cfg = rom_cfg_i;
 
   // define partial inter-module tie-off
@@ -1185,7 +1192,7 @@ module top_earlgrey #(
       .alert_rx_i  ( alert_rx[5:5] ),
 
       // Inter-module signals
-      .ram_cfg_i(ast_ram_2p_cfg),
+      .ram_cfg_i(ast_spi_ram_2p_cfg),
       .passthrough_o(spi_device_passthrough_req),
       .passthrough_i(spi_device_passthrough_rsp),
       .mbist_en_i('0),
@@ -1440,6 +1447,7 @@ module top_earlgrey #(
   );
   lc_ctrl #(
     .AlertAsyncOn(alert_handler_reg_pkg::AsyncOn[18:16]),
+    .SecVolatileRawUnlockEn(SecLcCtrlVolatileRawUnlockEn),
     .RndCnstLcKeymgrDivInvalid(RndCnstLcCtrlLcKeymgrDivInvalid),
     .RndCnstLcKeymgrDivTestDevRma(RndCnstLcCtrlLcKeymgrDivTestDevRma),
     .RndCnstLcKeymgrDivProduction(RndCnstLcCtrlLcKeymgrDivProduction),
@@ -1491,6 +1499,7 @@ module top_earlgrey #(
       .otp_device_id_i(lc_ctrl_otp_device_id),
       .otp_manuf_state_i(lc_ctrl_otp_manuf_state),
       .hw_rev_o(),
+      .strap_en_override_o(lc_ctrl_strap_en_override),
       .tl_i(lc_ctrl_tl_req),
       .tl_o(lc_ctrl_tl_rsp),
       .scanmode_i,
@@ -1654,7 +1663,7 @@ module top_earlgrey #(
       .usb_aon_bus_reset_i(usbdev_usb_aon_bus_reset),
       .usb_aon_sense_lost_i(usbdev_usb_aon_sense_lost),
       .usb_aon_wake_detect_active_i(pinmux_aon_usbdev_wake_detect_active),
-      .ram_cfg_i(ast_ram_2p_cfg),
+      .ram_cfg_i(ast_usb_ram_2p_cfg),
       .tl_i(usbdev_tl_req),
       .tl_o(usbdev_tl_rsp),
 
@@ -1895,6 +1904,7 @@ module top_earlgrey #(
   );
   pinmux #(
     .AlertAsyncOn(alert_handler_reg_pkg::AsyncOn[30:30]),
+    .SecVolatileRawUnlockEn(SecPinmuxAonVolatileRawUnlockEn),
     .TargetCfg(PinmuxAonTargetCfg)
   ) u_pinmux_aon (
       // [30]: fatal_fault
@@ -1917,6 +1927,7 @@ module top_earlgrey #(
       .dft_hold_tap_sel_i(dft_hold_tap_sel_i),
       .sleep_en_i(pwrmgr_aon_low_power),
       .strap_en_i(pwrmgr_aon_strap),
+      .strap_en_override_i(lc_ctrl_strap_en_override),
       .pin_wkup_req_o(pwrmgr_aon_wakeups[2]),
       .usbdev_dppullup_en_i(usbdev_usb_dp_pullup),
       .usbdev_dnpullup_en_i(usbdev_usb_dn_pullup),
@@ -2395,6 +2406,7 @@ module top_earlgrey #(
   );
   entropy_src #(
     .AlertAsyncOn(alert_handler_reg_pkg::AsyncOn[54:53]),
+    .EsFifoDepth(EntropySrcEsFifoDepth),
     .Stub(EntropySrcStub)
   ) u_entropy_src (
 

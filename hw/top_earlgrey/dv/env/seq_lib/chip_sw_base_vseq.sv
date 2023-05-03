@@ -21,12 +21,20 @@ class chip_sw_base_vseq extends chip_base_vseq;
 
   // Drive sw_strap pins only when the ROM / test ROM code is active
   virtual task set_and_release_sw_strap_nonblocking();
+    sw_test_status_e prev_status = SwTestStatusUnderReset;
     fork begin
       forever begin
-        wait (cfg.sw_test_status_vif.sw_test_status == SwTestStatusInBootRom)
-        cfg.chip_vif.sw_straps_if.drive({3{cfg.use_spi_load_bootstrap}});
-        wait (cfg.sw_test_status_vif.sw_test_status == SwTestStatusInTest)
-        cfg.chip_vif.sw_straps_if.disconnect();
+        wait (cfg.sw_test_status_vif.sw_test_status != prev_status);
+        case (cfg.sw_test_status_vif.sw_test_status)
+          SwTestStatusInBootRom: begin
+            cfg.chip_vif.sw_straps_if.drive({3{cfg.use_spi_load_bootstrap}});
+          end
+          SwTestStatusInTest: begin
+            cfg.chip_vif.sw_straps_if.disconnect();
+          end
+          default: ;
+        endcase
+        prev_status = cfg.sw_test_status_vif.sw_test_status;
       end
     end join_none
   endtask
@@ -103,6 +111,7 @@ class chip_sw_base_vseq extends chip_base_vseq;
       if (cfg.use_spi_load_bootstrap) begin
         `uvm_info(`gfn, "Initializing SPI flash bootstrap", UVM_MEDIUM)
         spi_device_load_bootstrap({cfg.sw_images[SwTypeTestSlotA], ".64.vmem"});
+        cfg.use_spi_load_bootstrap = 1'b0;
       end else begin
         cfg.mem_bkdr_util_h[FlashBank0Data].load_mem_from_file(
             {cfg.sw_images[SwTypeTestSlotA], ".64.scr.vmem"});
@@ -843,6 +852,37 @@ class chip_sw_base_vseq extends chip_base_vseq;
     wait_lc_transition_successful(.max_attempt(max_attempt));
     `uvm_info(`gfn, "LC transition request succeeded successfully!", UVM_LOW)
   endtask
+
+  // Acquire the LC_CTRL transition interface mutex by LC JTAG
+  protected task claim_transition_interface();
+    `uvm_info(`gfn, "Claiming LC controller transition interface by JTAG...", UVM_MEDIUM)
+    jtag_riscv_agent_pkg::jtag_write_csr(
+        ral.lc_ctrl.claim_transition_if.get_offset(),
+        p_sequencer.jtag_sequencer_h,
+        prim_mubi_pkg::MuBi8True);
+  endtask : claim_transition_interface
+
+  // Bypass IO clock with the external clock
+  // using LC_CTRL.CTRL_TRANSITION.EXT_CLOCK_EN
+  task switch_to_external_clock();
+    // activate the external source clock with 48MHz
+    `uvm_info(`gfn, "Setting external clock to 48MHz...", UVM_MEDIUM)
+    cfg.chip_vif.ext_clk_if.set_freq_mhz(48);
+    cfg.chip_vif.ext_clk_if.set_active(.drive_clk_val(1), .drive_rst_n_val(0));
+
+    // switch OTP to use external clock instead of internal clock
+    // wait for LC to be ready, acquire the transition interface mutex and
+    // enable external clock
+    wait_lc_ready();
+    claim_transition_interface();
+
+    // switch to external clock via LC controller
+    `uvm_info(`gfn, "Switching to external clock via JTAG...", UVM_MEDIUM)
+    jtag_riscv_agent_pkg::jtag_write_csr(
+      ral.lc_ctrl.transition_ctrl.get_offset(),
+      p_sequencer.jtag_sequencer_h,
+      1);
+  endtask : switch_to_external_clock
 
   // Use JTAG interface to program OTP fields.
   virtual task jtag_otp_program32(int addr,

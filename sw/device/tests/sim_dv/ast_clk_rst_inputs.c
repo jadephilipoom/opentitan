@@ -327,7 +327,8 @@ void ast_enter_sleep_states_and_check_functionality(
     deepsleep = false;
   }
 
-  if (pwrmgr_testutils_is_wakeup_reason(&pwrmgr, kDifNoWakeup)) {
+  if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, kDifNoWakeup)) ==
+      true) {
     entropy_config(entropy_src_config);
 
     // Verify that the FIFO depth is non-zero via SW - indicating the reception
@@ -345,7 +346,7 @@ void ast_enter_sleep_states_and_check_functionality(
     CHECK_DIF_OK(dif_pwrmgr_irq_set_enabled(&pwrmgr, 0, kDifToggleEnabled));
 
     // Setup low power.
-    rstmgr_testutils_pre_reset(&rstmgr);
+    CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
 
     if (!deepsleep) {
       // read fifo depth before enter sleep mode
@@ -356,8 +357,8 @@ void ast_enter_sleep_states_and_check_functionality(
     adc_setup(first_adc_setup);
 
     // set sleep mode
-    pwrmgr_testutils_enable_low_power(&pwrmgr, kDifPwrmgrWakeupRequestSourceTwo,
-                                      pwrmgr_config);
+    CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+        &pwrmgr, kDifPwrmgrWakeupRequestSourceTwo, pwrmgr_config));
 
     // Enter low power mode.
     LOG_INFO("Issued WFI to enter sleep.");
@@ -369,8 +370,8 @@ void ast_enter_sleep_states_and_check_functionality(
 
     interrupt_serviced = false;
 
-  } else if (pwrmgr_testutils_is_wakeup_reason(
-                 &pwrmgr, kDifPwrmgrWakeupRequestSourceTwo)) {
+  } else if (UNWRAP(pwrmgr_testutils_is_wakeup_reason(
+                 &pwrmgr, kDifPwrmgrWakeupRequestSourceTwo)) == true) {
     if (deepsleep) {
       if (read_fifo_depth(&entropy_src) != 0)
         LOG_ERROR("read_fifo_depth after reset=%0d should be 0",

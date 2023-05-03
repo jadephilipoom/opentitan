@@ -128,6 +128,8 @@ jobs:
     displayName: Check trailing whitespace
   - bash: ci/scripts/build-docs.sh
     displayName: Render documentation
+  - bash: ci/scripts/check-links.sh
+    displayName: Check File Links
   - bash: ci/scripts/get-build-type.sh "$SYSTEM_PULLREQUEST_TARGETBRANCH" "$(Build.Reason)"
     displayName: Type of change
     # Check what kinds of changes the PR contains
@@ -138,7 +140,7 @@ jobs:
 
 - job: airgapped_bazel_build
   displayName: Test an airgapped Bazel build
-  timeoutInMinutes: 90
+  timeoutInMinutes: 120
   dependsOn: checkout
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
@@ -667,13 +669,6 @@ jobs:
     inputs:
       command: build
       Dockerfile: ./util/container/Dockerfile
-      buildContext: .
-  - task: Docker@2
-    displayName: Build Documentation Builder Container
-    inputs:
-      command: build
-      tags: gcr.io/active-premise-257318/builder
-      Dockerfile: ./util/site/site-builder/builder.Dockerfile
       buildContext: .
   - task: Docker@2
     displayName: Build Documentation Redirector Container

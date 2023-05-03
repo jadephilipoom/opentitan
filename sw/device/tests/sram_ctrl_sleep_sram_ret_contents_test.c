@@ -123,11 +123,11 @@ void test_ret_sram_in_normal_sleep(void) {
   CHECK_DIF_OK(dif_pwrmgr_irq_set_enabled(&pwrmgr, 0, kDifToggleEnabled));
 
   // Normal sleep.
-  pwrmgr_testutils_enable_low_power(
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
       &pwrmgr, /*wakeups=*/kDifPwrmgrWakeupRequestSourceFive,
       /*domain_config=*/kDifPwrmgrDomainOptionCoreClockInLowPower |
           kDifPwrmgrDomainOptionUsbClockInActivePower |
-          kDifPwrmgrDomainOptionMainPowerInLowPower);
+          kDifPwrmgrDomainOptionMainPowerInLowPower));
   // Enter low power mode.
   LOG_INFO("Issue WFI to enter normal sleep");
   wait_for_interrupt();
@@ -140,12 +140,12 @@ void test_ret_sram_in_normal_sleep(void) {
 // deep sleep, with scrambling -> data preserved
 void enter_deep_sleep() {
   // Prepare rstmgr for a reset.
-  rstmgr_testutils_pre_reset(&rstmgr);
+  CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
   // set up wakeup timer
   CHECK_STATUS_OK(aon_timer_testutils_wakeup_config(&aon_timer, 20));
   // Deep sleep.
-  pwrmgr_testutils_enable_low_power(&pwrmgr, kDifPwrmgrWakeupRequestSourceFive,
-                                    0);
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
+      &pwrmgr, kDifPwrmgrWakeupRequestSourceFive, 0));
 
   // Enter low power mode.
   LOG_INFO("Issue WFI to enter deep sleep");
@@ -155,7 +155,7 @@ void enter_deep_sleep() {
 
 void set_up_reset_request(void) {
   // Prepare rstmgr for a reset.
-  rstmgr_testutils_pre_reset(&rstmgr);
+  CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
   CHECK_DIF_OK(dif_pwrmgr_set_request_sources(&pwrmgr, kDifPwrmgrReqTypeReset,
                                               kDifPwrmgrResetRequestSourceTwo,
                                               kDifToggleEnabled));
@@ -163,7 +163,8 @@ void set_up_reset_request(void) {
   CHECK_DIF_OK(dif_aon_timer_wakeup_stop(&aon_timer));
 
   // Enter low power mode.
-  aon_timer_testutils_watchdog_config(&aon_timer, UINT32_MAX, 20, false);
+  CHECK_STATUS_OK(
+      aon_timer_testutils_watchdog_config(&aon_timer, UINT32_MAX, 20, false));
   LOG_INFO("wait for reset");
   wait_for_interrupt();
   CHECK(false, "Should have a reset to CPU and ret_sram before this line");
@@ -205,8 +206,8 @@ bool test_main(void) {
     LOG_INFO("wake up from deep sleep with ret_non_scrambled: %x",
              ret_non_scrambled);
 
-    CHECK(pwrmgr_testutils_is_wakeup_reason(&pwrmgr,
-                                            kDifPwrmgrWakeupRequestSourceFive));
+    CHECK(UNWRAP(pwrmgr_testutils_is_wakeup_reason(
+              &pwrmgr, kDifPwrmgrWakeupRequestSourceFive)) == true);
     // data preserved
     retention_sram_check((check_config_t){.do_write = false, .is_equal = true});
 

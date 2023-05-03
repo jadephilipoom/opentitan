@@ -213,7 +213,8 @@ module chip_englishbreakfast_verilator (
 
     // Memory attributes
     .ram_1p_cfg_i                 ('0),
-    .ram_2p_cfg_i                 ('0),
+    .spi_ram_2p_cfg_i             ('0),
+    .usb_ram_2p_cfg_i             ('0),
     .rom_cfg_i                    ('0),
 
     // DFT signals
@@ -296,6 +297,7 @@ module chip_englishbreakfast_verilator (
     .clk_i           (clk_i),
     .rst_ni          (rst_ni),
     .clk_48MHz_i     (clk_i),
+    .enable          (1'b1),
     .sense_p2d       (cio_usbdev_sense_p2d),
     .pullupdp_d2p    (cio_usbdev_dp_pullup_d2p),
     .pullupdn_d2p    (cio_usbdev_dn_pullup_d2p),

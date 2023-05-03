@@ -86,14 +86,14 @@ static bool usb_testutils_transfer_next_part(
   return true;
 }
 
-void usb_testutils_poll(usb_testutils_ctx_t *ctx) {
+status_t usb_testutils_poll(usb_testutils_ctx_t *ctx) {
   uint32_t istate;
 
   // Collect a set of interrupts
-  CHECK_DIF_OK(dif_usbdev_irq_get_state(ctx->dev, &istate));
+  TRY(dif_usbdev_irq_get_state(ctx->dev, &istate));
 
   if (!istate) {
-    return;
+    return OK_STATUS();
   }
 
   // Process IN completions first so we get the fact that send completed
@@ -101,14 +101,13 @@ void usb_testutils_poll(usb_testutils_ctx_t *ctx) {
   // This is also important for device IN performance
   if (istate & (1u << kDifUsbdevIrqPktSent)) {
     uint16_t sentep;
-    CHECK_DIF_OK(dif_usbdev_get_tx_sent(ctx->dev, &sentep));
+    TRY(dif_usbdev_get_tx_sent(ctx->dev, &sentep));
     TRC_C('a' + sentep);
     unsigned ep = 0u;
     while (sentep && ep < USBDEV_NUM_ENDPOINTS) {
       if (sentep & (1u << ep)) {
         // Free up the buffer and optionally callback
-        CHECK_DIF_OK(
-            dif_usbdev_clear_tx_status(ctx->dev, ctx->buffer_pool, ep));
+        TRY(dif_usbdev_clear_tx_status(ctx->dev, ctx->buffer_pool, ep));
 
         // If we have a larger transfer in progress, continue with that
         usb_testutils_transfer_t *transfer = &ctx->in[ep].transfer;
@@ -130,7 +129,7 @@ void usb_testutils_poll(usb_testutils_ctx_t *ctx) {
         // Notify that we've sent the single packet, or larger buffer transfer
         // is now complete
         if (done && ctx->in[ep].tx_done_callback) {
-          ctx->in[ep].tx_done_callback(ctx->in[ep].ep_ctx, res);
+          TRY(ctx->in[ep].tx_done_callback(ctx->in[ep].ep_ctx, res));
         }
         sentep &= ~(1u << ep);
       }
@@ -139,31 +138,30 @@ void usb_testutils_poll(usb_testutils_ctx_t *ctx) {
   }
 
   // Keep buffers available for packet reception
-  CHECK_DIF_OK(dif_usbdev_fill_available_fifo(ctx->dev, ctx->buffer_pool));
+  TRY(dif_usbdev_fill_available_fifo(ctx->dev, ctx->buffer_pool));
 
   if (istate & (1u << kDifUsbdevIrqPktReceived)) {
     // TODO: we run the risk of starving the IN side here if the rx_callback(s)
     // are time-consuming
     while (true) {
       bool is_empty;
-      CHECK_DIF_OK(dif_usbdev_status_get_rx_fifo_empty(ctx->dev, &is_empty));
+      TRY(dif_usbdev_status_get_rx_fifo_empty(ctx->dev, &is_empty));
       if (is_empty) {
         break;
       }
 
       dif_usbdev_rx_packet_info_t packet_info;
       dif_usbdev_buffer_t buffer;
-      CHECK_DIF_OK(dif_usbdev_recv(ctx->dev, &packet_info, &buffer));
+      TRY(dif_usbdev_recv(ctx->dev, &packet_info, &buffer));
 
       unsigned ep = packet_info.endpoint;
       if (ctx->out[ep].rx_callback) {
-        ctx->out[ep].rx_callback(ctx->out[ep].ep_ctx, packet_info, buffer);
+        TRY(ctx->out[ep].rx_callback(ctx->out[ep].ep_ctx, packet_info, buffer));
       } else {
         // Note: this could happen following endpoint removal
         TRC_S("USB: unexpected RX ");
-        TRC_I(endpoint, 8);
-        CHECK_DIF_OK(
-            dif_usbdev_buffer_return(ctx->dev, ctx->buffer_pool, &buffer));
+        TRC_I(ep, 8);
+        TRY(dif_usbdev_buffer_return(ctx->dev, ctx->buffer_pool, &buffer));
       }
     }
   }
@@ -175,21 +173,21 @@ void usb_testutils_poll(usb_testutils_ctx_t *ctx) {
       // impacted, and then the OUT endpoint before advancing to the next
       // endpoint number in case the order is important to the client(s)
       if (ctx->in[ep].reset) {
-        ctx->in[ep].reset(ctx->in[ep].ep_ctx);
+        TRY(ctx->in[ep].reset(ctx->in[ep].ep_ctx));
       }
       if (ctx->out[ep].reset) {
-        ctx->out[ep].reset(ctx->out[ep].ep_ctx);
+        TRY(ctx->out[ep].reset(ctx->out[ep].ep_ctx));
       }
     }
   }
 
   // Clear the interrupts that we've received and handled
-  CHECK_DIF_OK(dif_usbdev_irq_acknowledge_state(ctx->dev, istate));
+  TRY(dif_usbdev_irq_acknowledge_state(ctx->dev, istate));
 
   // Record bus frame
   if ((istate & (1u << kDifUsbdevIrqFrame))) {
     // The first bus frame is 1
-    CHECK_DIF_OK(dif_usbdev_status_get_frame(ctx->dev, &ctx->frame));
+    TRY(dif_usbdev_status_get_frame(ctx->dev, &ctx->frame));
     ctx->got_frame = true;
   }
 
@@ -236,7 +234,7 @@ void usb_testutils_poll(usb_testutils_ctx_t *ctx) {
     if (ctx->flushed == 0) {
       for (unsigned ep = 0; ep < USBDEV_NUM_ENDPOINTS; ep++) {
         if (ctx->in[ep].flush) {
-          ctx->in[ep].flush(ctx->in[ep].ep_ctx);
+          TRY(ctx->in[ep].flush(ctx->in[ep].ep_ctx));
         }
       }
       ctx->flushed = 1;
@@ -245,17 +243,18 @@ void usb_testutils_poll(usb_testutils_ctx_t *ctx) {
     ctx->flushed = 0;
   }
   // TODO Errors? What Errors?
+  return OK_STATUS();
 }
 
-bool usb_testutils_transfer_send(usb_testutils_ctx_t *ctx, uint8_t ep,
-                                 const uint8_t *data, uint32_t length,
-                                 usb_testutils_xfr_flags_t flags) {
+status_t usb_testutils_transfer_send(usb_testutils_ctx_t *ctx, uint8_t ep,
+                                     const uint8_t *data, uint32_t length,
+                                     usb_testutils_xfr_flags_t flags) {
   CHECK(ep < USBDEV_NUM_ENDPOINTS);
 
   usb_testutils_transfer_t *transfer = &ctx->in[ep].transfer;
   if (transfer->buffer) {
     // If there is an in-progress transfer, then we cannot accept another
-    return false;
+    return OK_STATUS(false);
   }
 
   // Describe this transfer
@@ -268,17 +267,18 @@ bool usb_testutils_transfer_send(usb_testutils_ctx_t *ctx, uint8_t ep,
   if (!usb_testutils_transfer_next_part(ctx, ep, transfer)) {
     // Forget about the attempted transfer
     transfer->buffer = NULL;
-    return false;
+    return OK_STATUS(false);
   }
 
   // Buffer transfer is underway...
-  return true;
+  return OK_STATUS(true);
 }
 
-void usb_testutils_in_endpoint_setup(
+status_t usb_testutils_in_endpoint_setup(
     usb_testutils_ctx_t *ctx, uint8_t ep, void *ep_ctx,
-    void (*tx_done)(void *, usb_testutils_xfr_result_t), void (*flush)(void *),
-    void (*reset)(void *)) {
+    usb_testutils_tx_done_handler_t tx_done,
+    usb_testutils_tx_flush_handler_t flush,
+    usb_testutils_reset_handler_t reset) {
   ctx->in[ep].ep_ctx = ep_ctx;
   ctx->in[ep].tx_done_callback = tx_done;
   ctx->in[ep].flush = flush;
@@ -289,19 +289,17 @@ void usb_testutils_in_endpoint_setup(
       .direction = USBDEV_ENDPOINT_DIR_IN,
   };
 
-  CHECK_DIF_OK(
-      dif_usbdev_endpoint_stall_enable(ctx->dev, endpoint, kDifToggleDisabled));
+  TRY(dif_usbdev_endpoint_stall_enable(ctx->dev, endpoint, kDifToggleDisabled));
 
   // Enable IN traffic from device to host
-  CHECK_DIF_OK(
-      dif_usbdev_endpoint_enable(ctx->dev, endpoint, kDifToggleEnabled));
+  TRY(dif_usbdev_endpoint_enable(ctx->dev, endpoint, kDifToggleEnabled));
+  return OK_STATUS();
 }
 
-void usb_testutils_out_endpoint_setup(
+status_t usb_testutils_out_endpoint_setup(
     usb_testutils_ctx_t *ctx, uint8_t ep,
     usb_testutils_out_transfer_mode_t out_mode, void *ep_ctx,
-    void (*rx)(void *, dif_usbdev_rx_packet_info_t, dif_usbdev_buffer_t),
-    void (*reset)(void *)) {
+    usb_testutils_rx_handler_t rx, usb_testutils_reset_handler_t reset) {
   ctx->out[ep].ep_ctx = ep_ctx;
   ctx->out[ep].rx_callback = rx;
   ctx->out[ep].reset = reset;
@@ -311,8 +309,7 @@ void usb_testutils_out_endpoint_setup(
       .direction = USBDEV_ENDPOINT_DIR_OUT,
   };
 
-  CHECK_DIF_OK(
-      dif_usbdev_endpoint_stall_enable(ctx->dev, endpoint, kDifToggleDisabled));
+  TRY(dif_usbdev_endpoint_stall_enable(ctx->dev, endpoint, kDifToggleDisabled));
 
   // Enable/disable the endpoint and reception of OUT packets?
   dif_toggle_t enabled = kDifToggleEnabled;
@@ -326,67 +323,72 @@ void usb_testutils_out_endpoint_setup(
     nak = kDifToggleEnabled;
   }
 
-  CHECK_DIF_OK(dif_usbdev_endpoint_enable(ctx->dev, endpoint, enabled));
-  CHECK_DIF_OK(dif_usbdev_endpoint_out_enable(ctx->dev, ep, enabled));
-  CHECK_DIF_OK(dif_usbdev_endpoint_set_nak_out_enable(ctx->dev, ep, nak));
+  TRY(dif_usbdev_endpoint_enable(ctx->dev, endpoint, enabled));
+  TRY(dif_usbdev_endpoint_out_enable(ctx->dev, ep, enabled));
+  TRY(dif_usbdev_endpoint_set_nak_out_enable(ctx->dev, ep, nak));
+  return OK_STATUS();
 }
 
-void usb_testutils_endpoint_setup(
+status_t usb_testutils_endpoint_setup(
     usb_testutils_ctx_t *ctx, uint8_t ep,
     usb_testutils_out_transfer_mode_t out_mode, void *ep_ctx,
-    void (*tx_done)(void *, usb_testutils_xfr_result_t),
-    void (*rx)(void *, dif_usbdev_rx_packet_info_t, dif_usbdev_buffer_t),
-    void (*flush)(void *), void (*reset)(void *)) {
-  usb_testutils_in_endpoint_setup(ctx, ep, ep_ctx, tx_done, flush, reset);
+    usb_testutils_tx_done_handler_t tx_done, usb_testutils_rx_handler_t rx,
+    usb_testutils_tx_flush_handler_t flush,
+    usb_testutils_reset_handler_t reset) {
+  TRY(usb_testutils_in_endpoint_setup(ctx, ep, ep_ctx, tx_done, flush, reset));
 
   // Note: register the link reset handler only on the IN endpoint so that it
   // does not get invoked twice
-  usb_testutils_out_endpoint_setup(ctx, ep, out_mode, ep_ctx, rx, NULL);
+  return usb_testutils_out_endpoint_setup(ctx, ep, out_mode, ep_ctx, rx, NULL);
 }
 
-void usb_testutils_in_endpoint_remove(usb_testutils_ctx_t *ctx, uint8_t ep) {
+status_t usb_testutils_in_endpoint_remove(usb_testutils_ctx_t *ctx,
+                                          uint8_t ep) {
   // Disable IN traffic
   dif_usbdev_endpoint_id_t endpoint = {
       .number = ep,
       .direction = USBDEV_ENDPOINT_DIR_IN,
   };
-  CHECK_DIF_OK(
-      dif_usbdev_endpoint_enable(ctx->dev, endpoint, kDifToggleDisabled));
+  TRY(dif_usbdev_endpoint_enable(ctx->dev, endpoint, kDifToggleDisabled));
 
   // Remove callback handlers
   ctx->in[ep].tx_done_callback = NULL;
   ctx->in[ep].flush = NULL;
   ctx->in[ep].reset = NULL;
+
+  return OK_STATUS();
 }
 
-void usb_testutils_out_endpoint_remove(usb_testutils_ctx_t *ctx, uint8_t ep) {
+status_t usb_testutils_out_endpoint_remove(usb_testutils_ctx_t *ctx,
+                                           uint8_t ep) {
   // Disable OUT traffic
   dif_usbdev_endpoint_id_t endpoint = {
       .number = ep,
       .direction = USBDEV_ENDPOINT_DIR_OUT,
   };
-  CHECK_DIF_OK(
-      dif_usbdev_endpoint_enable(ctx->dev, endpoint, kDifToggleDisabled));
+  TRY(dif_usbdev_endpoint_enable(ctx->dev, endpoint, kDifToggleDisabled));
 
   // Return the rest of the OUT endpoint configuration to its default state
-  CHECK_DIF_OK(dif_usbdev_endpoint_set_nak_out_enable(ctx->dev, endpoint.number,
-                                                      kDifToggleDisabled));
-  CHECK_DIF_OK(dif_usbdev_endpoint_out_enable(ctx->dev, endpoint.number,
-                                              kDifToggleDisabled));
+  TRY(dif_usbdev_endpoint_set_nak_out_enable(ctx->dev, endpoint.number,
+                                             kDifToggleDisabled));
+  TRY(dif_usbdev_endpoint_out_enable(ctx->dev, endpoint.number,
+                                     kDifToggleDisabled));
 
   // Remove callback handlers
   ctx->out[ep].rx_callback = NULL;
   ctx->out[ep].reset = NULL;
+
+  return OK_STATUS();
 }
 
-void usb_testutils_endpoint_remove(usb_testutils_ctx_t *ctx, uint8_t ep) {
-  usb_testutils_in_endpoint_remove(ctx, ep);
-  usb_testutils_out_endpoint_remove(ctx, ep);
+status_t usb_testutils_endpoint_remove(usb_testutils_ctx_t *ctx, uint8_t ep) {
+  TRY(usb_testutils_in_endpoint_remove(ctx, ep));
+  return usb_testutils_out_endpoint_remove(ctx, ep);
 }
 
-void usb_testutils_init(usb_testutils_ctx_t *ctx, bool pinflip,
-                        bool en_diff_rcvr, bool tx_use_d_se0) {
-  CHECK(ctx != NULL);
+status_t usb_testutils_init(usb_testutils_ctx_t *ctx, bool pinflip,
+                            bool en_diff_rcvr, bool tx_use_d_se0) {
+  TRY_CHECK(ctx != NULL);
   ctx->dev = &usbdev;
   ctx->buffer_pool = &buffer_pool;
 
@@ -395,8 +397,7 @@ void usb_testutils_init(usb_testutils_ctx_t *ctx, bool pinflip,
   ctx->got_frame = false;
   ctx->frame = 0u;
 
-  CHECK_DIF_OK(
-      dif_usbdev_init(mmio_region_from_addr(USBDEV_BASE_ADDR), ctx->dev));
+  TRY(dif_usbdev_init(mmio_region_from_addr(USBDEV_BASE_ADDR), ctx->dev));
 
   dif_usbdev_config_t config = {
       .have_differential_receiver = dif_bool_to_toggle(en_diff_rcvr),
@@ -405,35 +406,37 @@ void usb_testutils_init(usb_testutils_ctx_t *ctx, bool pinflip,
       .pin_flip = dif_bool_to_toggle(pinflip),
       .clock_sync_signals = kDifToggleEnabled,
   };
-  CHECK_DIF_OK(dif_usbdev_configure(ctx->dev, ctx->buffer_pool, config));
+  TRY(dif_usbdev_configure(ctx->dev, ctx->buffer_pool, config));
 
   // Set up context
   for (int i = 0; i < USBDEV_NUM_ENDPOINTS; i++) {
-    usb_testutils_endpoint_setup(ctx, i, kUsbdevOutDisabled, NULL, NULL, NULL,
-                                 NULL, NULL);
+    TRY(usb_testutils_endpoint_setup(ctx, i, kUsbdevOutDisabled, NULL, NULL,
+                                     NULL, NULL, NULL));
   }
 
   // All about polling...
-  CHECK_DIF_OK(dif_usbdev_irq_disable_all(ctx->dev, NULL));
+  TRY(dif_usbdev_irq_disable_all(ctx->dev, NULL));
 
   // Provide buffers for any packet reception
-  CHECK_DIF_OK(dif_usbdev_fill_available_fifo(ctx->dev, ctx->buffer_pool));
+  TRY(dif_usbdev_fill_available_fifo(ctx->dev, ctx->buffer_pool));
 
   // Preemptively enable SETUP reception on endpoint zero for the
   // Default Control Pipe; all other settings for that endpoint will be applied
   // once the callback handlers are registered by a call to _endpoint_setup()
-  CHECK_DIF_OK(
-      dif_usbdev_endpoint_setup_enable(ctx->dev, 0, kDifToggleEnabled));
+  TRY(dif_usbdev_endpoint_setup_enable(ctx->dev, 0, kDifToggleEnabled));
+
+  return OK_STATUS();
 }
 
-void usb_testutils_fin(usb_testutils_ctx_t *ctx) {
+status_t usb_testutils_fin(usb_testutils_ctx_t *ctx) {
   // Remove the endpoints in reverse order so that Endpoint Zero goes down last
   for (int ep = USBDEV_NUM_ENDPOINTS - 1; ep >= 0; ep--) {
-    usb_testutils_endpoint_remove(ctx, ep);
+    TRY(usb_testutils_endpoint_remove(ctx, ep));
   }
 
   // Disconnect from the bus
-  CHECK_DIF_OK(dif_usbdev_interface_enable(ctx->dev, kDifToggleDisabled));
+  TRY(dif_usbdev_interface_enable(ctx->dev, kDifToggleDisabled));
+  return OK_STATUS();
 }
 
 // `extern` declarations to give the inline functions in the

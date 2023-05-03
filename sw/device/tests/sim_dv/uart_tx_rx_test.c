@@ -517,8 +517,8 @@ void config_external_clock(const dif_clkmgr_t *clkmgr) {
   CHECK(curr_state == kDifLcCtrlStateRma,
         "LC State isn't in kDifLcCtrlStateRma!");
 
-  clkmgr_testutils_enable_external_clock_and_wait_for_completion(
-      clkmgr, kUseLowSpeedSel);
+  CHECK_STATUS_OK(
+      clkmgr_testutils_enable_external_clock_blocking(clkmgr, kUseLowSpeedSel));
 }
 
 OTTF_DEFINE_TEST_CONFIG();
@@ -550,8 +550,8 @@ bool test_main(void) {
   if (kUseExtClk) {
     config_external_clock(&clkmgr);
   }
-  clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
-      &clkmgr, /*jitter_enabled=*/false, kUseExtClk, kUseLowSpeedSel);
+  CHECK_STATUS_OK(clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
+      &clkmgr, /*jitter_enabled=*/false, kUseExtClk, kUseLowSpeedSel));
 
   // Initialize the UART.
   mmio_region_t chosen_uart_region = mmio_region_from_addr(uart_base_addr);
@@ -569,7 +569,7 @@ bool test_main(void) {
   // Execute the test.
   execute_test(&uart);
 
-  CHECK(clkmgr_testutils_check_measurement_counts(&clkmgr));
+  CHECK_STATUS_OK(clkmgr_testutils_check_measurement_counts(&clkmgr));
 
   return true;
 }

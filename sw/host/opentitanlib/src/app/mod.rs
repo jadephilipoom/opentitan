@@ -11,6 +11,7 @@ use crate::io::gpio::{GpioMonitoring, GpioPin, PinMode, PullMode};
 use crate::io::i2c::Bus;
 use crate::io::ioexpander::IoExpander;
 use crate::io::jtag::{Jtag, JtagParams};
+use crate::io::nonblocking_help::NonblockingHelp;
 use crate::io::spi::Target;
 use crate::io::uart::Uart;
 use crate::transport::{
@@ -58,6 +59,12 @@ impl StagedProgressBar {
         Self {
             current_progress_bar: Rc::new(RefCell::new(None)),
         }
+    }
+
+    pub fn enable_steady_tick(&self, duration: Duration) {
+        let bar = self.current_progress_bar.borrow();
+        let bar = bar.as_ref().unwrap();
+        bar.enable_steady_tick(duration.as_millis() as u64);
     }
 
     /// Returns the overall bytes per second for the most recent stage (either completed or in
@@ -551,6 +558,10 @@ impl TransportWrapper {
     /// Invoke non-standard functionality of some Transport implementations.
     pub fn dispatch(&self, action: &dyn Any) -> Result<Option<Box<dyn Annotate>>> {
         self.transport.dispatch(action)
+    }
+
+    pub fn nonblocking_help(&self) -> Result<Rc<dyn NonblockingHelp>> {
+        self.transport.nonblocking_help()
     }
 
     /// Apply given configuration to a single pins.

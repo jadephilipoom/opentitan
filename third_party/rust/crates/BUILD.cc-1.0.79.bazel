@@ -27,6 +27,10 @@ rust_library(
             "WORKSPACE.bazel",
         ],
     ),
+    crate_features = [
+        "jobserver",
+        "parallel",
+    ],
     crate_root = "src/lib.rs",
     edition = "2018",
     rustc_flags = ["--cap-lints=allow"],
@@ -38,4 +42,7 @@ rust_library(
         "norustfmt",
     ],
     version = "1.0.79",
+    deps = [
+        "@crate_index__jobserver-0.1.26//:jobserver",
+    ],
 )

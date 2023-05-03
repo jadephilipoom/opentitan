@@ -195,8 +195,8 @@ bool test_main(void) {
   };
 
   // 5. Configure Alerts
-  alert_handler_testutils_configure_all(&alert_handler, config,
-                                        kDifToggleEnabled);
+  CHECK_STATUS_OK(alert_handler_testutils_configure_all(&alert_handler, config,
+                                                        kDifToggleEnabled));
 
   // Checks whether alert handler's ping timer is locked
   bool is_locked;
@@ -332,7 +332,7 @@ bool test_main(void) {
 
   // Check that the system has not been reset due to escalation and that the
   // reset reason is still POR.
-  pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0);
+  CHECK(UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) == true);
 
   CHECK_STATUS_OK(aon_timer_testutils_shutdown(&aon_timer));
 

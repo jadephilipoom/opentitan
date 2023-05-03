@@ -138,8 +138,8 @@ static void test_gateable_clocks_off(const dif_clkmgr_t *clkmgr,
   // Save the expected hung address to check against cpu_info's LAST_DATA_ADDR.
   set_hung_address(clock, peri_context[clock].address);
   // Set bite timer.
-  aon_timer_testutils_watchdog_config(&aon_timer, UINT32_MAX, bite_cycles,
-                                      false);
+  CHECK_STATUS_OK(aon_timer_testutils_watchdog_config(&aon_timer, UINT32_MAX,
+                                                      bite_cycles, false));
   // Disable the peripheral's clock.
   CHECK_DIF_OK(
       dif_clkmgr_gateable_clock_set_enabled(clkmgr, clock, kDifToggleDisabled));
@@ -194,8 +194,8 @@ bool test_main(void) {
                                                  /*ecc_en*/ false,
                                                  /*he_en*/ false));
 
-  if (rstmgr_testutils_is_reset_info(&rstmgr, kDifRstmgrResetInfoPor)) {
-    rstmgr_testutils_pre_reset(&rstmgr);
+  if (UNWRAP(rstmgr_testutils_is_reset_info(&rstmgr, kDifRstmgrResetInfoPor))) {
+    CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
 
     // Starting clock.
     dif_clkmgr_gateable_clock_t clock = kTopEarlgreyGateableClocksIoDiv4Peri;
@@ -208,8 +208,8 @@ bool test_main(void) {
     // This should never be reached.
     LOG_ERROR("This is unreachable since a reset should have been triggered");
     return false;
-  } else if (rstmgr_testutils_is_reset_info(&rstmgr,
-                                            kDifRstmgrResetInfoWatchdog)) {
+  } else if (UNWRAP(rstmgr_testutils_is_reset_info(
+                 &rstmgr, kDifRstmgrResetInfoWatchdog))) {
     dif_clkmgr_gateable_clock_t clock = {0};
     CHECK_STATUS_OK(flash_ctrl_testutils_counter_get(0, &clock));
     LOG_INFO("Got an expected watchdog reset when reading for clock %d", clock);
@@ -241,7 +241,7 @@ bool test_main(void) {
       CHECK_STATUS_OK(flash_ctrl_testutils_counter_get(0, &clock));
       LOG_INFO("Next clock to test %d", clock);
 
-      rstmgr_testutils_pre_reset(&rstmgr);
+      CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
 
       test_gateable_clocks_off(&clkmgr, &pwrmgr, clock);
 

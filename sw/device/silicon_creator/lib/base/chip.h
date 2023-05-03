@@ -13,7 +13,7 @@
 /**
  * Manifest size for boot stages stored in flash (in bytes).
  */
-#define CHIP_MANIFEST_SIZE 8752
+#define CHIP_MANIFEST_SIZE 8784
 
 /**
  * ROM_EXT manifest identifier (ASCII "OTRE").
@@ -42,6 +42,15 @@
  * be able to determine the type of ROM in tests (ASCII "TEST").
  */
 #define TEST_ROM_IDENTIFIER 0x54534554
+
+/**
+ * Pinmux pull up/down wait delay.
+ *
+ * After enabling the pull-up/down on a pin, we need to wait for ~5us for the
+ * configuration to propagate to the physical pads. 5us is 500 clock cycles
+ * assuming a 100MHz clock.
+ */
+#define PINMUX_PAD_ATTR_PROP_CYCLES 500
 
 /**
  * Pinmux peripheral input values for software strap pins.

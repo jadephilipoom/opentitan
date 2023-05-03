@@ -16,7 +16,7 @@ static const char *measure_clock_names[kDifClkmgrMeasureClockUsb + 1] = {
 extern bool clkmgr_testutils_get_trans_clock_status(
     const dif_clkmgr_t *clkmgr, dif_clkmgr_hintable_clock_t clock);
 
-extern void clkmgr_testutils_check_trans_clock_gating(
+extern status_t clkmgr_testutils_check_trans_clock_gating(
     const dif_clkmgr_t *clkmgr, dif_clkmgr_hintable_clock_t clock,
     bool exp_clock_enabled, uint32_t timeout_usec);
 
@@ -34,8 +34,16 @@ static expected_count_info_t kNoJitterCountInfos[kDifClkmgrMeasureClockUsb + 1];
 // The expected counts when jitter is enabled.
 static expected_count_info_t kJitterCountInfos[kDifClkmgrMeasureClockUsb + 1];
 
-// The expected variability with no jitter is 2 cycles due to CDC synchronizers.
-static uint32_t kNoJitterVariability = 2;
+// The expected variability as a percentage. The AST guarantees 3% for all
+// clocks, including the AON, so this sets the effective variability to 5%.
+static uint32_t kVariabilityPercentage = 5;
+
+// Compute the variability for a given number of cycles, adding an extra cycle
+// for synchronizers.
+static inline uint32_t get_count_variability(uint32_t cycles,
+                                             uint32_t variability_percentage) {
+  return ((cycles * variability_percentage) + 99) / 100 + 1;
+}
 
 static uint32_t cast_safely(uint64_t val) {
   CHECK(val <= UINT32_MAX);
@@ -46,6 +54,8 @@ void initialize_expected_counts() {
   // The expected counts depend on the device, per sw/device/lib/arch/device.h.
   // Notice the ratios are small enough to fit a uint32_t, even if the Hz number
   // is in uint64_t.
+  // The expected counts are derived from the ratios of the frequencies of the
+  // various clocks to the AON clock. For example, 48 Mhz / 200 kHz = 240.
   const uint32_t kDeviceCpuCount =
       cast_safely(udiv64_slow(kClockFreqCpuHz, kClockFreqAonHz,
                               /*rem_out=*/NULL));
@@ -64,20 +74,33 @@ void initialize_expected_counts() {
       cast_safely(udiv64_slow(kClockFreqUsbHz, kClockFreqAonHz,
                               /*rem_out=*/NULL));
 
-  // The expected counts are derived from the ratios of the frequencies of the
-  // various clocks to the AON clock. For example, 48 Mhz / 200 kHz = 240, so
-  // we set count to 239 and variability to 2, meaning the max threshold is 241,
-  // and the min to 237.
-  kNoJitterCountInfos[kDifClkmgrMeasureClockIo] = (expected_count_info_t){
-      .count = kDeviceIoCount - 1, .variability = kNoJitterVariability};
-  kNoJitterCountInfos[kDifClkmgrMeasureClockIoDiv2] = (expected_count_info_t){
-      .count = kDeviceIoDiv2Count - 1, .variability = kNoJitterVariability};
-  kNoJitterCountInfos[kDifClkmgrMeasureClockIoDiv4] = (expected_count_info_t){
-      .count = kDeviceIoDiv4Count - 1, .variability = kNoJitterVariability};
-  kNoJitterCountInfos[kDifClkmgrMeasureClockMain] = (expected_count_info_t){
-      .count = kDeviceCpuCount - 1, .variability = kNoJitterVariability};
-  kNoJitterCountInfos[kDifClkmgrMeasureClockUsb] = (expected_count_info_t){
-      .count = kDeviceUsbCount - 1, .variability = kNoJitterVariability};
+  LOG_INFO("Variability for Io %d is %d", kDeviceIoCount,
+           get_count_variability(kDeviceIoCount, kVariabilityPercentage));
+  LOG_INFO("Variability for Cpu %d is %d", kDeviceCpuCount,
+           get_count_variability(kDeviceCpuCount, kVariabilityPercentage));
+
+  // Each clock count is guaranteed by the AST +- 3%. This includes the AON
+  // clock, so we use an effective variability of +- 5%.
+  kNoJitterCountInfos[kDifClkmgrMeasureClockIo] =
+      (expected_count_info_t){.count = kDeviceIoCount - 1,
+                              .variability = get_count_variability(
+                                  kDeviceIoCount, kVariabilityPercentage)};
+  kNoJitterCountInfos[kDifClkmgrMeasureClockIoDiv2] =
+      (expected_count_info_t){.count = kDeviceIoDiv2Count - 1,
+                              .variability = get_count_variability(
+                                  kDeviceIoDiv2Count, kVariabilityPercentage)};
+  kNoJitterCountInfos[kDifClkmgrMeasureClockIoDiv4] =
+      (expected_count_info_t){.count = kDeviceIoDiv4Count - 1,
+                              .variability = get_count_variability(
+                                  kDeviceIoDiv4Count, kVariabilityPercentage)};
+  kNoJitterCountInfos[kDifClkmgrMeasureClockMain] =
+      (expected_count_info_t){.count = kDeviceCpuCount - 1,
+                              .variability = get_count_variability(
+                                  kDeviceCpuCount, kVariabilityPercentage)};
+  kNoJitterCountInfos[kDifClkmgrMeasureClockUsb] =
+      (expected_count_info_t){.count = kDeviceUsbCount - 1,
+                              .variability = get_count_variability(
+                                  kDeviceUsbCount, kVariabilityPercentage)};
 
   // If jitter is enabled the low threshold should be up to 20% lower, so
   // the variability is set to 0.1 * max_count, and count as max - 0.1 * max.
@@ -117,17 +140,18 @@ const char *clkmgr_testutils_measurement_name(
   return "unexpected clock";
 }
 
-void clkmgr_testutils_enable_clock_count(const dif_clkmgr_t *clkmgr,
-                                         dif_clkmgr_measure_clock_t clock,
-                                         uint32_t lo_threshold,
-                                         uint32_t hi_threshold) {
+status_t clkmgr_testutils_enable_clock_count(const dif_clkmgr_t *clkmgr,
+                                             dif_clkmgr_measure_clock_t clock,
+                                             uint32_t lo_threshold,
+                                             uint32_t hi_threshold) {
   LOG_INFO("Enabling clock count measurement for %s(%d) lo %d hi %d",
            measure_clock_names[clock], clock, lo_threshold, hi_threshold);
-  CHECK_DIF_OK(dif_clkmgr_enable_measure_counts(clkmgr, clock, lo_threshold,
-                                                hi_threshold));
+  TRY(dif_clkmgr_enable_measure_counts(clkmgr, clock, lo_threshold,
+                                       hi_threshold));
+  return OK_STATUS();
 }
 
-void clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
+status_t clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
     const dif_clkmgr_t *clkmgr, bool jitter_enabled, bool external_clk,
     bool low_speed) {
   static bool counts_initialized = false;
@@ -135,7 +159,7 @@ void clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
     initialize_expected_counts();
     counts_initialized = true;
   }
-  CHECK(!(external_clk && jitter_enabled));
+  TRY_CHECK(!(external_clk && jitter_enabled));
   for (int clk = 0; clk < ARRAYSIZE(kNoJitterCountInfos); ++clk) {
     const expected_count_info_t *count_info;
     if (jitter_enabled) {
@@ -158,57 +182,59 @@ void clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
     } else {
       count_info = &kNoJitterCountInfos[clk];
     }
-    clkmgr_testutils_enable_clock_count(
+    TRY(clkmgr_testutils_enable_clock_count(
         clkmgr, (dif_clkmgr_measure_clock_t)clk,
         count_info->count - count_info->variability,
-        count_info->count + count_info->variability);
+        count_info->count + count_info->variability));
   }
+  return OK_STATUS();
 }
 
-bool clkmgr_testutils_check_measurement_enables(const dif_clkmgr_t *clkmgr,
-                                                dif_toggle_t expected_status) {
+status_t clkmgr_testutils_check_measurement_enables(
+    const dif_clkmgr_t *clkmgr, dif_toggle_t expected_status) {
   bool success = true;
   for (int i = kDifClkmgrMeasureClockIo; i <= kDifClkmgrMeasureClockUsb; ++i) {
     dif_clkmgr_measure_clock_t clock = (dif_clkmgr_measure_clock_t)i;
     dif_toggle_t actual_status;
-    CHECK_DIF_OK(
-        dif_clkmgr_measure_counts_get_enable(clkmgr, clock, &actual_status));
+    TRY(dif_clkmgr_measure_counts_get_enable(clkmgr, clock, &actual_status));
     if (actual_status != expected_status) {
       LOG_INFO("Unexpected enable for clock %d: expected %s", i,
                (expected_status == kDifToggleEnabled ? "enabled" : "disabled"));
       success = false;
     }
   }
-  return success;
+  return OK_STATUS(success);
 }
 
-void clkmgr_testutils_disable_clock_counts(const dif_clkmgr_t *clkmgr) {
+status_t clkmgr_testutils_disable_clock_counts(const dif_clkmgr_t *clkmgr) {
   LOG_INFO("Disabling all clock count measurements");
   for (int i = 0; i <= kDifClkmgrMeasureClockUsb; ++i) {
     dif_clkmgr_measure_clock_t clock = (dif_clkmgr_measure_clock_t)i;
-    CHECK_DIF_OK(dif_clkmgr_disable_measure_counts(clkmgr, clock));
+    TRY(dif_clkmgr_disable_measure_counts(clkmgr, clock));
   }
+  return OK_STATUS();
 }
 
-bool clkmgr_testutils_check_measurement_counts(const dif_clkmgr_t *clkmgr) {
-  bool success = true;
+status_t clkmgr_testutils_check_measurement_counts(const dif_clkmgr_t *clkmgr) {
+  status_t result = OK_STATUS();
   dif_clkmgr_recov_err_codes_t err_codes;
-  CHECK_DIF_OK(dif_clkmgr_recov_err_code_get_codes(clkmgr, &err_codes));
+  TRY(dif_clkmgr_recov_err_code_get_codes(clkmgr, &err_codes));
   if (err_codes != 0) {
     LOG_ERROR("Unexpected recoverable error codes 0x%x", err_codes);
-    success = false;
+    result = INTERNAL();
   } else {
     LOG_INFO("Clock measurements are okay");
   }
   // Clear recoverable errors.
-  CHECK_DIF_OK(dif_clkmgr_recov_err_code_clear_codes(clkmgr, ~0u));
-  return success;
+  TRY(dif_clkmgr_recov_err_code_clear_codes(clkmgr, ~0u));
+  return result;
 }
 
-void clkmgr_testutils_enable_external_clock_and_wait_for_completion(
+status_t clkmgr_testutils_enable_external_clock_blocking(
     const dif_clkmgr_t *clkmgr, bool is_low_speed) {
   LOG_INFO("Configure clkmgr to enable external clock");
-  CHECK_DIF_OK(dif_clkmgr_external_clock_set_enabled(clkmgr, is_low_speed));
-  CHECK_DIF_OK(dif_clkmgr_wait_for_ext_clk_switch(clkmgr));
+  TRY(dif_clkmgr_external_clock_set_enabled(clkmgr, is_low_speed));
+  TRY(dif_clkmgr_wait_for_ext_clk_switch(clkmgr));
   LOG_INFO("Switching to external clock completes");
+  return OK_STATUS();
 }

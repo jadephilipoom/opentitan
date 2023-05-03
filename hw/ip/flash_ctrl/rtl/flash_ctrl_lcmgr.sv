@@ -389,7 +389,7 @@ module flash_ctrl_lcmgr
     addr_cnt_en = 1'b0;
     addr_cnt_clr = 1'b0;
 
-    // flash ctrrl arb controls
+    // flash ctrl arb controls
     start = 1'b0;
     addr = '0;
     part_sel = FlashPartInfo;
@@ -770,7 +770,7 @@ module flash_ctrl_lcmgr
 
     unique case (rma_state_q)
       // Transition to invalid state via disable only when any ongoing stateful
-      // operations are complete. This ensures we do not electically disturb
+      // operations are complete. This ensures we do not electrically disturb
       // any ongoing operation.
       // This of course cannot be guaranteed if the FSM state is directly disturbed,
       // and that is considered an extremely invasive attack.
@@ -877,10 +877,9 @@ module flash_ctrl_lcmgr
 
   end // always_comb
 
-  // TODO: Replace with a wrapper from tlul, that way the module does not need to know what this is
-  prim_secded_inv_39_32_enc u_bus_intg (
+  tlul_data_integ_enc u_bus_intg (
     .data_i(rand_i),
-    .data_o(wdata_o)
+    .data_intg_o(wdata_o)
   );
 
   assign wvalid_o = prog_cnt_en;

@@ -29,10 +29,10 @@ bool test_main(void) {
   // Notice we are clearing rstmgr's RESET_INFO, so after the power glitch there
   // is only one bit set.
 
-  if (rstmgr_testutils_is_reset_info(&rstmgr, kDifRstmgrResetInfoPor)) {
+  if (UNWRAP(rstmgr_testutils_is_reset_info(&rstmgr, kDifRstmgrResetInfoPor))) {
     LOG_INFO("Powered up for the first time, begin test");
 
-    rstmgr_testutils_pre_reset(&rstmgr);
+    CHECK_STATUS_OK(rstmgr_testutils_pre_reset(&rstmgr));
 
     // This causes core_sleeping to rise and triggers the injection of the
     // power glitch. Notice it does not by itself trigger a low power
@@ -41,8 +41,8 @@ bool test_main(void) {
 
   } else {
     LOG_INFO("Checking reset status.");
-    rstmgr_testutils_post_reset(&rstmgr, kDifRstmgrResetInfoPowerUnstable, 0, 0,
-                                0, 0);
+    CHECK_STATUS_OK(rstmgr_testutils_post_reset(
+        &rstmgr, kDifRstmgrResetInfoPowerUnstable, 0, 0, 0, 0));
     LOG_INFO("Reset status indicates a main power glitch reset");
   }
   return true;

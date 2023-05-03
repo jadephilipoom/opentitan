@@ -6,9 +6,25 @@
 #define OPENTITAN_SW_DEVICE_SILICON_CREATOR_MANUF_LIB_PROVISIONING_H_
 
 #include "sw/device/lib/base/status.h"
+#include "sw/device/lib/crypto/impl/ecc/p256_common.h"
+#include "sw/device/lib/crypto/include/ecc.h"
 #include "sw/device/lib/dif/dif_flash_ctrl.h"
 #include "sw/device/lib/dif/dif_lc_ctrl.h"
 #include "sw/device/lib/dif/dif_otp_ctrl.h"
+#include "sw/device/lib/testing/json/provisioning_data.h"
+
+#include "otp_ctrl_regs.h"  // Generated.
+
+enum {
+  /**
+   * RMA unlock token sizes and offsets.
+   */
+  kRmaUnlockTokenSizeInBytes = OTP_CTRL_PARAM_RMA_TOKEN_SIZE,
+  kRmaUnlockTokenSizeIn32BitWords =
+      kRmaUnlockTokenSizeInBytes / sizeof(uint32_t),
+  kRmaUnlockTokenSizeIn64BitWords =
+      kRmaUnlockTokenSizeInBytes / sizeof(uint64_t),
+};
 
 /**
  * Run device personalization.
@@ -17,13 +33,13 @@
  * provisioned, are hidden from software. These secrets are used as the root
  * of the key derivation function in the key manager.
  *
- * This test is part of the `manuf_ft_provision_rma_token_and_personalization`
- * testpoint documented in the
- * sw/device/silicon_creator/manuf/data/manuf_testplan.hjson testplan.
+ * This function implements part of the
+ * `manuf_ft_provision_rma_token_and_personalization` testpoint documented in
+ * the sw/device/silicon_creator/manuf/data/manuf_testplan.hjson testplan.
  *
  * Preconditions:
  * - Device is in DEV, PROD, or PROD_END lifecycle stage.
- * - Device is has SW CSRNG data access.
+ * - Device has SW CSRNG data access.
  *
  * Note: The test will skip all programming steps and succeed if the SECRET2
  * partition is already locked. This is to facilitate test re-runs.
@@ -33,11 +49,14 @@
  * @param flash_state Flash controller instance.
  * @param lc_ctrl Lifecycle controller instance.
  * @param otp OTP controller instance.
+ * @param[out] export_data UJSON struct of data to export from the device.
  * @return OK_STATUS on success.
  */
 status_t provisioning_device_secrets_start(dif_flash_ctrl_state_t *flash_state,
                                            const dif_lc_ctrl_t *lc_ctrl,
-                                           const dif_otp_ctrl_t *otp);
+                                           const dif_otp_ctrl_t *otp,
+                                           manuf_provisioning_t *export_data);
+
 /**
  * Checks device personalization end state.
  *

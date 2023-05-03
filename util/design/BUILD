@@ -25,8 +25,23 @@ py_binary(
     deps = [
         ":secded_gen",
         "//util/design/lib:common",
+        "//util/design/lib:otp_mem_map",
         "//util/design/lib:present",
         requirement("pyfinite"),
+    ],
+)
+
+py_binary(
+    name = "gen-lc-state-enc",
+    srcs = ["gen-lc-state-enc.py"],
+    data = ["//hw/ip/lc_ctrl/data:lc_ctrl_state.hjson"],
+    imports = ["."],
+    deps = [
+        ":secded_gen",
+        "//util/design/lib:common",
+        "//util/design/lib:lc_st_enc",
+        requirement("hjson"),
+        requirement("mako"),
     ],
 )
 

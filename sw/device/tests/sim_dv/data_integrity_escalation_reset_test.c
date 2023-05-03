@@ -429,23 +429,29 @@ static void alert_handler_config(void) {
   dif_alert_handler_alert_t alerts[] = {kExpectedAlertNumber};
   dif_alert_handler_class_t alert_classes[] = {alert_class_to_use};
 
+  uint32_t cycles[4] = {0};
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kEscalationPhase0Micros, &cycles[0]));
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kEscalationPhase1Micros, &cycles[1]));
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kEscalationPhase2Micros, &cycles[2]));
+  CHECK_STATUS_OK(alert_handler_testutils_get_cycles_from_us(
+      kEscalationPhase3Micros, &cycles[3]));
+
   dif_alert_handler_escalation_phase_t esc_phases[] = {
       {.phase = kDifAlertHandlerClassStatePhase0,
        .signal = 0xFFFFFFFF,  // do not trigger any signal, just wait.
-       .duration_cycles =
-           alert_handler_testutils_get_cycles_from_us(kEscalationPhase0Micros)},
+       .duration_cycles = cycles[0]},
       {.phase = kDifAlertHandlerClassStatePhase1,
        .signal = 0,  // NMI
-       .duration_cycles =
-           alert_handler_testutils_get_cycles_from_us(kEscalationPhase1Micros)},
+       .duration_cycles = cycles[1]},
       {.phase = kDifAlertHandlerClassStatePhase2,
        .signal = 1,  // lc_escalate_en
-       .duration_cycles =
-           alert_handler_testutils_get_cycles_from_us(kEscalationPhase2Micros)},
+       .duration_cycles = cycles[2]},
       {.phase = kDifAlertHandlerClassStatePhase3,
        .signal = 3,  // reset
-       .duration_cycles = alert_handler_testutils_get_cycles_from_us(
-           kEscalationPhase3Micros)}};
+       .duration_cycles = cycles[3]}};
 
   // This test does not leverage the IRQ timeout feature of the alert
   // handler, hence deadline_cycles is set to zero. Rather, it triggers
@@ -474,8 +480,8 @@ static void alert_handler_config(void) {
       .ping_timeout = 0,
   };
 
-  alert_handler_testutils_configure_all(&alert_handler, config,
-                                        kDifToggleEnabled);
+  CHECK_STATUS_OK(alert_handler_testutils_configure_all(&alert_handler, config,
+                                                        kDifToggleEnabled));
 
   // Enables all alert handler irqs. This allows us to implicitly check that
   // we do not get spurious IRQs from the classes that are unused.
@@ -503,8 +509,9 @@ static void set_aon_timers() {
       bite_cycles);
 
   // Setup the wdog bark and bite timeouts.
-  aon_timer_testutils_watchdog_config(&aon_timer, bark_cycles, bite_cycles,
-                                      /*pause_in_sleep=*/false);
+  CHECK_STATUS_OK(
+      aon_timer_testutils_watchdog_config(&aon_timer, bark_cycles, bite_cycles,
+                                          /*pause_in_sleep=*/false));
 }
 
 /**

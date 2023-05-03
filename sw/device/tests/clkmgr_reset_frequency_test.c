@@ -55,14 +55,16 @@ bool test_main(void) {
   IBEX_SPIN_FOR(sensor_ctrl_ast_init_done(&sensor_ctrl), 1000);
   LOG_INFO("TEST: done ast init");
 
-  if (rstmgr_testutils_reset_info_any(&rstmgr, kDifRstmgrResetInfoPor)) {
+  if (UNWRAP(
+          rstmgr_testutils_reset_info_any(&rstmgr, kDifRstmgrResetInfoPor))) {
     LOG_INFO("POR reset");
 
     // Configure the counters to trigger an error by setting them for external
     // clocks.
-    clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
-        &clkmgr, /*jitter_enabled=*/false, /*external_clk=*/true,
-        /*low_speed=*/true);
+    CHECK_STATUS_OK(
+        clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
+            &clkmgr, /*jitter_enabled=*/false, /*external_clk=*/true,
+            /*low_speed=*/true));
     busy_spin_micros(delay_micros);
 
     // Check we get errors, but let the counters keep going.
@@ -72,11 +74,14 @@ bool test_main(void) {
 
     // Trigger a rstmgr SW reset.
     CHECK_DIF_OK(dif_rstmgr_software_device_reset(&rstmgr));
-  } else if (rstmgr_testutils_reset_info_any(&rstmgr, kDifRstmgrResetInfoSw)) {
+  } else if (UNWRAP(rstmgr_testutils_reset_info_any(&rstmgr,
+                                                    kDifRstmgrResetInfoSw))) {
     LOG_INFO("Back from rstmgr SW reset");
-    CHECK(clkmgr_testutils_check_measurement_enables(&clkmgr,
-                                                     kDifToggleDisabled));
-    CHECK(clkmgr_testutils_check_measurement_counts(&clkmgr));
+    bool all_disabled = UNWRAP(clkmgr_testutils_check_measurement_enables(
+        &clkmgr, kDifToggleDisabled));
+    CHECK(all_disabled);
+
+    CHECK_STATUS_OK(clkmgr_testutils_check_measurement_counts(&clkmgr));
     return true;
   } else {
     dif_rstmgr_reset_info_bitfield_t rst_info;

@@ -96,21 +96,21 @@ bool test_main(void) {
   IBEX_SPIN_FOR(sensor_ctrl_ast_init_done(&sensor_ctrl), 1000);
   LOG_INFO("TEST: done ast init");
 
-  CHECK(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0));
+  CHECK(UNWRAP(pwrmgr_testutils_is_wakeup_reason(&pwrmgr, 0)) == true);
 
-  clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
+  CHECK_STATUS_OK(clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
       &clkmgr, /*jitter_enabled=*/false, /*external_clk=*/false,
-      /*low_speed=*/false);
+      /*low_speed=*/false));
   busy_spin_micros(delay_micros);
 
   // check results
-  CHECK(clkmgr_testutils_check_measurement_counts(&clkmgr));
-  clkmgr_testutils_disable_clock_counts(&clkmgr);
+  CHECK_STATUS_OK(clkmgr_testutils_check_measurement_counts(&clkmgr));
+  CHECK_STATUS_OK(clkmgr_testutils_disable_clock_counts(&clkmgr));
 
   // Start new round of measurements.
-  clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
+  CHECK_STATUS_OK(clkmgr_testutils_enable_clock_counts_with_expected_thresholds(
       &clkmgr, /*jitter_enabled=*/false, /*external_clk=*/false,
-      /*low_speed=*/false);
+      /*low_speed=*/false));
 
   busy_spin_micros(delay_micros);
 
@@ -130,11 +130,11 @@ bool test_main(void) {
 
   // Put chip in normal sleep, and keep Core clock running. All io and usb
   // clocks are stopped, but we expect the stoppage won't trigger errors.
-  pwrmgr_testutils_enable_low_power(
+  CHECK_STATUS_OK(pwrmgr_testutils_enable_low_power(
       &pwrmgr, /*wakeups=*/kDifPwrmgrWakeupRequestSourceFive,
       /*domain_config=*/kDifPwrmgrDomainOptionCoreClockInLowPower |
           kDifPwrmgrDomainOptionUsbClockInActivePower |
-          kDifPwrmgrDomainOptionMainPowerInLowPower);
+          kDifPwrmgrDomainOptionMainPowerInLowPower));
 
   LOG_INFO("TEST: Issue WFI to enter sleep");
   wait_for_interrupt();
@@ -142,8 +142,10 @@ bool test_main(void) {
   CHECK(isr_entered);
 
   // Interrupt happened. Check the measurement state.
-  CHECK(clkmgr_testutils_check_measurement_counts(&clkmgr));
-  CHECK(clkmgr_testutils_check_measurement_enables(&clkmgr, kDifToggleEnabled));
+  CHECK_STATUS_OK(clkmgr_testutils_check_measurement_counts(&clkmgr));
+  bool all_enabled = UNWRAP(
+      clkmgr_testutils_check_measurement_enables(&clkmgr, kDifToggleEnabled));
+  CHECK(all_enabled);
 
   return true;
 }

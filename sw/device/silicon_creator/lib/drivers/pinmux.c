@@ -5,6 +5,7 @@
 #include "sw/device/silicon_creator/lib/drivers/pinmux.h"
 
 #include "sw/device/lib/base/abs_mmio.h"
+#include "sw/device/lib/base/csr.h"
 #include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/base/macros.h"
 #include "sw/device/silicon_creator/lib/base/chip.h"
@@ -125,15 +126,21 @@ static void configure_output(pinmux_output_t output) {
 }
 
 void pinmux_init(void) {
-  uint32_t bootstrap_en =
-      otp_read32(OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_BOOTSTRAP_EN_OFFSET);
-  if (launder32(bootstrap_en) == kHardenedBoolTrue) {
-    HARDENED_CHECK_EQ(bootstrap_en, kHardenedBoolTrue);
+  uint32_t bootstrap_dis =
+      otp_read32(OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_BOOTSTRAP_DIS_OFFSET);
+  if (launder32(bootstrap_dis) != kHardenedBoolTrue) {
+    HARDENED_CHECK_NE(bootstrap_dis, kHardenedBoolTrue);
     // Note: attributes should be configured before the pinmux matrix to avoid
     // "undesired electrical behavior and/or contention at the pads".
     enable_pull_down(kInputSwStrap0.pad);
     enable_pull_down(kInputSwStrap1.pad);
     enable_pull_down(kInputSwStrap2.pad);
+    // Wait for pull downs to propagate to the physical pads.
+    CSR_WRITE(CSR_REG_MCYCLE, 0);
+    uint32_t mcycle;
+    do {
+      CSR_READ(CSR_REG_MCYCLE, &mcycle);
+    } while (mcycle < PINMUX_PAD_ATTR_PROP_CYCLES);
     configure_input(kInputSwStrap0);
     configure_input(kInputSwStrap1);
     configure_input(kInputSwStrap2);

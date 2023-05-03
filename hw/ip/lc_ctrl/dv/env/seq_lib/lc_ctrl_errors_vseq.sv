@@ -36,6 +36,8 @@ class lc_ctrl_errors_vseq extends lc_ctrl_smoke_vseq;
   bit fatal_state_alert_received;
   bit fatal_bus_integ_alert_received;
   bit assertions_disabled;
+  // Discussed in issue #18201.
+  bit disable_cdc_jtag_assertion;
 
 
   `uvm_object_utils_begin(lc_ctrl_errors_vseq)
@@ -151,9 +153,11 @@ class lc_ctrl_errors_vseq extends lc_ctrl_smoke_vseq;
     end
 
     // Reenable assertions before next sequence
-    `DV_ASSERT_CTRL_REQ("OtpProgH_DataStableWhenBidirectionalAndReq_A", 1)
-    `DV_ASSERT_CTRL_REQ("OtpProgReqHighUntilAck_A", 1)
-    `DV_ASSERT_CTRL_REQ("OtpProgAckAssertedOnlyWhenReqAsserted_A", 1)
+    `DV_ASSERT_CTRL_REQ("OtpProgH_DataStableWhenBidirectionalAndReq_A",
+                        disable_cdc_jtag_assertion ? 0 : 1)
+    `DV_ASSERT_CTRL_REQ("OtpProgReqHighUntilAck_A", disable_cdc_jtag_assertion ? 0 : 1)
+    `DV_ASSERT_CTRL_REQ("OtpProgAckAssertedOnlyWhenReqAsserted_A",
+                        disable_cdc_jtag_assertion ? 0 : 1)
     `DV_ASSERT_CTRL_REQ("KmacIfSyncReqAckAckNeedsReq", 1)
     `DV_ASSERT_CTRL_REQ("StateRegs_A", 1)
     `DV_ASSERT_CTRL_REQ("FsmStateRegs_A", 1)
@@ -178,6 +182,12 @@ class lc_ctrl_errors_vseq extends lc_ctrl_smoke_vseq;
   endtask
 
   virtual task pre_start();
+    if (cfg.jtag_csr) begin
+      bit cdc_instrumentation_enabled;
+      void'($value$plusargs("cdc_instrumentation_enabled=%d", cdc_instrumentation_enabled));
+      if (cdc_instrumentation_enabled) disable_cdc_jtag_assertion = 1;
+    end
+
     // Align cfg.err_inj with the sequence before body starts
     update_err_inj_cfg();
     mubi_assertion_controls();
@@ -441,9 +451,11 @@ class lc_ctrl_errors_vseq extends lc_ctrl_smoke_vseq;
       `DV_ASSERT_CTRL_REQ("OtpProgAckAssertedOnlyWhenReqAsserted_A", 0)
       `DV_ASSERT_CTRL_REQ("KmacIfSyncReqAckAckNeedsReq", 0)
     end else begin
-      `DV_ASSERT_CTRL_REQ("OtpProgH_DataStableWhenBidirectionalAndReq_A", 1)
-      `DV_ASSERT_CTRL_REQ("OtpProgReqHighUntilAck_A", 1)
-      `DV_ASSERT_CTRL_REQ("OtpProgAckAssertedOnlyWhenReqAsserted_A", 1)
+      `DV_ASSERT_CTRL_REQ("OtpProgH_DataStableWhenBidirectionalAndReq_A",
+                          disable_cdc_jtag_assertion ? 0 : 1)
+      `DV_ASSERT_CTRL_REQ("OtpProgReqHighUntilAck_A", disable_cdc_jtag_assertion ? 0 : 1)
+      `DV_ASSERT_CTRL_REQ("OtpProgAckAssertedOnlyWhenReqAsserted_A",
+                          disable_cdc_jtag_assertion ? 0 : 1)
       `DV_ASSERT_CTRL_REQ("KmacIfSyncReqAckAckNeedsReq", 1)
     end
 
@@ -533,7 +545,6 @@ class lc_ctrl_errors_vseq extends lc_ctrl_smoke_vseq;
     bit [1:0] err_bits = 0;
     // Clear any previous data
     cfg.m_otp_prog_pull_agent_cfg.clear_d_user_data();
-    // TODO: tailor constraint to LC state transitions for V3
     if (err_inj.otp_prog_err) `DV_CHECK_STD_RANDOMIZE_WITH_FATAL(err_bits, err_bits == 3;)
     foreach (err_bits[i]) cfg.m_otp_prog_pull_agent_cfg.add_d_user_data(err_bits[i]);
   endfunction
@@ -802,7 +813,7 @@ class lc_ctrl_errors_vseq extends lc_ctrl_smoke_vseq;
   // Deassert after an number of clock cycles if assert clocks > 0
   // Otherwise leave asserted
   protected virtual task send_escalate(int index, int assert_clocks = 0);
-    // TODO - replace with calls to escalate agent when driver implemented
+    // ICEBOX(#18007) - replace with calls to escalate agent when driver implemented
     `uvm_info(`gfn, $sformatf("send_escalate: index=%0d assert_clocks=%0d", index, assert_clocks),
               UVM_LOW)
     cfg.escalate_injected = 1;
@@ -829,7 +840,7 @@ class lc_ctrl_errors_vseq extends lc_ctrl_smoke_vseq;
 
   // Clear escalate assertion
   protected virtual task clear_escalate(int index);
-    // TODO - replace with calls to escalate agent when driver implemented
+    // ICEBOX(#18007) - replace with calls to escalate agent when driver implemented
     case (index)
       0: begin
         cfg.m_esc_scrap_state0_agent_cfg.vif.sender_cb.esc_tx_int <= 2'b01;

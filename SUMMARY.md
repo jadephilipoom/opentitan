@@ -385,11 +385,14 @@
       - [Test Plan](./sw/device/silicon_creator/manuf/data/manuf_testplan.hjson)
     - [ROM](./sw/device/silicon_creator/rom/README.md)
       - [ROM Specification](./sw/device/silicon_creator/rom/doc/rom_overview_specification.md)
+      - [Bootstrap](./sw/device/silicon_creator/rom/doc/bootstrap.md)
       - [Memory Protection](./sw/device/silicon_creator/rom/doc/memory_protection.md)
       - [E2E tests](./sw/device/silicon_creator/rom/doc/e2e_tests.md)
       - [Signing Keys](./sw/device/silicon_creator/rom/keys/README.md)
+      - [Signature Verification](./sw/device/silicon_creator/rom/doc/sigverify.md)
       - [Test Plan](./sw/device/silicon_creator/rom/data/rom_e2e_testplan.hjson)
       - [Signoff Test Plan](./sw/device/silicon_creator/rom/data/rom_manual_testplan.hjson)
+      - [Shutdown Specification](./sw/device/silicon_creator/rom/doc/shutdown.md)
     - [Manifest Format](./sw/device/silicon_creator/rom_ext/doc/manifest.md)
   - [Top-Level Tests](./sw/device/tests/README.md)
     - [Manufacturer Test Hooks](./sw/device/tests/closed_source/README.md)
@@ -430,7 +433,7 @@
   - [Bazel Notes](./doc/contributing/bazel_notes.md)
   - [Using the Container](./util/container/README.md)
 
-- [Contributing to Hardware]()
+- [Contributing to Hardware](./doc/contributing/hw/README.md)
   - [Comportability](./doc/contributing/hw/comportability/README.md)
   - [Hardware Design](./doc/contributing/hw/design.md)
   - [Design Methodology](./doc/contributing/hw/methodology.md)
@@ -438,12 +441,12 @@
   - [Linting](./hw/lint/README.md)
   - [Synthesis Flow](./hw/syn/README.md)
 
-- [Contributing to Verification]()
+- [Contributing to Verification](./doc/contributing/dv/README.md)
   - [Verification Methodology](./doc/contributing/dv/methodology/README.md)
   - [Security Countermeasure Verification Framework](./doc/contributing/dv/sec_cm_dv_framework/README.md)
   - [Assertions](./hw/formal/README.md)
 
-- [Contributing to Software]()
+- [Contributing to Software](./doc/contributing/sw/README.md)
   - [Device Interface Functions](./doc/contributing/sw/device_interface_functions.md)
   - [Writing and Building Software for OTBN](./doc/contributing/sw/otbn_sw.md)
 
@@ -456,7 +459,7 @@
   - [OTBN Assembly](./doc/contributing/style_guides/otbn_style_guide.md)
   - [Guidance for Volatile](./doc/contributing/style_guides/guidance_for_volatile.md)
 
-- [Developing on an FPGA]()
+- [Developing on an FPGA](./doc/contributing/fpga/README.md)
   - [Get a Board](./doc/contributing/fpga/get_a_board.md)
   - [FPGA Reference Manual](./doc/contributing/fpga/ref_manual_fpga.md)
 

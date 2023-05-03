@@ -13,10 +13,16 @@ use thiserror::Error;
 
 use zerocopy::LayoutVerified;
 
-use crate::crypto::rsa::{Modulus, Signature};
+use crate::crypto::rsa::Modulus;
+use crate::crypto::rsa::Signature as RsaSignature;
 use crate::crypto::sha256;
+use crate::crypto::spx::Signature as SpxSignature;
+use crate::crypto::spx::SpxPublicKeyPart;
 use crate::image::manifest::Manifest;
-use crate::image::manifest_def::{ManifestRsaBuffer, ManifestSpec};
+use crate::image::manifest_def::{
+    ManifestRsaBuffer, ManifestSpec, ManifestSpxKey, ManifestSpxSignature,
+};
+use crate::util::file::{FromReader, ToWriter};
 use crate::util::parse_int::ParseInt;
 
 #[derive(Debug, Error)]
@@ -63,33 +69,25 @@ pub struct ImageAssembler {
     pub chunks: Vec<ImageChunk>,
 }
 
-impl Image {
-    const MAX_SIZE: usize = 512 * 1024;
+impl FromReader for Image {
     /// Reads in an `Image`.
-    pub fn from_reader(mut r: impl Read) -> Result<Self> {
+    fn from_reader(mut r: impl Read) -> Result<Self> {
         let mut image = Image::default();
         image.size = r.read(&mut image.data.bytes)?;
         Ok(image)
     }
+}
 
+impl ToWriter for Image {
     /// Writes out the `Image`.
-    pub fn to_writer(&self, w: &mut impl Write) -> Result<()> {
+    fn to_writer(&self, w: &mut impl Write) -> Result<()> {
         w.write_all(&self.data.bytes[..self.size])?;
         Ok(())
     }
+}
 
-    /// Creates an `Image` from a given input binary.
-    pub fn read_from_file(path: &Path) -> Result<Image> {
-        let file = File::open(path)?;
-        Self::from_reader(file)
-    }
-
-    /// Write out the `Image` to a file at the given `path`.
-    pub fn write_to_file(self, path: &Path) -> Result<()> {
-        let mut file = File::create(path)?;
-        self.to_writer(&mut file)
-    }
-
+impl Image {
+    const MAX_SIZE: usize = 512 * 1024;
     /// Overwrites all fields in the image's manifest that are defined in `other`.
     pub fn overwrite_manifest(&mut self, other: ManifestSpec) -> Result<()> {
         let manifest = self.borrow_manifest_mut()?;
@@ -99,8 +97,8 @@ impl Image {
         Ok(())
     }
 
-    /// Updates the signature field in the `Manifest`.
-    pub fn update_rsa_signature(&mut self, signature: Signature) -> Result<()> {
+    /// Updates the rsa_signature field in the `Manifest`.
+    pub fn update_rsa_signature(&mut self, signature: RsaSignature) -> Result<()> {
         let manifest = self.borrow_manifest_mut()?;
 
         // Convert to a `ManifestSpec` so we can supply the signature as a `BigInt`.
@@ -111,13 +109,37 @@ impl Image {
         Ok(())
     }
 
-    /// Updates the modulus field in the `Manifest`.
-    pub fn update_modulus(&mut self, modulus: Modulus) -> Result<()> {
+    /// Updates the rsa_modulus field in the `Manifest`.
+    pub fn update_modulus(&mut self, rsa_modulus: Modulus) -> Result<()> {
         let manifest = self.borrow_manifest_mut()?;
 
-        // Convert to a `ManifestSpec` so we can supply the modulus as a `BigInt`.
+        // Convert to a `ManifestSpec` so we can supply the rsa_modulus as a `BigInt`.
         let mut manifest_def: ManifestSpec = (&*manifest).try_into()?;
-        manifest_def.update_modulus(ManifestRsaBuffer::from_le_bytes(modulus.to_le_bytes())?);
+        manifest_def.update_modulus(ManifestRsaBuffer::from_le_bytes(rsa_modulus.to_le_bytes())?);
+        *manifest = manifest_def.try_into()?;
+        Ok(())
+    }
+
+    /// Updates the spx_signature field in the `Manifest`.
+    pub fn update_spx_signature(&mut self, signature: SpxSignature) -> Result<()> {
+        let manifest = self.borrow_manifest_mut()?;
+
+        let mut manifest_def: ManifestSpec = (&*manifest).try_into()?;
+        manifest_def.update_spx_signature(ManifestSpxSignature::from_le_bytes(
+            signature.to_le_bytes(),
+        )?);
+
+        *manifest = manifest_def.try_into()?;
+        Ok(())
+    }
+
+    /// Updates the spx_key field in the `Manifest`.
+    pub fn update_spx_key(&mut self, key: &impl SpxPublicKeyPart) -> Result<()> {
+        let manifest = self.borrow_manifest_mut()?;
+
+        let mut manifest_def: ManifestSpec = (&*manifest).try_into()?;
+        manifest_def.update_spx_key(ManifestSpxKey::from_le_bytes(key.pk_as_bytes())?);
+
         *manifest = manifest_def.try_into()?;
         Ok(())
     }
@@ -146,9 +168,17 @@ impl Image {
         Ok(self.size)
     }
 
+    /// Operates on the signed region of the image.
+    pub fn map_signed_region<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&[u8]) -> R,
+    {
+        f(&self.data.bytes[offset_of!(Manifest, usage_constraints)..self.size])
+    }
+
     /// Compute the SHA256 digest for the signed portion of the `Image`.
     pub fn compute_digest(&self) -> sha256::Sha256Digest {
-        sha256::sha256(&self.data.bytes[offset_of!(Manifest, usage_constraints)..self.size])
+        self.map_signed_region(|v| sha256::sha256(v))
     }
 }
 

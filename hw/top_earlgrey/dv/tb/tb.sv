@@ -21,25 +21,59 @@ module tb;
   `include "chip_hier_macros.svh"  // TODO: Deprecate this.
 
   // interfaces
+`ifdef ANALOGSIM
+  ast_pkg::awire_t cc1;
+  ast_pkg::awire_t cc2;
+`endif
 
-  // Legacy clk_rst_if to satisfy our CIP base classes. DO NOT USE it in test sequences.
+  // In most simulations the DV infrastructure provides a virtual interface connected to a
+  // concrete clk_rst_if which is completely passive, since the AST provides both.
+  // In order to enable cycle waits we connect clk and rst_n to chip internal signals.
   //
-  // This interface has an active clock driver, but the clock port is not connected to anything. The
-  // reset port is passive and is connected to the chip's POR_N port. The reset port is active only
-  // in `xbar_mode`, because a different UVM environment is in use, which does not have the chip_if.
-  // For the regular chip tests, the chip_if is used exclusively to drive all chip's ports.
+  // The XBAR simulation mode uses a different environment, and drives the internal clocks
+  // directly, bypassing the AST.
   //
-  // The bogus active clock is made to match the chip's main clock frequency. This is done to
-  // ensure compatibility with the CIP / DV lib base sequence classes which assume certain things.
-  // This clk_rst_if (which is available in the chip env as cfg.clk_rst_vif) should not be used to
-  // wait for clock events. Most tests will not require an external clock source - they will use
-  // internally generated clock provided by AST.
-  //
-  // Note that attempting to drive the external clock / power on reset using this interface will
-  // vacuously return instead of throwing an error. This is done to support the our base classes.
-  // To do so, the test sequences must use chip_vif.ext_clk_if and chip_vif.por_n_if respectively.
-  wire clk, rst_n;
-  clk_rst_if clk_rst_if(.clk(clk), .rst_n(rst_n));
+  // XBAR mode uses a different UVM environment than the full chip. It requires the POR to be driven
+  // using a clk_rst_if instance. The `xbar_mode` plusarg is used to switch between the two
+  // environments. It is declared as type `logic` so that a wait statement can be used in other
+  // initial blocks to wait for its value to stabilize after a plusarg lookup.
+
+  // We use two clk_rst_ifs, the passive one for normal full chip tests, and the xbar one for
+  // tests running in xbar_mode. The virtual interface clk_rst_vif used by sequences and the
+  // infrastructure is selected depending on xbar_mode.
+
+  // The passive clk_rst_if used for full chip testing, and is driven separately with a
+  // sensible frequency, just for calls to wait for cycles to be sensible.
+  wire passive_clk, passive_rst_n;
+  clk_rst_if passive_clk_rst_if(
+    .clk(passive_clk),
+    .rst_n(passive_rst_n)
+  );
+  // Reset driver for pad tests.
+  assign passive_rst_n = dut.chip_if.dios[top_earlgrey_pkg::DioPadPorN];
+
+  // The interface only drives the clock.
+  initial passive_clk_rst_if.set_active(.drive_clk_val(1), .drive_rst_n_val(0));
+
+  // The xbar clk_rst_if is active, but only rst_n is hooked up. It is used in the xbar testbench,
+  // so leave it as is.
+  wire xbar_clk, rst_n;
+  clk_rst_if xbar_clk_rst_if(
+    .clk(xbar_clk),
+    .rst_n(rst_n)
+  );
+  initial xbar_clk_rst_if.set_active(.drive_clk_val(1), .drive_rst_n_val(1));
+
+  logic xbar_mode;
+  initial begin
+    if (!$value$plusargs("xbar_mode=%0b", xbar_mode)) xbar_mode = 0;
+    if (xbar_mode)
+      uvm_config_db#(virtual clk_rst_if)::set(null, "*.env*", "clk_rst_vif", xbar_clk_rst_if);
+    else
+      uvm_config_db#(virtual clk_rst_if)::set(null, "*.env*", "clk_rst_vif", passive_clk_rst_if);
+  end
+
+  assign dut.POR_N = xbar_mode ? rst_n : 1'bz;
 
   // TODO: Absorb this functionality into chip_if.
   bind dut ast_supply_if ast_supply_if (
@@ -75,8 +109,13 @@ module tb;
     .POR_N(dut.chip_if.dios[top_earlgrey_pkg::DioPadPorN]),
     .USB_P(dut.chip_if.dios[top_earlgrey_pkg::DioPadUsbP]),
     .USB_N(dut.chip_if.dios[top_earlgrey_pkg::DioPadUsbN]),
+`ifdef ANALOGSIM
+    .CC1(cc1),
+    .CC2(cc2),
+`else
     .CC1(dut.chip_if.dios[top_earlgrey_pkg::DioPadCc1]),
     .CC2(dut.chip_if.dios[top_earlgrey_pkg::DioPadCc2]),
+`endif
     .FLASH_TEST_VOLT(dut.chip_if.dios[top_earlgrey_pkg::DioPadFlashTestVolt]),
     .FLASH_TEST_MODE0(dut.chip_if.dios[top_earlgrey_pkg::DioPadFlashTestMode0]),
     .FLASH_TEST_MODE1(dut.chip_if.dios[top_earlgrey_pkg::DioPadFlashTestMode1]),
@@ -153,6 +192,35 @@ module tb;
   bit en_sim_sram = 1'b1;
   wire sel_sim_sram = !dut.chip_if.stub_cpu & en_sim_sram;
 
+  // Interface presently just permits the DPI model to be easily connected and
+  // disconnected as required, since SENSE pin is a MIO with other uses.
+  usb20_if u_usb20_if (
+    .clk_i            (dut.chip_if.usb_clk),
+    .rst_ni           (dut.chip_if.usb_rst_n),
+
+    .usb_vbus         (dut.chip_if.mios[top_earlgrey_pkg::MioPadIoc7]),
+    .usb_p            (dut.chip_if.dios[top_earlgrey_pkg::DioPadUsbP]),
+    .usb_n            (dut.chip_if.dios[top_earlgrey_pkg::DioPadUsbN])
+  );
+
+  // Instantiate & connect the USB DPI model for top-level testing.
+  usb20_usbdpi u_usb20_usbdpi (
+    .clk_i            (dut.chip_if.usb_clk),
+    .rst_ni           (dut.chip_if.usb_rst_n),
+
+    .enable           (u_usb20_if.connected),
+
+    // Outputs from the DPI module
+    .usb_sense_p2d_o  (u_usb20_if.usb_sense_p2d),
+    .usb_dp_en_p2d_o  (u_usb20_if.usb_dp_en_p2d),
+    .usb_dn_en_p2d_o  (u_usb20_if.usb_dn_en_p2d),
+    .usb_dp_p2d_o     (u_usb20_if.usb_dp_p2d),
+    .usb_dn_p2d_o     (u_usb20_if.usb_dn_p2d),
+
+    .usb_p            (dut.chip_if.dios[top_earlgrey_pkg::DioPadUsbP]),
+    .usb_n            (dut.chip_if.dios[top_earlgrey_pkg::DioPadUsbN])
+  );
+
   sim_sram u_sim_sram (
     .clk_i    (sel_sim_sram ? `CPU_HIER.clk_i : 1'b0),
     .rst_ni   (`CPU_HIER.rst_ni),
@@ -202,6 +270,10 @@ module tb;
     // AST io clk blocker interface.
     uvm_config_db#(virtual ast_ext_clk_if)::set(
         null, "*.env", "ast_ext_clk_vif", dut.ast_ext_clk_if);
+
+    // USB DPI interface.
+    uvm_config_db#(virtual usb20_if)::set(
+        null, "*.env", "usb20_vif", u_usb20_if);
 
     // Format time in microseconds losing no precision. The added "." makes it easier to determine
     // the order of magnitude without counting digits, as is needed if it was formatted as ps or ns.
@@ -363,6 +435,13 @@ module tb;
                                        .err_detection_scheme(mem_bkdr_util_pkg::EccInv_39_32));
       `MEM_BKDR_UTIL_FILE_OP(m_mem_bkdr_util[OtbnDmem0], `OTBN_DMEM_HIER)
 
+      `uvm_info("tb.sv", "Creating mem_bkdr_util instance for USBDEV BUFFER", UVM_MEDIUM)
+      m_mem_bkdr_util[UsbdevBuf] = new(.name  ("mem_bkdr_util[UsbdevBuf]"),
+                                       .path  (`DV_STRINGIFY(`USBDEV_BUF_HIER)),
+                                       .depth ($size(`USBDEV_BUF_HIER)),
+                                       .n_bits($bits(`USBDEV_BUF_HIER)),
+                                       .err_detection_scheme(mem_bkdr_util_pkg::ErrDetectionNone));
+
       mem = mem.first();
       do begin
         if (mem inside {[RamMain1:RamMain15]} ||
@@ -450,22 +529,6 @@ module tb;
 
   // Control assertions in the DUT with UVM resource string "dut_assert_en".
   `DV_ASSERT_CTRL("dut_assert_en", tb.dut)
-
-  // XBAR mode.
-  //
-  // XBAR mode uses a different UVM environment than the full chip. It requires the POR to be driven
-  // using a clk_rst_if instance. The `xbar_mode` plusarg is used to switch between the two
-  // environments. It is declared as type `logic` so that a wait statement can be used in other
-  // initial blocks to wait for its value to stabilize after a plusarg lookup.
-  logic xbar_mode;
-
-  initial begin
-    if (!$value$plusargs("xbar_mode=%0b", xbar_mode)) xbar_mode = 0;
-    clk_rst_if.set_active(.drive_clk_val(1 /* bogus clock */), .drive_rst_n_val(xbar_mode));
-    uvm_config_db#(virtual clk_rst_if)::set(null, "*.env*", "clk_rst_vif", clk_rst_if);
-  end
-  assign dut.POR_N = xbar_mode ? rst_n : 1'bz;
-  assign rst_n = xbar_mode ? 1'bz : dut.chip_if.dios[top_earlgrey_pkg::DioPadPorN];
 
   `include "../autogen/tb__xbar_connect.sv"
   `include "../autogen/tb__alert_handler_connect.sv"

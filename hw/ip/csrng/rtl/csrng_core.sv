@@ -72,7 +72,7 @@ module csrng_core import csrng_pkg::*; #(
   localparam int MaxClen = 12;
   localparam int ADataDepthWidth = SeedLen/AppCmdWidth;
   localparam unsigned ADataDepthClog = $clog2(ADataDepthWidth)+1;
-  localparam int CsEnableCopies = 53;
+  localparam int CsEnableCopies = 51;
   localparam int LcHwDebugCopies = 1;
   localparam int Flag0Copies = 3;
 
@@ -968,7 +968,7 @@ module csrng_core import csrng_pkg::*; #(
     // genbits
     assign csrng_cmd_o[hai].genbits_valid = genbits_stage_vld[hai];
     assign csrng_cmd_o[hai].genbits_fips = genbits_stage_fips[hai];
-    assign csrng_cmd_o[hai].genbits_bus = genbits_stage_vld[hai] ? genbits_stage_bus[hai] : '0;
+    assign csrng_cmd_o[hai].genbits_bus = genbits_stage_bus[hai];
     assign genbits_stage_rdy[hai] = csrng_cmd_i[hai].genbits_ready;
   end : gen_app_if
 
@@ -1242,16 +1242,13 @@ module csrng_core import csrng_pkg::*; #(
 
   // Capture entropy from entropy_src
   assign entropy_src_seed_d =
-         ~cs_enable_fo[51] ? '0 :
-         cmd_req_dly_q ? '0 :                  // reset after every cmd
-         (cmd_entropy_avail && flag0_fo[1]) ? '0 : // special case where zero is used
-         cmd_entropy_avail ? (entropy_src_hw_if_i.es_bits ^ seed_diversification) :
+         flag0_fo[1] ? '0 : // special case where zero is used
+         cmd_entropy_req && cmd_entropy_avail ?
+            (entropy_src_hw_if_i.es_bits ^ seed_diversification) :
          entropy_src_seed_q;
   assign entropy_src_fips_d =
-         ~cs_enable_fo[52] ? '0 :
-         cmd_req_dly_q ? '0 :                  // reset after every cmd
-         (cmd_entropy_avail && flag0_fo[2]) ? '0 : // special case where zero is used
-         cmd_entropy_avail ? entropy_src_hw_if_i.es_fips :
+         flag0_fo[2] ? '0 : // special case where zero is used
+         cmd_entropy_req && cmd_entropy_avail ? entropy_src_hw_if_i.es_fips :
          entropy_src_fips_q;
 
   assign cmd_entropy = entropy_src_seed_q;
@@ -1630,7 +1627,7 @@ module csrng_core import csrng_pkg::*; #(
   // es to cs halt request to reduce power spikes
   assign cs_aes_halt_d =
          (ctr_drbg_upd_es_ack && ctr_drbg_gen_es_ack && block_encrypt_quiet &&
-          cs_aes_halt_i.cs_aes_halt_req && !cs_aes_halt_q);
+          cs_aes_halt_i.cs_aes_halt_req);
 
   assign cs_aes_halt_o.cs_aes_halt_ack = cs_aes_halt_q;
 
@@ -1654,5 +1651,33 @@ module csrng_core import csrng_pkg::*; #(
   assign unused_reg2hw_genbits = (|reg2hw.genbits.q);
   assign unused_int_state_val = (|reg2hw.int_state_val.q);
 
+  //--------------------------------------------
+  // Assertions
+  //--------------------------------------------
+`ifdef INC_ASSERT
+  // Track activity of AES.
+  logic aes_active_d, aes_active_q;
+  assign aes_active_d =
+      (u_csrng_block_encrypt.u_aes_cipher_core.in_valid_i == aes_pkg::SP2V_HIGH &&
+       u_csrng_block_encrypt.u_aes_cipher_core.in_ready_o == aes_pkg::SP2V_HIGH)  ? 1'b1 : // set
+      (u_csrng_block_encrypt.u_aes_cipher_core.out_valid_o == aes_pkg::SP2V_HIGH &&
+       u_csrng_block_encrypt.u_aes_cipher_core.out_ready_i == aes_pkg::SP2V_HIGH) ? 1'b0 : // clear
+      aes_active_q;                                                                        // keep
+
+  // Track state of AES Halt req/ack with entropy_src.
+  logic cs_aes_halt_active;
+  assign cs_aes_halt_active = cs_aes_halt_i.cs_aes_halt_req & cs_aes_halt_o.cs_aes_halt_ack;
+
+  // Assert that when AES Halt is active, AES is not active.
+  `ASSERT(AesNotActiveWhileCsAesHaltActive_A, cs_aes_halt_active |-> !aes_active_d)
+
+  always_ff @(posedge clk_i, negedge rst_ni) begin
+    if (!rst_ni) begin
+      aes_active_q <= '0;
+    end else begin
+      aes_active_q <= aes_active_d;
+    end
+  end
+`endif
 
 endmodule // csrng_core
