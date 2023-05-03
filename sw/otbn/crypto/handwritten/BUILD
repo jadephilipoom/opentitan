@@ -26,3 +26,24 @@ otbn_library(
         "intt_dilithium.s",
     ],
 )
+
+otbn_library(
+    name = "poly_pointwise_dilithium",
+    srcs = [
+        "poly_pointwise_dilithium.s",
+    ],
+)
+
+otbn_library(
+    name = "poly_add_dilithium",
+    srcs = [
+        "poly_add_dilithium.s",
+    ],
+)
+
+otbn_library(
+    name = "poly_sub_dilithium",
+    srcs = [
+        "poly_sub_dilithium.s",
+    ],
+)

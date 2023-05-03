@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-load("//rules:otbn.bzl", "otbn_consttime_test", "otbn_sim_test")
+load("//rules:otbn.bzl", "otbn_consttime_test", "otbn_sim_test", "otbn_sim_py_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -543,6 +543,53 @@ otbn_sim_test(
     exp = "intt_dilithium_test.exp",
     deps = [
         "//sw/otbn/crypto/handwritten:intt_dilithium",
+    ],
+)
+
+otbn_sim_test(
+    name = "poly_pointwise_dilithium_test",
+    srcs = [
+        "poly_pointwise_dilithium_test.s",
+    ],
+    exp = "poly_pointwise_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:poly_pointwise_dilithium",
+    ],
+)
+
+otbn_sim_test(
+    name = "poly_add_dilithium_test",
+    srcs = [
+        "poly_add_dilithium_test.s",
+    ],
+    exp = "poly_add_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:poly_add_dilithium",
+    ],
+)
+
+otbn_sim_test(
+    name = "poly_sub_dilithium_test",
+    srcs = [
+        "poly_sub_dilithium_test.s",
+    ],
+    exp = "poly_sub_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:poly_sub_dilithium",
+    ],
+)
+
+otbn_sim_py_test(
+    name = "dilithium_test",
+    srcs = [
+    ],
+    deps = [
+        ":ed25519_ext_add_test",
+        ":ntt_dilithium_test",
+        ":intt_dilithium_test",
+        ":poly_pointwise_dilithium_test",
+        ":poly_add_dilithium_test",
+        ":poly_sub_dilithium_test",
     ],
 )
 

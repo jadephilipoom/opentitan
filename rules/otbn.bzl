@@ -181,6 +181,37 @@ def _otbn_sim_test(ctx):
         providers[1],
     ]
 
+def _otbn_sim_py_test(ctx):
+    """Use OTBN in python code and run in simulator.
+
+    This rule expects one dependency of an otbn_binary or otbn_sim_test type,
+    which should provide exactly one `.elf` file.
+    """
+    # Extract the .elf files from the dependency list.
+    elfs = [f for t in ctx.attr.deps for f in t[OutputGroupInfo].elf.to_list()]
+
+    # print(",".join([elf.short_path for elf in elfs]))
+    # Create a simple script that runs the OTBN test wrapper on the .elf file
+    # using the provided simulator path.
+    sim_test_wrapper = ctx.executable._sim_test_wrapper
+    simulator = ctx.executable._simulator
+    ctx.actions.write(
+        output = ctx.outputs.executable,
+        content = "{} {} {}".format(
+            sim_test_wrapper.short_path,
+            simulator.short_path,
+            ",".join(["{}#{}".format(elf.basename.replace('.' + elf.extension, ''), elf.short_path) for elf in elfs]),
+        ),
+    )
+    # Runfiles include sources, the .elf file, the simulator and test wrapper
+    # themselves, and all the simulator and test wrapper runfiles.
+    runfiles = ctx.runfiles(files = (ctx.files.srcs + elfs + [ctx.executable._simulator, ctx.executable._sim_test_wrapper]))
+    runfiles = runfiles.merge(ctx.attr._simulator[DefaultInfo].default_runfiles)
+    runfiles = runfiles.merge(ctx.attr._sim_test_wrapper[DefaultInfo].default_runfiles)
+    return [
+        DefaultInfo(runfiles = runfiles),
+    ]
+
 def _otbn_consttime_test_impl(ctx):
     """This rule checks if a program or subroutine is constant-time.
 
@@ -310,6 +341,43 @@ otbn_sim_test = rv_rule(
         ),
         "_sim_test_wrapper": attr.label(
             default = "//hw/ip/otbn/util:otbn_sim_test",
+            executable = True,
+            cfg = "exec",
+        ),
+        "_wrapper": attr.label(
+            default = "//util:otbn_build",
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+    fragments = ["cpp"],
+    toolchains = ["@rules_cc//cc:toolchain_type"],
+    incompatible_use_toolchain_transition = True,
+)
+
+otbn_sim_py_test = rv_rule(
+    implementation = _otbn_sim_py_test,
+    test = True,
+    attrs = {
+        "srcs": attr.label_list(allow_files = True),
+        "deps": attr.label_list(providers = [DefaultInfo]),
+        "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
+        "_otbn_as": attr.label(
+            default = "//hw/ip/otbn/util:otbn_as",
+            executable = True,
+            cfg = "exec",
+        ),
+        "_otbn_data": attr.label(
+            default = "//hw/ip/otbn/data:all_files",
+            allow_files = True,
+        ),
+        "_simulator": attr.label(
+            default = "//hw/ip/otbn/dv/otbnsim:standalone",
+            executable = True,
+            cfg = "exec",
+        ),
+        "_sim_test_wrapper": attr.label(
+            default = "//hw/ip/otbn/util:otbn_sim_py",
             executable = True,
             cfg = "exec",
         ),

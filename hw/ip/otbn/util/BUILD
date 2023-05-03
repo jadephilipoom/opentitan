@@ -68,3 +68,17 @@ py_binary(
         "//hw/ip/otbn/util/shared:mem_layout"
     ],
 )
+
+py_binary(
+    name = "otbn_sim_py",
+    srcs = ["otbn_sim_py.py"],
+    deps = [
+        "//hw/ip/otbn/util/shared:check",
+        "//hw/ip/otbn/util/shared:reg_dump",
+        "//hw/ip/otbn/util/shared:mem_layout",
+        "//hw/ip/otbn/util/shared:insn_yaml",
+        requirement("pyelftools"),
+        requirement("tabulate"),
+        requirement("pycryptodome"),
+    ],
+)
