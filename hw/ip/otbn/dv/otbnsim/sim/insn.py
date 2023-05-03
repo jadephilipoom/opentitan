@@ -605,56 +605,43 @@ class BNADDI(OTBNInsn):
 
 
 class BNADDM(OTBNInsn):
-    insn = insn_for_mnemonic('bn.addm', 3)
+    insn = insn_for_mnemonic('bn.addm', 5)
 
     def __init__(self, raw: int, op_vals: Dict[str, int]):
         super().__init__(raw, op_vals)
         self.wrd = op_vals['wrd']
         self.wrs1 = op_vals['wrs1']
         self.wrs2 = op_vals['wrs2']
-
-    def execute(self, state: OTBNState) -> None:
-        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
-        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
-        result = a + b
-
-        mod_val = state.wsrs.MOD.read_unsigned()
-        if result >= mod_val:
-            result -= mod_val
-
-        result = result & ((1 << 256) - 1)
-        state.wdrs.get_reg(self.wrd).write_unsigned(result)
-
-
-class BNADDMV(OTBNInsn):
-    insn = insn_for_mnemonic('bn.addmv', 4)
-
-    def __init__(self, raw: int, op_vals: Dict[str, int]):
-        super().__init__(raw, op_vals)
-        self.wrd = op_vals['wrd']
-        self.wrs1 = op_vals['wrs1']
-        self.wrs2 = op_vals['wrs2']
+        self.vec = op_vals['vec']
         self.type = op_vals['type']
 
     def execute(self, state: OTBNState) -> None:
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
         mod_val = state.wsrs.MOD.read_unsigned()
-        size = None
-        if self.type == 0:
-            size = 32
+
+        if not self.vec:
+            result = a + b
+
+            if result >= mod_val:
+                result -= mod_val
         else:
-            size = 16
-        result = 0
+            if self.type == 0:
+                size = 32
+            else:
+                size = 16
+            result = 0
 
-        for i in range(256 // size, -1, -1):
-            ai = extract_sub_word(a, size, i)
-            bi = extract_sub_word(b, size, i)
-            resulti = ai + bi
-            if resulti >= mod_val:
-                resulti -= mod_val
+            for i in range(256 // size, -1, -1):
+                ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
+                bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
+                resulti = ai + bi
+                if resulti >= mod_val:
+                    resulti -= mod_val
+                elif resulti < 0:
+                    resulti += mod_val
 
-            result = (result << size) | (resulti & ((1 << size) - 1))
+                result = (result << size) | (OTBNInsn.to_2s_complement(resulti) & ((1 << size) - 1))
 
         result = result & ((1 << 256) - 1)
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
@@ -682,11 +669,11 @@ class BNMULMV(OTBNInsn):
         result = 0
 
         for i in range(256 // size, -1, -1):
-            ai = extract_sub_word(a, size, i)
-            bi = extract_sub_word(b, size, i)
+            ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
+            bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
             resulti = (ai * bi) % mod_val  # TODO: match to hw implementation
 
-            result = (result << size) | (resulti & ((1 << size) - 1))
+            result = (result << size) | (OTBNInsn.to_2s_complement(resulti) & ((1 << size) - 1))
 
         result = result & ((1 << 256) - 1)
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
@@ -714,14 +701,14 @@ class BNMULMVL(OTBNInsn):
             size = 16
 
         # Extract the lane
-        b_i = extract_sub_word(b, size, self.lane)
+        b_i = OTBNInsn.from_2s_complement(extract_sub_word(b, size, self.lane))
 
         result = 0
         for i in range(256 // size, -1, -1):
-            a_i = extract_sub_word(a, size, i)
+            a_i = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
             resulti = (a_i * b_i) % mod_val  # TODO: match to hw implementation
 
-            result = (result << size) | (resulti & ((1 << size) - 1))
+            result = (result << size) | (OTBNInsn.to_2s_complement(resulti) & ((1 << size) - 1))
 
         result = result & ((1 << 256) - 1)
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
@@ -932,58 +919,41 @@ class BNSUBI(OTBNInsn):
 
 
 class BNSUBM(OTBNInsn):
-    insn = insn_for_mnemonic('bn.subm', 3)
+    insn = insn_for_mnemonic('bn.subm', 5)
 
     def __init__(self, raw: int, op_vals: Dict[str, int]):
         super().__init__(raw, op_vals)
         self.wrd = op_vals['wrd']
         self.wrs1 = op_vals['wrs1']
         self.wrs2 = op_vals['wrs2']
-
-    def execute(self, state: OTBNState) -> None:
-        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
-        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
-
-        mod_val = state.wsrs.MOD.read_unsigned()
-
-        diff = a - b
-        if diff < 0:
-            diff += mod_val
-
-        result = diff & ((1 << 256) - 1)
-        state.wdrs.get_reg(self.wrd).write_unsigned(result)
-
-
-class BNSUBMV(OTBNInsn):
-    insn = insn_for_mnemonic('bn.submv', 4)
-
-    def __init__(self, raw: int, op_vals: Dict[str, int]):
-        super().__init__(raw, op_vals)
-        self.wrd = op_vals['wrd']
-        self.wrs1 = op_vals['wrs1']
-        self.wrs2 = op_vals['wrs2']
+        self.vec = op_vals['vec']
         self.type = op_vals['type']
 
     def execute(self, state: OTBNState) -> None:
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
         mod_val = state.wsrs.MOD.read_unsigned()
-        size = None
-        if self.type == 0:
-            size = 32
+
+        if not self.vec:
+            result = a - b
+            if result < 0:
+                result += mod_val
         else:
-            size = 16
-        result = 0
+            if self.type == 0:
+                size = 32
+            else:
+                size = 16
+            result = 0
 
-        for i in range(256 // size, -1, -1):
-            ai = extract_sub_word(a, size, i)
-            bi = extract_sub_word(b, size, i)
-            resulti = ai - bi
-
-            if resulti < 0:
-                resulti += mod_val
-
-            result = (result << size) | (resulti & ((1 << size) - 1))
+            for i in range(256 // size, -1, -1):
+                ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
+                bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
+                resulti = ai - bi
+                if resulti < 0:
+                    resulti += mod_val
+                elif resulti >= mod_val:
+                    resulti -= mod_val
+                result = (result << size) | (OTBNInsn.to_2s_complement(resulti) & ((1 << size) - 1))
 
         result = result & ((1 << 256) - 1)
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
@@ -1425,10 +1395,10 @@ INSN_CLASSES = [
     ECALL,
     LOOP, LOOPI,
 
-    BNADD, BNADDC, BNADDI, BNADDM, BNADDMV,
+    BNADD, BNADDC, BNADDI, BNADDM,
     BNMULMV, BNMULMVL,
     BNMULQACC, BNMULQACCWO, BNMULQACCSO,
-    BNSUB, BNSUBB, BNSUBI, BNSUBM, BNSUBMV,
+    BNSUB, BNSUBB, BNSUBI, BNSUBM,
     BNAND, BNOR, BNNOT, BNXOR,
     BNRSHI,
     BNSEL,

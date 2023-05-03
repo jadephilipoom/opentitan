@@ -104,6 +104,13 @@ class OTBNInsn:
         assert -(1 << 31) <= value < (1 << 31)
         return (1 << 32) + value if value < 0 else value
 
+    @staticmethod
+    def from_2s_complement(value: int) -> int:
+        '''Interpret the unsigned value as a 2's complement s32'''
+        assert value < (1 << 32)
+        b = value.to_bytes(4, byteorder="little", signed=False)                                                          
+        return int.from_bytes(b, byteorder="little", signed=True)
+
     def rtl_trace(self, pc: int) -> str:
         '''Return the RTL trace entry for executing this insn'''
         if self.has_bits:

@@ -252,30 +252,19 @@ bnai:
     imm: 29-20
     wrs: 19-15
 
-# Used for bn.addm, bn.subm
+# Used for bn.addm, bn.subm (and vector variants)
 bnam:
   parents:
     - custom1
     - wdr3
     - funct3
   fields:
+    vec: 25
+    type: 26
     sub: 30
     fixed:
-      bits: 31,29-25
-      value: bxxxxxx
-
-# Used for bn.addmv, bn.submv
-bnamv:
-  parents:
-    - custom1
-    - wdr3
-    - funct3
-  fields:
-    type: 25  # .8S or .16H
-    sub: 30  # bit 30 indicates subtraction or addition
-    fixed:
-      bits: 31,29-26
-      value: bxxxxx
+      bits: 31,29-27
+      value: bxxxx
 
 # Used for bn.mulmv
 bnammv:
