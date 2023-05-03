@@ -21,7 +21,7 @@ main:
   bn.wsrw 0x0, w2
 
   /* dmem[x] <= mulmv.8S(dmem[x], dmem[y])
-     dmem[y] <= mulmv.l.8S(dmem[x], dmem[y]) */
+     dmem[y] <= mulmv.l.8S(dmem[x], dmem[y], 6) */
   la      x10, x
   la      x11, y
   jal     x1, mulmv
@@ -44,25 +44,25 @@ main:
 
 /* First input */
 x:
-  .word 0x003240ee
+  .word 0xffcdbf12
   .word 0x002db175
   .word 0x003277b9
   .word 0x0026905b
-  .word 0x0039feba
+  .word 0xffc60146
   .word 0x003a52d7
   .word 0x0034e13f
   .word 0x00251899
 
 /* Second input */
 y:
-  .word 0x002102ef
-  .word 0x002f6925
-  .word 0x00207181
-  .word 0x002ec575
-  .word 0x002fb0b3
-  .word 0x0028d973
+  .word 0xffdefd11
+  .word 0xffd096db
+  .word 0xffdf8e7f
+  .word 0xffd13a8b
+  .word 0xffd04f4d
+  .word 0xffd7268d
   .word 0x0039e896
-  .word 0x002111d5
+  .word 0xffdeee2b
 
 /* Modulus for reduction */
 modulus:
