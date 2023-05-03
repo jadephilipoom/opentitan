@@ -344,8 +344,8 @@ class OTBNSim:
 
         return (None, self._on_stall(verbose, fetch_next=False))
 
-    def dump_data(self) -> bytes:
-        return self.state.dmem.dump_le_words()
+    def dump_data(self, include_validity: bool = True) -> bytes:
+        return self.state.dmem.dump_le_words(include_validity=include_validity)
 
     def _print_trace(self, pc: int, disasm: str, changes: List[Trace]) -> None:
         '''Print a trace of the current instruction'''
