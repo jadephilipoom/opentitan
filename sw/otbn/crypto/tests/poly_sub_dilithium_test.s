@@ -3,7 +3,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
 /**
- * Test for poly_add_dilithium
+ * Test for poly_sub_dilithium
 */
 
 .section .text.start
@@ -29,7 +29,7 @@ main:
   la  x29, output
   la  x30, input1
   la  x31, input2
-  jal  x1, poly_add_dilithium
+  jal  x1, poly_sub_dilithium
 
   ecall
 

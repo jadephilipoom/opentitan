@@ -47,3 +47,10 @@ otbn_library(
         "poly_sub_dilithium.s",
     ],
 )
+
+otbn_library(
+    name = "poly_reduce32_dilithium",
+    srcs = [
+        "poly_reduce32_dilithium.s",
+    ],
+)

@@ -29,7 +29,7 @@ poly_pointwise_dilithium:
         bn.lid x2, 0(x30)
         bn.lid x3, 0(x31)
         
-        bn.mulmv.8S w2, w2, w3
+        bn.mulmv.8S w2, w2, w3, 0
         
         bn.sid x2, 0(x29)
 

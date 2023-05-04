@@ -90,28 +90,28 @@ intt_dilithium:
         /* Butterflies */
         bn.submv.8S w30, w2, w3
         bn.addmv.8S w2, w2, w3
-        bn.mulmv.8S w3, w30, w18
+        bn.mulmv.8S w3, w30, w18, 0
         bn.submv.8S w30, w4, w5
         bn.addmv.8S w4, w4, w5
-        bn.mulmv.8S w5, w30, w19
+        bn.mulmv.8S w5, w30, w19, 0
         bn.submv.8S w30, w6, w7
         bn.addmv.8S w6, w6, w7
-        bn.mulmv.8S w7, w30, w20
+        bn.mulmv.8S w7, w30, w20, 0
         bn.submv.8S w30, w8, w9
         bn.addmv.8S w8, w8, w9
-        bn.mulmv.8S w9, w30, w21
+        bn.mulmv.8S w9, w30, w21, 0
         bn.submv.8S w30, w10, w11
         bn.addmv.8S w10, w10, w11
-        bn.mulmv.8S w11, w30, w22
+        bn.mulmv.8S w11, w30, w22, 0
         bn.submv.8S w30, w12, w13
         bn.addmv.8S w12, w12, w13
-        bn.mulmv.8S w13, w30, w23
+        bn.mulmv.8S w13, w30, w23, 0
         bn.submv.8S w30, w14, w15
         bn.addmv.8S w14, w14, w15
-        bn.mulmv.8S w15, w30, w24
+        bn.mulmv.8S w15, w30, w24, 0
         bn.submv.8S w30, w16, w17
         bn.addmv.8S w16, w16, w17
-        bn.mulmv.8S w17, w30, w25
+        bn.mulmv.8S w17, w30, w25, 0
 
         /* Reverse Layer 7, stride 2 */
 
@@ -124,28 +124,28 @@ intt_dilithium:
         /* Butterflies */
         bn.submv.8S w30, w2, w4
         bn.addmv.8S w2, w2, w4
-        bn.mulmv.8S w4, w30, w18
+        bn.mulmv.8S w4, w30, w18, 0
         bn.submv.8S w30, w3, w5
         bn.addmv.8S w3, w3, w5
-        bn.mulmv.8S w5, w30, w18
+        bn.mulmv.8S w5, w30, w18, 0
         bn.submv.8S w30, w6, w8
         bn.addmv.8S w6, w6, w8
-        bn.mulmv.8S w8, w30, w19
+        bn.mulmv.8S w8, w30, w19, 0
         bn.submv.8S w30, w7, w9
         bn.addmv.8S w7, w7, w9
-        bn.mulmv.8S w9, w30, w19
+        bn.mulmv.8S w9, w30, w19, 0
         bn.submv.8S w30, w10, w12
         bn.addmv.8S w10, w10, w12
-        bn.mulmv.8S w12, w30, w20
+        bn.mulmv.8S w12, w30, w20, 0
         bn.submv.8S w30, w11, w13
         bn.addmv.8S w11, w11, w13
-        bn.mulmv.8S w13, w30, w20
+        bn.mulmv.8S w13, w30, w20, 0
         bn.submv.8S w30, w14, w16
         bn.addmv.8S w14, w14, w16
-        bn.mulmv.8S w16, w30, w21
+        bn.mulmv.8S w16, w30, w21, 0
         bn.submv.8S w30, w15, w17
         bn.addmv.8S w15, w15, w17
-        bn.mulmv.8S w17, w30, w21
+        bn.mulmv.8S w17, w30, w21, 0
 
         /* Reverse Layer 6, stride 4 */
 
@@ -156,28 +156,28 @@ intt_dilithium:
         /* Butterflies */
         bn.submv.8S w30, w2, w6
         bn.addmv.8S w2, w2, w6
-        bn.mulmv.8S w6, w30, w18
+        bn.mulmv.8S w6, w30, w18, 0
         bn.submv.8S w30, w3, w7
         bn.addmv.8S w3, w3, w7
-        bn.mulmv.8S w7, w30, w18
+        bn.mulmv.8S w7, w30, w18, 0
         bn.submv.8S w30, w4, w8
         bn.addmv.8S w4, w4, w8
-        bn.mulmv.8S w8, w30, w18
+        bn.mulmv.8S w8, w30, w18, 0
         bn.submv.8S w30, w5, w9
         bn.addmv.8S w5, w5, w9
-        bn.mulmv.8S w9, w30, w18
+        bn.mulmv.8S w9, w30, w18, 0
         bn.submv.8S w30, w10, w14
         bn.addmv.8S w10, w10, w14
-        bn.mulmv.8S w14, w30, w19
+        bn.mulmv.8S w14, w30, w19, 0
         bn.submv.8S w30, w11, w15
         bn.addmv.8S w11, w11, w15
-        bn.mulmv.8S w15, w30, w19
+        bn.mulmv.8S w15, w30, w19, 0
         bn.submv.8S w30, w12, w16
         bn.addmv.8S w12, w12, w16
-        bn.mulmv.8S w16, w30, w19
+        bn.mulmv.8S w16, w30, w19, 0
         bn.submv.8S w30, w13, w17
         bn.addmv.8S w13, w13, w17
-        bn.mulmv.8S w17, w30, w19
+        bn.mulmv.8S w17, w30, w19, 0
 
         /* Transpose */
         bn.trans8 w2, w2

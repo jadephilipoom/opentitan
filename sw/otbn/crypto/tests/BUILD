@@ -646,6 +646,42 @@ otbn_sim_test(
 )
 
 otbn_sim_test(
+    name = "poly_sub_dilithium_test",
+    srcs = [
+        "poly_sub_dilithium_test.s",
+    ],
+    exp = "poly_sub_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:poly_sub_dilithium",
+    ],
+)
+
+otbn_sim_test(
+    name = "poly_reduce32_dilithium_test",
+    srcs = [
+        "poly_reduce32_dilithium_test.s",
+    ],
+    exp = "poly_reduce32_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:poly_reduce32_dilithium",
+    ],
+)
+
+otbn_sim_py_test(
+    name = "dilithium_test",
+    srcs = [
+    ],
+    deps = [
+        ":ed25519_ext_add_test",
+        ":ntt_dilithium_test",
+        ":intt_dilithium_test",
+        ":poly_pointwise_dilithium_test",
+        ":poly_add_dilithium_test",
+        ":poly_sub_dilithium_test",
+        ],
+)
+
+otbn_sim_test(
     name = "relprime_f4_test",
     srcs = [
         "relprime_f4_test.s",
@@ -673,30 +709,6 @@ otbn_consttime_test(
     ],
 )
 
-otbn_sim_test(
-    name = "poly_sub_dilithium_test",
-    srcs = [
-        "poly_sub_dilithium_test.s",
-    ],
-    exp = "poly_sub_dilithium_test.exp",
-    deps = [
-        "//sw/otbn/crypto/handwritten:poly_sub_dilithium",
-    ],
-)
-
-otbn_sim_py_test(
-    name = "dilithium_test",
-    srcs = [
-    ],
-    deps = [
-        ":ed25519_ext_add_test",
-        ":ntt_dilithium_test",
-        ":intt_dilithium_test",
-        ":poly_pointwise_dilithium_test",
-        ":poly_add_dilithium_test",
-        ":poly_sub_dilithium_test",
-        ],
-)
 otbn_sim_test(
     name = "rsa_keygen_checkpq_test",
     # This test is very long because it runs multiple primality tests.
