@@ -40,6 +40,17 @@ otbn_sim_test(
 )
 
 otbn_sim_test(
+    name = "mulv_test",
+    srcs = [
+        "mulv_test.s",
+    ],
+    exp = "mulv_test.exp",
+    deps = [
+        "//sw/otbn/vector:mulv",
+    ],
+)
+
+otbn_sim_test(
     name = "trans8_test",
     srcs = [
         "trans8_test.s",
@@ -47,5 +58,16 @@ otbn_sim_test(
     exp = "trans8_test.exp",
     deps = [
         "//sw/otbn/vector:trans8",
+    ],
+)
+
+otbn_sim_test(
+    name = "andv_test",
+    srcs = [
+        "andv_test.s",
+    ],
+    exp = "andv_test.exp",
+    deps = [
+        "//sw/otbn/vector:andv",
     ],
 )

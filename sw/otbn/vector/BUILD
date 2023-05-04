@@ -28,8 +28,22 @@ otbn_library(
 )
 
 otbn_library(
+    name = "mulv",
+    srcs = [
+        "mulv.s",
+    ],
+)
+
+otbn_library(
     name = "trans8",
     srcs = [
         "trans8.s",
+    ],
+)
+
+otbn_library(
+    name = "andv",
+    srcs = [
+        "andv.s",
     ],
 )

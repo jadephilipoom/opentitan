@@ -1,29 +1,23 @@
-.globl mulmv
-mulmv:
+.globl andv
+andv:
     /* Set up constants for input/output
          x23 <= 23
          x24 <= 24
-         x25 <= 25
-         x26 <= 26 */
+         x25 <= 25 */
     li      x23, 23
     li      x24, 24
     li      x25, 25
-    li      x26, 26
 
     /* Load the least significant limbs of x and y.
          w23 <= dmem[x10] = x[255:0]
          w24 <= dmem[x11] = y[255:0] */
     bn.lid  x23, 0(x10)
     bn.lid  x24, 0(x11)
-
-    bn.mulmv.8S   w25, w23, w24, 0
-    bn.mulmv.l.8S w26, w23, w24, 6
+    bn.andv.8S w25, w23, w24
 
     /* Write result
-         dmem[x10] <= w25
-         dmem[x11] <= w26 */
+         dmem[x10] <= w25 */
     bn.sid  x25, 0(x10)
-    bn.sid  x26, 0(x11)
 
     ret
 

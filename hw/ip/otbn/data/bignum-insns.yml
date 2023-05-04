@@ -120,6 +120,11 @@
       type: option(v)
       doc: |
         Whether to regard this as a vector instruction or not.
+    - name: nored
+      abbrev: nr
+      type: option(, nored)
+      doc: |
+        Disable reduction.
     - name: wrd
       doc: Updated WDR.
       type: wrb
@@ -155,7 +160,7 @@
     intermediate result is less than `2 * MOD`. The intermediate result is small
     enough if both inputs are less than `MOD`.
   syntax: |
-    [<vec>.<type>] <wrd>, <wrs1>, <wrs2>
+    [<vec>.<type>] <wrd>, <wrs1>, <wrs2>[<nored>]
   errs: []
   iflow:
     - to: [wrd]
@@ -163,6 +168,7 @@
   encoding:
     scheme: bnam
     mapping:
+      nored: nored
       vec: vec
       type: type
       sub: b0
@@ -176,58 +182,15 @@
   operands:
     - name: type
       abbrev: t
-      type: enum(.8S,.16H)
+      type: enum(.8S,.16H,.l.8S,.l.16H)
       doc: |
         Select the data type of the registers. `.8S` interprets the WDRs as 8
         32-bit registers, `.16H` as 16 16-bit registers.
-    - name: wrd
-      doc: Updated WDR.
-      type: wrb
-    - name: wrs1
-      doc: First source WDR
-      type: wrs
-    - name: wrs2
-      doc: Second source WDR
-      type: wrs
-  glued-ops: true
-  doc: |
-    Multiply two WDR registers interpreted as vectors, modulo the MOD WSR.
-
-    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with elements
-    of size 32 bit or 16 bit (depending on `type`). The elements are
-    individually multiplied and reduced by MOD to a result in [0, MOD). Each
-    result element is truncated to 32 or 16 bits (depending on `type`) and
-    stored in `<wrd>`.
-
-    The result is correct if each input element is in [0, MOD).
-
-    Flags are not used or saved.
-  syntax: |
-    <type> <wrd>, <wrs1>, <wrs2>
-  errs: []
-  iflow:
-    - to: [wrd]
-      from: [wrs1, wrs2, mod]
-  encoding:
-    scheme: bnammv
-    mapping:
-      type: type
-      use_lane: b0
-      lane: bxxxx
-      wrs2: wrs2
-      wrs1: wrs1
-      funct3: b110
-      wrd: wrd
-
-- mnemonic: bn.mulmv.l
-  synopsis: Pseudo-Modulo Multiply Vector
-  operands:
-    - name: type
-      abbrev: t
-      type: enum(.8S,.16H)
+    - name: nored
+      abbrev: nr
+      type: option(nored)
       doc: |
-        Select the data type of the registers. `.8S` interprets the WDRs as 8
-        32-bit registers, `.16H` as 16 16-bit registers.
+        Disable reduction
     - name: wrd
       doc: Updated WDR.
       type: wrb
@@ -242,20 +205,19 @@
       type: uimm
   glued-ops: true
   doc: |
-    Multiply a WDR register interpreted as vectors by one element of a WDR
-    register, modulo the MOD WSR.
+    Multiply two WDR registers interpreted as vectors, modulo the MOD WSR.
 
-    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with signed
-    elements of size 32 bit or 16 bit (depending on `type`). The elements from
-    `<wrs1>` are multiplied by the element from `<wrs2>` at index `<lane>` and
-    reduced by MOD to a result in [0, MOD). Each result element is truncated to
-    32 or 16 bits (depending on `type`) and stored in `<wrd>`.
+    The values in `<wrs1>` and `<wrs2>` are interpreted as vectors with elements
+    of size 32 bit or 16 bit (depending on `type`). The elements are
+    individually multiplied and reduced by MOD to a result in [0, MOD). Each
+    result element is truncated to 32 or 16 bits (depending on `type`) and
+    stored in `<wrd>`.
 
     The result is correct if each input element is in [0, MOD).
 
     Flags are not used or saved.
   syntax: |
-    <type> <wrd>, <wrs1>, <wrs2>, <lane>
+    <type> <wrd>, <wrs1>, <wrs2>, <lane>[, <nored>]
   errs: []
   iflow:
     - to: [wrd]
@@ -264,7 +226,7 @@
     scheme: bnammv
     mapping:
       type: type
-      use_lane: b1
+      nored: nored
       lane: lane
       wrs2: wrs2
       wrs1: wrs1
@@ -558,6 +520,11 @@
       type: option(v)
       doc: |
         Whether to regard this as a vector instruction or not.
+    - name: nored
+      abbrev: nr
+      type: option(, nored)
+      doc: |
+        Disable reduction
     - name: wrd
       doc: Updated WDR.
       type: wrb
@@ -593,7 +560,7 @@
     intermediate result is less than `2 * MOD`. The intermediate result is small
     enough if both inputs are less than `MOD`.
   syntax: |
-    [<vec>.<type>] <wrd>, <wrs1>, <wrs2>
+    [<vec>.<type>] <wrd>, <wrs1>, <wrs2>[<nored>]
   errs: []
   iflow:
     - to: [wrd]
@@ -601,12 +568,81 @@
   encoding:
     scheme: bnam
     mapping:
+      nored: nored
       vec: vec
       type: type
       sub: b1
       wrs2: wrs2
       wrs1: wrs1
       funct3: b101
+      wrd: wrd
+
+- mnemonic: bn.andv
+  synopsis: Bitwise AND
+  operands: &bn-andv-operands
+    - name: type
+      abbrev: t
+      type: enum(.8S,.16H)
+      doc: |
+        Select the data type of the registers. `.8S` interprets the WDRs as 8
+        32-bit registers, `.16H` as 16 16-bit registers.
+    - name: wrd
+      doc: Name of the destination WDR
+    - name: wrs1
+      doc: Name of the first source WDR
+    - name: wrs2
+      doc: Name of the second source WDR
+    - *bn-shift-type-operand
+    - name: shift_bits
+      type: uimm5<<0
+      doc: Name of the second source WDR
+    - name: shift_arith
+      type: option(a)
+      doc: Arithmetic shifting instead of logical
+  glued-ops: true
+  syntax: &bn-andv-syntax |
+    <type> <wrd>, <wrs1>, <wrs2>[<shift_arith>][ <shift_type> <shift_bits>]
+  doc: |
+    Performs a bitwise and operation.
+    Takes the values stored in registers referenced by `wrs1` and `wrs2` and stores the result in the register referenced by `wrd`.
+    The content of the second source register can be shifted by an immediate before it is consumed by the operation.
+  errs: []
+  iflow: &bn-andv-iflow
+    - to: [wrd]
+      from: [wrs1, wrs2]
+  encoding:
+    scheme: bnav
+    mapping:
+      shift_type: shift_type
+      shift_bits: shift_bits
+      shift_arith: shift_arith
+      wrs2: wrs2
+      wrs1: wrs1
+      funct2: b00
+      type: type
+      wrd: wrd
+
+- mnemonic: bn.orv
+  synopsis: Bitwise OR
+  operands: *bn-andv-operands
+  glued-ops: true
+  syntax: *bn-andv-syntax 
+  doc: |
+    Performs a bitwise or operation.
+    Takes the values stored in registers referenced by `wrs1` and `wrs2` and stores the result in the register referenced by `wrd`.
+    The content of the second source register can be shifted by an immediate before it is consumed by the operation.
+  errs: []
+  iflow: *bn-andv-iflow
+  encoding:
+    scheme: bnav
+    mapping:
+      shift_type: shift_type
+      shift_bits: shift_bits
+      shift_arith: shift_arith
+      wrs2: wrs2
+      wrs1: wrs1
+      funct2: b01
+      type: type
       wrd: wrd
 
 - mnemonic: bn.and

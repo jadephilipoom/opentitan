@@ -99,10 +99,10 @@ class OTBNInsn:
         return disasm
 
     @staticmethod
-    def to_2s_complement(value: int) -> int:
+    def to_2s_complement(value: int, size: int = 32) -> int:
         '''Interpret the signed value as a 2's complement u32'''
-        assert -(1 << 31) <= value < (1 << 31)
-        return (1 << 32) + value if value < 0 else value
+        assert -(1 << (size - 1)) <= value < (1 << (size - 1))
+        return (1 << size) + value if value < 0 else value
 
     @staticmethod
     def from_2s_complement(value: int) -> int:
@@ -146,6 +146,26 @@ class RV32ImmShift(OTBNInsn):
         self.grd = op_vals['grd']
         self.grs1 = op_vals['grs1']
         self.shamt = op_vals['shamt']
+
+
+def bit_shift(value: int, shift_type: int, shift_bits: int, size: int) -> int:
+    '''Logical shift value by shift_bits to the left or right.
+
+    value should be an unsigned size-bit value. shift_type should be 0 (shift
+    left) or 1 (shift right), matching the encoding of the big number
+    instructions. shift_bytes should be a non-negative number of bytes to shift
+    by.
+
+    Returns a 32-bit value, truncating on an overflowing left shift.
+
+    '''
+    mask = (1 << size) - 1
+    # assert 0 <= value <= mask
+    assert 0 <= shift_type <= 1
+    assert 0 <= shift_bits
+
+    shifted = value << shift_bits if shift_type == 0 else value >> shift_bits
+    return shifted & mask
 
 
 def logical_byte_shift(value: int, shift_type: int, shift_bytes: int) -> int:
