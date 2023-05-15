@@ -957,3 +957,215 @@
   lsu:
     type: wsr-store
     target: [wsr]
+
+- mnemonic: bn.v16.addm
+  synopsis: Vectorized 16-bit modular addition
+  operands: [wrd, wrs1, wrs2]
+  doc: |
+    Vectorized addition of two WDR values, modulo the (vectorized) MOD WSR.
+
+    The values in corresponding 16-bit sections of `<wrs1>` and `<wrs2>` are summed to get an intermediate result (of width 17).
+    If this result is greater than the corresponding 16-bit section of MOD, then that section of MOD is subtracted from it.
+    The result is then truncated to 16 bits and stored in `<wrd>`.
+
+    This operation correctly implements addition modulo MOD, providing that the intermediate result is less than `2 * MOD`.
+    The intermediate result is small enough if both inputs are less than `MOD`.
+
+    Flags are not used or saved.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnvam
+    mapping:
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b000
+      wrd: wrd
+
+- mnemonic: bn.v32.addm
+  synopsis: Vectorized 32-bit modular addition
+  operands: [wrd, wrs1, wrs2]
+  doc: |
+    Vectorized addition of two WDR values, modulo the (vectorized) MOD WSR.
+
+    The values in corresponding 32-bit sections of `<wrs1>` and `<wrs2>` are summed to get an intermediate result (of width 33).
+    If this result is greater than the corresponding 32-bit section of MOD, then that section of MOD is subtracted from it.
+    The result is then truncated to 32 bits and stored in `<wrd>`.
+
+    This operation correctly implements addition modulo MOD, providing that the intermediate result is less than `2 * MOD`.
+    The intermediate result is small enough if both inputs are less than `MOD`.
+
+    Flags are not used or saved.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnvam
+    mapping:
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b001
+      wrd: wrd
+
+- mnemonic: bn.v16.subm
+  synopsis: vectorized 16-bit pseudo-modulo subtraction
+  operands: [wrd, wrs1, wrs2]
+  doc: |
+    subtract corresponding 16-bit sections of `<wrs2>` from `<wrs1>`, modulo the vectorized `mod` wsr.
+
+    the intermediate result for each pair of corresponding 16-bit sections is treated as a signed number (of width 17).
+    if it is negative, the corresponding 16-bit section of `mod` is added to it.
+    the 2's-complement result is then truncated to 16 bits and stored in `<wrd>`.
+
+    this operation correctly implements subtraction modulo `mod`, providing that the intermediate result at least `-mod` and at most `mod - 1`.
+    this is guaranteed if both inputs are less than `mod`.
+
+    flags are not used or saved.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnvam
+    mapping:
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b010
+      wrd: wrd
+
+- mnemonic: bn.v32.subm
+  synopsis: Vectorized 32-bit pseudo-modulo subtraction
+  operands: [wrd, wrs1, wrs2]
+  doc: |
+    Subtract corresponding 32-bit sections of `<wrs2>` from `<wrs1>`, modulo the vectorized `MOD` WSR.
+
+    The intermediate result for each pair of corresponding 32-bit sections is treated as a signed number (of width 33).
+    If it is negative, the corresponding 32-bit section of `MOD` is added to it.
+    The 2's-complement result is then truncated to 32 bits and stored in `<wrd>`.
+
+    This operation correctly implements subtraction modulo `MOD`, providing that the intermediate result at least `-MOD` and at most `MOD - 1`.
+    This is guaranteed if both inputs are less than `MOD`.
+
+    Flags are not used or saved.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnvam
+    mapping:
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b011
+      wrd: wrd
+
+- mnemonic: bn.v16.mulm
+  synopsis: Vectorized 16-bit modular multiplication
+  operands: [wrd, wrs1, wrs2]
+  doc: |
+    Multiply corresponding 16-bit sections of `<wrs2>` from `<wrs1>`, modulo the vectorized `MOD` WSR.
+
+    Each pair of corresponding 16-bit sections is multiplied for a 32-bit result.
+    This result is fully reduced modulo the corresponding 16-bit section of `MOD`.
+    Finally, the 16-bit reduction result is saved to the corresponding 16-bit section of the result register.
+
+    Flags are not used or saved.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnvam
+    mapping:
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b100
+      wrd: wrd
+
+- mnemonic: bn.v32.mulm
+  synopsis: Vectorized 32-bit modular multiplication
+  operands: [wrd, wrs1, wrs2]
+  doc: |
+    Multiply corresponding 32-bit sections of `<wrs2>` from `<wrs1>`, modulo the vectorized `MOD` WSR.
+
+    Each pair of corresponding 32-bit sections is multiplied for a 64-bit result.
+    This result is fully reduced modulo the corresponding 32-bit section of `MOD`.
+    Finally, the 32-bit reduction result is saved to the corresponding 32-bit section of the result register.
+
+    Flags are not used or saved.
+  errs: []
+  iflow:
+    - to: [wrd]
+      from: [wrs1, wrs2, mod]
+  encoding:
+    scheme: bnvam
+    mapping:
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b101
+      wrd: wrd
+
+- mnemonic: bn.v16.rshi
+  synopsis: Vectorized 16-bit concatenate and right shift immediate
+  operands:
+    - name: wrd
+      doc: Name of the destination WDR
+    - name: wrs1
+      doc: Name of the first source WDR
+    - name: wrs2
+      doc: Name of the second source WDR
+    - name: imm
+      type: uimm
+      doc: |
+        Number of bits to shift the second source register by. Valid range: 0..15.
+  syntax: |
+    <wrd>, <wrs1>, <wrs2> >> <imm>
+  doc: |
+    Concatenates each 16-bit section of the WDR referenced by `wrs1` with the corresponding 16-bit section of `wrs2` (`wrs1` forms the upper part).
+    Shifts the concatenated 32 bits right by an immediate value and truncates them to 16 bits.
+    The result is stored in the corresponding 16-bit portion of the WDR referenced by `wrd`.
+
+    Flags are not used or stored.
+  errs: []
+  encoding:
+    scheme: bnvr
+    mapping:
+      imm: imm
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b110
+      wrd: wrd
+
+- mnemonic: bn.v32.rshi
+  synopsis: Vectorized 32-bit concatenate and right shift immediate
+  operands:
+    - name: wrd
+      doc: Name of the destination WDR
+    - name: wrs1
+      doc: Name of the first source WDR
+    - name: wrs2
+      doc: Name of the second source WDR
+    - name: imm
+      type: uimm
+      doc: |
+        Number of bits to shift the second source register by. Valid range: 0..15.
+  syntax: |
+    <wrd>, <wrs1>, <wrs2> >> <imm>
+  doc: |
+    Concatenates each 32-bit section of the WDR referenced by `wrs1` with the corresponding 32-bit section of `wrs2` (`wrs1` forms the upper part).
+    Shifts the concatenated 64 bits right by an immediate value and truncates them to 32 bits.
+    The result is stored in the corresponding 32-bit portion of the WDR referenced by `wrd`.
+
+    Flags are not used or stored.
+  errs: []
+  encoding:
+    scheme: bnvr
+    mapping:
+      imm: imm
+      wrs2: wrs2
+      wrs1: wrs1
+      funct3: b111
+      wrd: wrd

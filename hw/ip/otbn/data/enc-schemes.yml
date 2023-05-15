@@ -147,6 +147,11 @@ custom3:
   parents:
     - rv(opcode=b11110)
 
+# A partial scheme for custom instructions with opcode b11010
+custom4:
+  parents:
+    - rv(opcode=b11010)
+
 # A partial scheme for instructions that produce a dest WDR.
 wrd:
   fields:
@@ -366,3 +371,26 @@ wcsr:
     fixed:
       bits: 30-28
       value: bxxx
+
+# Used for vectorized arithmetic (bn.v32.addm, bn.v16.subm, bn.v32.mulm)
+bnvam:
+  parents:
+    - custom4
+    - wdr3
+    - funct3
+  fields:
+    fixed:
+      bits: 31-25
+      value: bxxxxxxx
+
+# Used for vectorized shifts (bn.v32.rshi, bn.v16.rshi)
+bnvr:
+  parents:
+    - custom4
+    - wdr3
+    - funct3
+  fields:
+    imm: 29-25
+    fixed:
+      bits: 31-30
+      value: bxx
