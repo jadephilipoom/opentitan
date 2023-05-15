@@ -1,2 +1,46 @@
-# Expected values of registers.
-w31 = 0
+# This file holds the expected final values of registers after `extended.s`.
+#
+# The following Python program was used to compute these expected results:
+#
+# def bn(v, n):
+#   out = 0
+#   for term in reversed(v):
+#     out <<= n
+#     out += term
+#   return out
+#
+# def vec(x, n):
+#   return [(x >> (n*i)) & ((1 << n) - 1) for i in range(int(256 / n))]
+#
+# x = 0x00001111022203330444055506660777088809990aaa0bbb0ccc01dd01ee01ff
+# y = 0x00008801001199020022aa030033bb040044cc050055dd060066ee070077ff08
+# q16 = 0xd01
+# q32 = 0x7fe001
+# vx = vec(x, 16)
+# vy = vec(y, 32)
+# va = [(5 * x) % q16 for x in vx]
+# vb = [(0 - x) for x in vx]
+# vc = [(x * x) % q16 for x in vx]
+# vd = [(5 * y) % q32 for y in vy]
+# ve = [(0 - y) % q32 for y in vy]
+# vf = [(y * y) % q32 for y in vy]
+#
+# print(f'w20 = {bn(va,16):#066x}')
+# print(f'w21 = {bn(vb,16):#066x}')
+# print(f'w22 = {bn(vc,16):#066x}')
+# print(f'w23 = {bn(vd,32):#066x}')
+# print(f'w24 = {bn(ve,32):#066x}')
+# print(f'w25 = {bn(vf,32):#066x}')
+
+# Vectorized 16-bit addition result (a)
+w20 = 0x000005550aaa02fe085300a705fc0b5103a508fa014e06a30bf8095109a609fb
+# Vectorized 16-bit subtraction result (b)
+w21 = 0x00000bf00adf09ce08bd07ac069b058a047903680257014600350b240b130b02
+# Vectorized 16-bit multiplication result (c)
+w22 = 0x0000050b072b066002aa090a0c7f00080aa8055c0a260c050af9048503fb05b3
+# Vectorized 32-bit addition result (d)
+w23 = 0x0002a8050057fd0a002d720e0002e71200583c17002db11b0003261f00587b24
+# Vectorized 32-bit subtraction result (e)
+w24 = 0x007f5800006e46ff005d35fe004c24fd003b13fc002a02fb0018f1fa0007e0f9
+# Vectorized 32-bit multiplication result (f)
+w25 = 0x00530f710033b80e005c167d004c4abd000454ce000414b1004b8a66005ad5ec
