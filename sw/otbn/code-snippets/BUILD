@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-load("//rules:otbn.bzl", "otbn_binary")
+load("//rules:otbn.bzl", "otbn_binary", "otbn_sim_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -17,6 +17,14 @@ otbn_binary(
     name = "err_test",
     srcs = [
         "err_test.s",
+    ],
+)
+
+otbn_sim_test(
+    name = "extended",
+    exp = "extended.exp",
+    srcs = [
+        "extended.s",
     ],
 )
 
