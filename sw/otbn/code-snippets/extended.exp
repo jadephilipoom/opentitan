@@ -18,19 +18,29 @@
 # q32 = 0x7fe001
 # vx = vec(x, 16)
 # vy = vec(y, 32)
+#
 # va = [(5 * x) % q16 for x in vx]
 # vb = [(0 - x) for x in vx]
 # vc = [(x * x) % q16 for x in vx]
 # vd = [(5 * y) % q32 for y in vy]
 # ve = [(0 - y) % q32 for y in vy]
 # vf = [(y * y) % q32 for y in vy]
-#
 # print(f'w20 = {bn(va,16):#066x}')
 # print(f'w21 = {bn(vb,16):#066x}')
 # print(f'w22 = {bn(vc,16):#066x}')
 # print(f'w23 = {bn(vd,32):#066x}')
 # print(f'w24 = {bn(ve,32):#066x}')
 # print(f'w25 = {bn(vf,32):#066x}')
+#
+# vg = [(x >> 4) for x in vx]
+# vh = [(x << 4) & ((1 << 16) - 1) for x in vx]
+# vj = [(y >> 12) for y in vy]
+# vk = [(y << 12) & ((1 << 32) - 1) for y in vy]
+#
+# print(f'w26 = {bn(vg,16):#066x}')
+# print(f'w27 = {bn(vh,16):#066x}')
+# print(f'w28 = {bn(vj,32):#066x}')
+# print(f'w29 = {bn(vk,32):#066x}')
 
 # Vectorized 16-bit addition result (a)
 w20 = 0x000005550aaa02fe085300a705fc0b5103a508fa014e06a30bf8095109a609fb
@@ -44,3 +54,11 @@ w23 = 0x0002a8050057fd0a002d720e0002e71200583c17002db11b0003261f00587b24
 w24 = 0x007f5800006e46ff005d35fe004c24fd003b13fc002a02fb0018f1fa0007e0f9
 # Vectorized 32-bit multiplication result (f)
 w25 = 0x00530f710033b80e005c167d004c4abd000454ce000414b1004b8a66005ad5ec
+# Vectorized 16-bit right shift result (g)
+w26 = 0x000000110022003300440055006600770088009900aa00bb00cc001d001e001f
+# Vectorized 16-bit left shift result (h)
+w27 = 0x0000111022203330444055506660777088809990aaa0bbb0ccc01dd01ee01ff0
+# Vectorized 32-bit right shift result (j)
+w28 = 0x00000008000001190000022a0000033b0000044c0000055d0000066e0000077f
+# Vectorized 32-bit left shift result (k)
+w29 = 0x08801000199020002aa030003bb040004cc050005dd060006ee070007ff08000

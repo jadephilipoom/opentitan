@@ -17,6 +17,10 @@ start:
        w20..w25 <= vectorized arithmetic test results */
   jal       x1, vec_arith_test
 
+  /* Test vectorized shifting.
+       w26..w29 <= vectorized shifting test results */
+  jal       x1, vec_shift_test
+
   /* Test memory sizes. This step zeroes the memory, so do it last. */
   jal       x1, check_mem_sizes
 
@@ -94,7 +98,6 @@ vec_arith_test:
   /* Load the 32-bit vectorized test value y.
        w1 <= dmem[y..y+32] */
   la       x2, y
-  li       x3, 1
   bn.lid   x3, 0(x2)
 
   /* Compute d such that d[i] = (y[i] * 5) % MOD[i].
@@ -111,6 +114,60 @@ vec_arith_test:
   /* Compute f such that f[i] = (y[i] * y[i]) % MOD[i].
        w25 <= (y *v y) % MOD */
   bn.v32.mulm   w25, w1, w1
+
+  ret
+
+/**
+ * Basic tests for vectorized shifts.
+ *
+ * This test uses a value x from DMEM and 16-bit vectorized instructions to
+ * compute vectors g and h such that:
+ *   g[i] = (x[i] >> 4)
+ *   h[i] = (x[i] << 4)
+ *
+ * This test uses a value y from DMEM and 32-bit vectorized instructions to
+ * compute vectors j and k such that:
+ *   j[i] = (y[i] >> 12)
+ *   k[i] = (y[i] << 12)
+ *
+ * @param[in]           w31: all-zero
+ * @param[in] dmem[x..x+32]: x, value for testing
+ * @param[in] dmem[y..y+32]: y, value for testing
+ * @param[out]          w26: g, 16-bit right-shift result
+ * @param[out]          w27: h, 16-bit left-shift result
+ * @param[out]          w28: j, 32-bit right-shift result
+ * @param[out]          w29: k, 32-bit left-shift result
+ *
+ * clobbered registers: x2, x3, w1, w26 to w29
+ * clobbered flag groups: None
+ */
+vec_shift_test:
+  /* Load the 16-bit vectorized test value x.
+       w1 <= dmem[x..x+32] */
+  la       x2, x
+  li       x3, 1
+  bn.lid   x3, 0(x2)
+
+  /* Compute g such that g[i] = (x[i] >> 4).
+       w26 <= (x >>v 4) */
+  bn.v16.rshi   w26, w31, w1 >> 4
+
+  /* Compute h such that h[i] = (x[i] << 4).
+       w27 <= (x <<v 4) */
+  bn.v16.rshi   w27, w1, w31 >> 12
+
+  /* Load the 32-bit vectorized test value y.
+       w1 <= dmem[y..y+32] */
+  la       x2, y
+  bn.lid   x3, 0(x2)
+
+  /* Compute j such that j[i] = (y[i] >> 12).
+       w28 <= (y >>v 12) */
+  bn.v32.rshi   w28, w31, w1 >> 12
+
+  /* Compute k such that k[i] = (y[i] << 12).
+       w29 <= (y <<v 12) */
+  bn.v32.rshi   w29, w1, w31 >> 20
 
   ret
 
