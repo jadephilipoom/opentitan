@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, Iterator, Optional
+from typing import Dict, Iterator, List, Optional
 
 from .constants import ErrBits
 from .flags import FlagReg
@@ -1263,6 +1263,191 @@ class BNWSRW(OTBNInsn):
         val = state.wdrs.get_reg(self.wrs).read_unsigned()
         state.wsrs.write_at_idx(self.wsr, val)
 
+def to_vec(value: int, sz: int) -> List[int]:
+    '''Vectorize a 256-bit wide register value into `sz`-bit sections.'''
+    assert 256 % sz== 0
+    return [(value >> (sz*i)) & ((1 << sz) - 1) for i in range(int(256 / sz))]
+
+
+def of_vec(vec: int, sz: int) -> List[int]:
+    '''Convert a vector of `sz`-bit ints into a 256-bit wide register value.'''
+    assert len(vec) * sz == 256
+    out = 0
+    for term in reversed(vec):
+        out <<= sz
+        out += term
+    return out
+
+
+class BNV16ADDM(OTBNInsn):
+    insn = insn_for_mnemonic('bn.v16.addm', 3)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        mod_val = state.wsrs.MOD.read_unsigned()
+
+        va = to_vec(a, 16)
+        vb = to_vec(b, 16)
+        vm = to_vec(mod_val, 16)
+
+        vresult = []
+        for i in range(len(vm)):
+            ri = va[i] + vb[i]
+            if ri >= vm[i]:
+                ri -= vm[i]
+            vresult.append(ri & ((1 << 16) - 1))
+
+        result = of_vec(vresult, 16)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNV32ADDM(OTBNInsn):
+    insn = insn_for_mnemonic('bn.v32.addm', 3)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        mod_val = state.wsrs.MOD.read_unsigned()
+
+        va = to_vec(a, 32)
+        vb = to_vec(b, 32)
+        vm = to_vec(mod_val, 32)
+
+        vresult = []
+        for i in range(len(vm)):
+            ri = va[i] + vb[i]
+            if ri >= vm[i]:
+                ri -= vm[i]
+            vresult.append(ri & ((1 << 32) - 1))
+
+        result = of_vec(vresult, 32)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNV16SUBM(OTBNInsn):
+    insn = insn_for_mnemonic('bn.v16.subm', 3)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        mod_val = state.wsrs.MOD.read_unsigned()
+
+        va = to_vec(a, 16)
+        vb = to_vec(b, 16)
+        vm = to_vec(mod_val, 16)
+
+        vresult = []
+        for i in range(len(vm)):
+            diff = va[i] - vb[i]
+            if diff < 0:
+                diff += vm[i]
+            vresult.append(diff & ((1 << 16) - 1))
+
+        result = of_vec(vresult, 16)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNV32SUBM(OTBNInsn):
+    insn = insn_for_mnemonic('bn.v32.subm', 3)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        mod_val = state.wsrs.MOD.read_unsigned()
+
+        va = to_vec(a, 32)
+        vb = to_vec(b, 32)
+        vm = to_vec(mod_val, 32)
+
+        vresult = []
+        for i in range(len(vm)):
+            diff = va[i] - vb[i]
+            if diff < 0:
+                diff += vm[i]
+            vresult.append(diff & ((1 << 32) - 1))
+
+        result = of_vec(vresult, 32)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNV16MULM(OTBNInsn):
+    insn = insn_for_mnemonic('bn.v16.mulm', 3)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        mod_val = state.wsrs.MOD.read_unsigned()
+
+        va = to_vec(a, 16)
+        vb = to_vec(b, 16)
+        vm = to_vec(mod_val, 16)
+
+        vresult = [(va[i] * vb[i]) % vm[i] for i in range(len(vm))]
+
+        result = of_vec(vresult, 16)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNV32MULM(OTBNInsn):
+    insn = insn_for_mnemonic('bn.v32.mulm', 3)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        mod_val = state.wsrs.MOD.read_unsigned()
+
+        va = to_vec(a, 32)
+        vb = to_vec(b, 32)
+        vm = to_vec(mod_val, 32)
+
+        vresult = [(va[i] * vb[i]) % vm[i] for i in range(len(vm))]
+
+        result = of_vec(vresult, 32)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
 
 INSN_CLASSES = [
     ADD, ADDI, LUI, SUB, SLL, SLLI, SRL, SRLI, SRA, SRAI,
@@ -1282,5 +1467,9 @@ INSN_CLASSES = [
     BNCMP, BNCMPB,
     BNLID, BNSID,
     BNMOV, BNMOVR,
-    BNWSRR, BNWSRW
+    BNWSRR, BNWSRW,
+
+    BNV16ADDM, BNV32ADDM,
+    BNV16SUBM, BNV32SUBM,
+    BNV16MULM, BNV32MULM,
 ]
