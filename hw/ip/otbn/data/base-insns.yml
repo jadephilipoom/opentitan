@@ -686,3 +686,62 @@
   literal-pseudo-op:
     # 0xC00 is the "cycle" RISC-V CSR.
     - CSRRW x0, 0xC00, x0
+
+- mnemonic: shake_start
+  synopsis: SHAKE
+  operands: 
+    - name: grs1
+      doc: Address of op_state struct
+    - name: grs2
+      doc: Address of mode struct
+  doc: |
+    SHAKE start
+  syntax: <grs1>, <grs2>
+  encoding:
+    scheme: SHAKE_start
+    mapping:
+      op_state: grs1
+      mode: grs2
+      funct3: b010
+
+- mnemonic: shake_absorb
+  synopsis: SHAKE
+  operands: 
+    - name: grs1
+      doc: Address of op_state struct
+    - name: grs2
+      doc: Address of message buffer
+    - name: grs3
+      doc: Length of message
+  doc: |
+    SHAKE absorb step
+  syntax: <grs1>, <grs2>, <grs3>
+  encoding:
+    scheme: SHAKE_op
+    mapping:
+      op_state: grs1
+      buf: grs2
+      len: grs3
+      funct3: b010
+      operation: b01
+
+- mnemonic: shake_squeeze
+  synopsis: SHAKE
+  operands: 
+    - name: grs1
+      doc: Address of op_state struct
+    - name: grs2
+      doc: Address of output buffer
+    - name: grs3
+      doc: Length of output
+  doc: |
+    SHAKE squeeze step
+  syntax: <grs1>, <grs2>, <grs3>
+  encoding:
+    scheme: SHAKE_op
+    mapping:
+      op_state: grs1
+      buf: grs2
+      len: grs3
+      funct3: b010
+      operation: b10

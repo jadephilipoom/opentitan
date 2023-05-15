@@ -8,11 +8,11 @@
 import argparse
 import sys
 import struct
-import otbn_sim_py_shared
 from enum import IntEnum
 from typing import List, Dict, Tuple
 from io import StringIO
 
+import otbn_sim_py_shared
 from shared.check import CheckResult
 from shared.reg_dump import parse_reg_dump
 from shared.dmem_dump import parse_dmem_dump
@@ -118,6 +118,7 @@ def run_sim(elf: str, additional_data: List[Tuple[int, int, bytes]]) -> Tuple[
 
 
 def main() -> int:
+    otbn_sim_py_shared.init()
     parser = argparse.ArgumentParser()
     parser.add_argument('simulator',
                         help='Path to the standalone OTBN simulator.')

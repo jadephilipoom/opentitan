@@ -667,6 +667,16 @@ otbn_sim_test(
     ],
 )
 
+otbn_sim_test(
+    name = "shake_test",
+    srcs = [
+        "shake_test.s",
+    ],
+    exp = "shake_test.exp",
+    deps = [
+    ],
+)
+
 otbn_sim_py_test(
     name = "dilithium_test",
     srcs = [
@@ -678,6 +688,7 @@ otbn_sim_py_test(
         ":poly_pointwise_dilithium_test",
         ":poly_add_dilithium_test",
         ":poly_sub_dilithium_test",
+        ":poly_reduce32_dilithium_test",
         ],
 )
 

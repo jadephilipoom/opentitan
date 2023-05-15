@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import Dict, Iterator, Optional
+import sys
+import struct
 
 from .constants import ErrBits
 from .flags import FlagReg
@@ -11,6 +13,9 @@ from .isa import (OTBNInsn, RV32RegReg, RV32RegImm,
                   bit_shift,
                   extract_quarter_word, extract_sub_word)
 from .state import OTBNState
+sys.path.append('../../util')
+import otbn_sim_py_shared as shared
+from dilithiumpy.shake_wrapper import Shake
 
 
 class ADD(RV32RegReg):
@@ -526,6 +531,96 @@ class LOOPI(OTBNInsn):
             state.loop_start(self.iterations, self.bodysize)
 
 
+class SHAKESTART(OTBNInsn):
+    insn = insn_for_mnemonic('shake_start', 2)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.op_state = op_vals['grs1']
+        self.mode = op_vals['grs2']
+
+    def execute(self, state: OTBNState) -> None:
+        op_state = state.gprs.get_reg(self.op_state).read_unsigned()
+        mode = state.gprs.get_reg(self.mode).read_unsigned()
+
+        if not state.dmem.is_valid_32b_addr(mode) and not state.dmem.is_valid_32b_addr(op_state):
+            state.stop_at_end_of_cycle(ErrBits.BAD_DATA_ADDR)
+            return
+
+        op_state = state.dmem.load_u32(op_state)
+        mode = state.dmem.load_u32(mode)
+
+        from hashlib import shake_256, shake_128
+        # Shake(shake_128, 168)
+        shared.SHAKE_INSTANCE = Shake(shake_256, 136)
+
+        # TODO: Initialize something
+
+
+class SHAKEABSORB(OTBNInsn):
+    insn = insn_for_mnemonic('shake_absorb', 3)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.op_state = op_vals['grs1']
+        self.buf = op_vals['grs2']
+        self.buflen = op_vals['grs3']
+
+    def execute(self, state: OTBNState) -> None:
+        op_state = state.gprs.get_reg(self.op_state).read_unsigned()
+        buf = state.gprs.get_reg(self.buf).read_unsigned()
+        buflen = state.gprs.get_reg(self.buflen).read_unsigned()
+
+        if not state.dmem.is_valid_32b_addr(buf) and not state.dmem.is_valid_32b_addr(op_state):
+            state.stop_at_end_of_cycle(ErrBits.BAD_DATA_ADDR)
+            return
+
+        if buflen % 4 != 0:
+            raise ValueError("Length not a multiple of word size")
+
+        op_state = state.dmem.load_u32(op_state)
+
+        in_words = []
+        for w in range(buflen // 4):
+            in_words.append(state.dmem.load_u32(buf + w * 4))
+
+        in_bytes = struct.pack("<" + "I" * len(in_words), *in_words)
+
+        shared.SHAKE_INSTANCE.absorb(in_bytes)
+
+
+class SHAKESQUEEZE(OTBNInsn):
+    insn = insn_for_mnemonic('shake_squeeze', 3)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.op_state = op_vals['grs1']
+        self.buf = op_vals['grs2']
+        self.buflen = op_vals['grs3']
+
+    def execute(self, state: OTBNState) -> None:
+        import struct
+        op_state = state.gprs.get_reg(self.op_state).read_unsigned()
+        buf = state.gprs.get_reg(self.buf).read_unsigned()
+        buflen = state.gprs.get_reg(self.buflen).read_unsigned()
+
+        if not state.dmem.is_valid_32b_addr(buf) and not state.dmem.is_valid_32b_addr(op_state):
+            state.stop_at_end_of_cycle(ErrBits.BAD_DATA_ADDR)
+            return
+
+        if buflen % 4 != 0:
+            raise ValueError("Length not a multiple of word size")
+
+        op_state = state.dmem.load_u32(op_state)
+
+        out_bytes = shared.SHAKE_INSTANCE.read(buflen)
+
+        ctr = 0
+        for w in struct.unpack("<" + "I" * (buflen // 4), out_bytes):
+            state.dmem.store_u32(buf + ctr * 4, w)
+            ctr += 1
+
+
 class BNADD(OTBNInsn):
     insn = insn_for_mnemonic('bn.add', 6)
 
@@ -640,7 +735,6 @@ class BNADDM(OTBNInsn):
                     resulti -= mod_val
                 elif resulti < 0 and not self.nored:
                     resulti += mod_val
-                # print(f"{ai} + {bi} = {resulti}", file=sys.stderr)
                 result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))
 
         result = result & ((1 << 256) - 1)
@@ -669,8 +763,7 @@ class BNMULMV(OTBNInsn):
         else:
             size = 16
         result = 0
-        import sys
-        print("mulmv", file=sys.stderr)
+
         # Extract the lane
         if self.type >= 2:
             bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, self.lane))
@@ -911,10 +1004,7 @@ class BNSUBM(OTBNInsn):
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
         mod_val = state.wsrs.MOD.read_unsigned()
-        import sys
-        print("subm", file=sys.stderr)
-        print(f"nored = {self.nored}", file=sys.stderr)
-        print(f"vec = {self.vec}", file=sys.stderr)
+
         if not self.vec:
             result = a - b
             if result < 0 and not self.nored:
@@ -928,7 +1018,7 @@ class BNSUBM(OTBNInsn):
                 ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
                 bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
                 resulti = ai - bi
-                # print(f"{ai} - {bi} = {resulti}", file=sys.stderr)
+
                 if resulti < 0 and not self.nored:
                     resulti += mod_val
                 elif resulti >= mod_val and not self.nored:
@@ -1450,6 +1540,7 @@ INSN_CLASSES = [
     CSRRS, CSRRW,
     ECALL,
     LOOP, LOOPI,
+    SHAKESTART, SHAKEABSORB, SHAKESQUEEZE,
 
     BNADD, BNADDC, BNADDI, BNADDM,
     BNMULMV,
