@@ -1449,6 +1449,64 @@ class BNV32MULM(OTBNInsn):
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
 
 
+class BNV16RSHI(OTBNInsn):
+    insn = insn_for_mnemonic('bn.v16.rshi', 4)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.imm = op_vals['imm']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        va = to_vec(a, 16)
+        vb = to_vec(b, 16)
+
+        if self.imm < 0 or self.imm >= 16:
+            state.stop_at_end_of_cycle(ErrBits.ILLEGAL_INSN)
+
+        vresult = []
+        for i in range(len(va)):
+            ri = (va[i] << 16 | vb[i]) >> self.imm
+            vresult.append(ri & ((1 << 16) - 1))
+
+        result = of_vec(vresult, 16)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
+class BNV32RSHI(OTBNInsn):
+    insn = insn_for_mnemonic('bn.v32.rshi', 4)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.imm = op_vals['imm']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        va = to_vec(a, 32)
+        vb = to_vec(b, 32)
+
+        if self.imm < 0 or self.imm >= 32:
+            state.stop_at_end_of_cycle(ErrBits.ILLEGAL_INSN)
+
+        vresult = []
+        for i in range(len(va)):
+            ri = ((va[i] << 32 | vb[i]) >> self.imm)
+            vresult.append(ri & ((1 << 32) - 1))
+
+        result = of_vec(vresult, 32)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+
 INSN_CLASSES = [
     ADD, ADDI, LUI, SUB, SLL, SLLI, SRL, SRLI, SRA, SRAI,
     AND, ANDI, OR, ORI, XOR, XORI,
@@ -1472,4 +1530,5 @@ INSN_CLASSES = [
     BNV16ADDM, BNV32ADDM,
     BNV16SUBM, BNV32SUBM,
     BNV16MULM, BNV32MULM,
+    BNV16RSHI, BNV32RSHI,
 ]
