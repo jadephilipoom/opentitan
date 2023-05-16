@@ -1239,6 +1239,14 @@ class BNWSRR(OTBNInsn):
                 # There's a pending EDN request. Stall for a cycle.
                 yield
 
+        if self.wsr == 0x9:
+            # A read from the Keccak digest register. If not enough digest
+            # material is available, request_value() returns false and
+            # initiates or continues Keccak processing.
+            while not state.wsrs.KeccakDigest.request_value():
+                # There's a pending Keccak request. Stall for a cycle.
+                yield
+
         # At this point, the WSR is ready. Does it have a valid value? (It
         # might not if this is a sideload key register and keymgr hasn't
         # provided us with a value). If not, fail with a KEY_INVALID error.

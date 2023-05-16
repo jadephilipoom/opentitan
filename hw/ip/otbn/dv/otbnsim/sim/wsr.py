@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import List, Optional, Sequence, Tuple
+from Crypto.Hash import SHAKE128, SHAKE256
 
 from .trace import Trace
 
@@ -349,12 +350,251 @@ class KeyWSR(WSR):
     def write_unsigned(self, value: int) -> None:
         return
 
+class KmacBlock:
+    '''Emulates the KMAC hardware block.'''
+    _CMD_START = 0x1d
+    _CMD_PROCESS = 0x2e
+    _CMD_RUN = 0x31
+    _CMD_DONE = 0x16
+    _STATUS_IDLE = 'IDLE'
+    _STATUS_ABSORB = 'ABSORB'
+    _STATUS_SQUEEZE = 'SQUEEZE'
+    _STRENGTH_128 = 0x0
+    _STRENGTH_256 = 0x2
+    def __init__(self):
+        self._status = self._STATUS_IDLE
+        self._cycles_until_ready = None
+        self._state = None
+        self._rate_bytes = None
+        self._read_offset = 0
+
+    def issue_cmd(self, value: int) -> None:
+        '''Issue a command to the KMAC block.
+
+        The lowest 5 bits are the command code to issue. For `start`, the next
+        two bits indicate the strength. All other bits are ignored. 
+        '''
+        cmd = value & 0x1f
+        if cmd == self._CMD_START:
+            strength = (value >> 5) & 3
+            self.start(strength)
+        elif cmd == self._CMD_PROCESS:
+            self.process()
+        elif cmd == self._CMD_RUN:
+            self.run()
+        elif cmd == self._CMD_DONE:
+            self.done()
+        else:
+            raise ValueError(f'KMAC: Invalid command: {hex(cmd)}')
+
+    def is_idle(self) -> bool:
+        return self._status == self._STATUS_IDLE
+
+    def is_absorbing(self) -> bool:
+        return self._status == self._STATUS_ABSORB
+
+    def is_squeezing(self) -> bool:
+        return self._status == self._STATUS_SQUEEZE
+
+    def digest_ready(self) -> bool:
+        return self.is_squeezing() && (self._cycles_until_ready == 0)
+
+    def start(self, strength: int) -> None:
+        '''Starts a SHAKE hashing operation.'''
+        if not self.is_idle():
+            raise ValueError('KMAC: Cannot issue `start` command in '
+                             f'{self._status} status.')
+        self._status = _STATUS_ABSORB
+        if strength == self._STRENGTH_128:
+            self._state = SHAKE128.new()
+            self._rate_bytes = (1600 - (128*2)) // 8
+        elif strength == self._STRENGTH_256:
+            self._state = SHAKE256.new()
+            self._rate_bytes = (1600 - (256*2)) // 8
+        else:
+            raise ValueError(f'Invalid strength: {strength}.')
+
+    def write(self, msg: bytes) -> None:
+        '''Appends new message data to an ongoing hashing operation.'''
+        if not self.is_absorbing():
+            raise ValueError(f'KMAC: Cannot write in {self._status} status.')
+        self._state.update(msg)
+
+    def _start_keccak_core(self) -> None:
+        # Timing estimate is based on:
+        #   * 4 cycles per round x 24 rounds for Keccak (see KMAC docs) 
+        #   * 5 cycles of estimated communication overhead 
+        self._cycles_until_ready = (24*4) + 5
+
+    def process(self) -> None:
+        '''Issues a `process` command to the KMAC block.
+
+        Signals to the hardware that the message is done and it should compute
+        a digest. The amount of digest computed depends on the rate of the
+        Keccak function instantiated (1600 - capacity, e.g. 1344 bits for
+        SHAKE128).
+        '''
+        if not self.is_absorbing():
+            raise ValueError('KMAC: Cannot issue `process` command in '
+                             f'{self._status} status.')
+        self._status = _STATUS_SQUEEZE
+        self._start_keccak_core()
+
+    def run(self) -> None:
+        '''Issues a `run` command to the KMAC block.
+
+        This command should be issued if additional digest data, beyond the
+        Keccak rate, is needed. It runs the Keccak core again to generate new
+        digest material. The state buffer is invalid until the core computation
+        is complete; the caller needs to read the previous digest before
+        calling run().
+        '''
+        if not self.is_squeezing():
+            raise ValueError('KMAC: Cannot issue `run` command in '
+                             f'{self._status} status.')
+        self._start_keccak_core()
+
+    def done(self) -> None:
+        '''Finishes a hashing operation.'''
+        if not self.is_squeezing():
+            raise ValueError('KMAC: Cannot issue `done` command in '
+                             f'{self._status} status.')
+        self._status = _STATUS_IDLE
+        self._cycles_until_ready = None
+        self._state = None
+        self._rate_bytes = None
+        self._read_offset = 0
+
+    def step(self) -> None:
+        if not self.is_squeezing():
+            if self._cycles_until_ready > 0:
+                self._cycles_until_ready -= 1
+
+    def max_read_bytes(self) -> int:
+        '''Returns the maximum readable bytes before a `run` command.'''
+        return self._rate_bytes - self._read_offset
+
+    def read(self, num_bytes: int) -> bytes:
+        if not self.digest_ready():
+            raise ValueError(f'KMAC: Digest is not ready for read.')
+        if num_bytes > self.max_read_bytes():
+            raise ValueError(f'KMAC: Read request exceeds Keccak rate.')
+        self._read_offset += num_bytes
+        return self.state.read(num_bytes)
+
+class KeccakMsgWSR(WSR):
+    '''Keccak message WSR: sends data to the KMAC hardware block.
+    
+    Reads from this register always return 0.
+
+    When KMAC is in the "absorb" state, writes to this register will trigger
+    writes to KMAC's message FIFO. Otherwise, writes will be ignored. 
+    '''
+    def __init__(self, name: str, kmac: KmacBlock):
+        super().__init__(name)
+        self._kmac = kmac
+
+    def read_unsigned(self) -> int:
+        return 0
+
+    def write_unsigned(self, value: int) -> None:
+        assert 0 <= value < (1 << 256)
+        if self._kmac.is_absorbing():
+            self._next_value = value
+            self._pending_write = True
+
+    def commit(self) -> None:
+        if self._pending_write:
+            self._kmac.write(
+                    int.to_bytes(self._next_value, byteorder='little', length=32))
+        super().commit()
+
+    def changes(self) -> Sequence[Trace]:
+        '''Return list of pending architectural changes'''
+        return ([TraceWSR(self.name, self._next_value)]
+                if self._pending_write else [])
+
+class KeccakDigestWSR(WSR):
+    '''Keccak digest WSR: recieves data from the KMAC hardware block.
+
+    This register is not writeable; writes are always discarded.
+    
+    If KMAC is in the "idle" state, reads always return 0. When KMAC is in the
+    "absorb" state, reading from this register will issue a `process` command;
+    KMAC will move into the "squeeze" state and begin computing the digest.
+    OTBN will stall until the digest computation finishes, and KMAC sends the
+    first 256 bits of the digest as the read result.
+
+    Reads from this register in the "squeeze" state will pull 256-bit slices of
+    the digest sequentially from KMAC. The amount of digest available after
+    `process` depends on the rate of the specific Keccak instantiation. If 256
+    bits of digest are not available, a read from this register will issue the
+    `run` command to KMAC and again OTBN will stall until the full 256 bits is
+    ready.
+    '''
+    def __init__(self, name: str, kmac: KmacBlock):
+        super().__init__(name)
+        self._kmac = kmac
+        self._digest_bytes = bytes()
+        self._waiting_for_digest = False
+        self._pending_request = False
+
+    def has_value(self) -> bool:
+        return self._kmac.is_squeezing() && len(self._digest_bytes) == 32
+
+    def request_value(self) -> bool:
+        '''Returns true if the full register value is ready.'''
+        if self._waiting_for_digest:
+            return False
+        if self._kmac.is_squeezing():
+            return len(self._digest_bytes) == 32
+        self._next_pending_request = True
+        return False
+
+    def read_unsigned(self) -> int:
+        if not self._kmac.is_squeezing():
+            return 0
+        assert len(self._digest_bytes) == 32
+        value = int.from_bytes(self._digest_bytes, byteorder='little')
+        self._digest_bytes = bytes()
+        return value
+
+    def write_unsigned(self, value: int) -> None:
+        return
+
+    def abort(self) -> None:
+        self._next_pending_request = False
+
+    def commit(self) -> None:
+        if self._waiting_for_digest:
+            # Check if new data is ready. We are guaranteed to have enough
+            # bytes available because the rate is always higher than 32 bytes.
+            if self._kmac.digest_ready():
+                self.digest_bytes += self._kmac.read(32 - len(self._digest_bytes))
+                self._waiting_for_digest = False
+        elif self._next_pending_request:
+            if self._kmac.is_absorbing():
+                self._digest_bytes = bytes()
+                self._kmac.process()
+                self._waiting_for_digest = True
+            elif self._kmac.is_squeezing():
+                if self._kmac.max_read_bytes() >= 32:
+                    self._digest_bytes = self._kmac.read(32)
+                else:
+                    self._digest_bytes = self._kmac.read(self._kmac.max_read_bytes())
+                    self._kmac.run()
+                    self._waiting_for_digest = True
+
+        self._kmac.step()
+        self._next_pending_request = False
+
 
 class WSRFile:
     '''A model of the WSR file'''
     def __init__(self, ext_regs: OTBNExtRegs) -> None:
         self.KeyS0 = SideloadKey('KeyS0')
         self.KeyS1 = SideloadKey('KeyS1')
+        self.Kmac = KmacBlock()
 
         self.MOD = DumbWSR('MOD')
         self.RND = RandWSR('RND', ext_regs)
@@ -364,6 +604,11 @@ class WSRFile:
         self.KeyS0H = KeyWSR('KeyS0H', 256, self.KeyS0)
         self.KeyS1L = KeyWSR('KeyS1L', 0, self.KeyS1)
         self.KeyS1H = KeyWSR('KeyS1H', 256, self.KeyS1)
+        self.KeccakMsg = KeccakMsgWSR('KeccakMsg', self.Kmac)
+
+        # TODO: when masking is on, KMAC actually produces the digest in two
+        # shares. We should someday emulate this behavior.
+        self.KeccakDigest = KeccakDigestWSR('KeccakDigest', self.Kmac)
 
         self._by_idx = {
             0: self.MOD,
@@ -374,7 +619,10 @@ class WSRFile:
             5: self.KeyS0H,
             6: self.KeyS1L,
             7: self.KeyS1H,
-        }
+            8: self.KeccakMsg,
+            9: self.KeccakDigest,
+            }
+
 
     def on_start(self) -> None:
         '''Called at the start of an operation
@@ -420,6 +668,8 @@ class WSRFile:
         self.ACC.commit()
         self.KeyS0.commit()
         self.KeyS1.commit()
+        self.KeccakMsg.commit()
+        self.KeccakDigest.commit()
 
     def abort(self) -> None:
         self.MOD.abort()
@@ -430,6 +680,8 @@ class WSRFile:
         # instruction itself gets aborted.
         self.KeyS0.commit()
         self.KeyS1.commit()
+        self.KeccakMsg.abort()
+        self.KeccakDigest.abort()
 
     def changes(self) -> List[Trace]:
         ret = []  # type: List[Trace]
@@ -439,6 +691,8 @@ class WSRFile:
         ret += self.ACC.changes()
         ret += self.KeyS0.changes()
         ret += self.KeyS1.changes()
+        ret += self.KeccakMsg.changes()
+        ret += self.KeccakDigest.changes()
         return ret
 
     def set_sideload_keys(self,

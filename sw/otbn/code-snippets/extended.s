@@ -8,6 +8,16 @@
  * This binary is not expected to work for RTL simulations, only the (modified)
  * Python-based OTBN simulator.
  */
+
+/* Index of the Keccak command special register. */
+.equ KECCAK_CMD_REG  0x7dc
+/* Command to start a SHAKE-128 operation. */
+.equ SHAKE128_START_CMD 0x1d
+/* Command to start a SHAKE-256 operation. */
+.equ SHAKE256_START_CMD 0x5d
+/* Command to end an ongoing Keccak operation of any kind. */
+.equ KECCAK_DONE_CMD 0x16
+
 .section .text.start
 start:
   /* Initialize all-zero register. */
@@ -20,6 +30,9 @@ start:
   /* Test vectorized shifting.
        w26..w29 <= vectorized shifting test results */
   jal       x1, vec_shift_test
+
+  /* Test SHAKE functions. */
+  jal       x1, shake_test
 
   /* Test memory sizes. This step zeroes the memory, so do it last. */
   jal       x1, check_mem_sizes
@@ -168,6 +181,38 @@ vec_shift_test:
   /* Compute k such that k[i] = (y[i] << 12).
        w29 <= (y <<v 12) */
   bn.v32.rshi   w29, w1, w31 >> 20
+
+  ret
+
+/**
+ * Test SHAKE extensions.
+ *
+ * Computes long SHAKE outputs for a test message. The length of 1536 bits has
+ * been chosen to exceed the Keccak rate for both SHAKE-128 and SHAKE-256, so
+ * full XOF functionality gets tested.
+ *
+ * @param[in]               w31: all-zero
+ * @param[in] dmem[msg..msg+40]: msg, 320-bit hash input for testing
+ * @param[out]          w8..w13: SHAKE128(msg, 1536)
+ * @param[out]         w14..w19: SHAKE256(msg, 1536)
+ *
+ * clobbered registers: TODO
+ * clobbered flag groups: None
+ */
+shake_test:
+  /* Load the test message from DMEM.
+       w0 <= dmem[msg..msg+32]
+       w1 <= dmem[msg+32..msg+40] */
+  la       x2, msg
+  bn.lid   x0, 0(x2++)
+  li       x3, 1
+  bn.lid   x3, 0(x2)
+
+  /* Initialize a SHAKE128 operation by writing to the KECCAK_CMD register. */
+  csrrw     x0, KECCAK_CMD, SHAKE128_START
+
+  /* Write a test message. */
+
 
   ret
 
