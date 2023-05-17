@@ -397,14 +397,14 @@ class KmacBlock:
         return self._status == self._STATUS_SQUEEZE
 
     def digest_ready(self) -> bool:
-        return self.is_squeezing() && (self._cycles_until_ready == 0)
+        return self.is_squeezing() and (self._cycles_until_ready == 0)
 
     def start(self, strength: int) -> None:
         '''Starts a SHAKE hashing operation.'''
         if not self.is_idle():
             raise ValueError('KMAC: Cannot issue `start` command in '
                              f'{self._status} status.')
-        self._status = _STATUS_ABSORB
+        self._status = self._STATUS_ABSORB
         if strength == self._STRENGTH_128:
             self._state = SHAKE128.new()
             self._rate_bytes = (1600 - (128*2)) // 8
@@ -437,7 +437,7 @@ class KmacBlock:
         if not self.is_absorbing():
             raise ValueError('KMAC: Cannot issue `process` command in '
                              f'{self._status} status.')
-        self._status = _STATUS_SQUEEZE
+        self._status = self._STATUS_SQUEEZE
         self._start_keccak_core()
 
     def run(self) -> None:
@@ -453,22 +453,22 @@ class KmacBlock:
             raise ValueError('KMAC: Cannot issue `run` command in '
                              f'{self._status} status.')
         self._start_keccak_core()
+        self._read_offset = 0
 
     def done(self) -> None:
         '''Finishes a hashing operation.'''
         if not self.is_squeezing():
             raise ValueError('KMAC: Cannot issue `done` command in '
                              f'{self._status} status.')
-        self._status = _STATUS_IDLE
+        self._status = self._STATUS_IDLE
         self._cycles_until_ready = None
         self._state = None
         self._rate_bytes = None
         self._read_offset = 0
 
     def step(self) -> None:
-        if not self.is_squeezing():
-            if self._cycles_until_ready > 0:
-                self._cycles_until_ready -= 1
+        if self.is_squeezing() and self._cycles_until_ready > 0:
+            self._cycles_until_ready -= 1
 
     def max_read_bytes(self) -> int:
         '''Returns the maximum readable bytes before a `run` command.'''
@@ -480,7 +480,7 @@ class KmacBlock:
         if num_bytes > self.max_read_bytes():
             raise ValueError(f'KMAC: Read request exceeds Keccak rate.')
         self._read_offset += num_bytes
-        return self.state.read(num_bytes)
+        return self._state.read(num_bytes)
 
 class KeccakMsgWSR(WSR):
     '''Keccak message WSR: sends data to the KMAC hardware block.
@@ -493,6 +493,15 @@ class KeccakMsgWSR(WSR):
     def __init__(self, name: str, kmac: KmacBlock):
         super().__init__(name)
         self._kmac = kmac
+        self._next_write_len = 32
+
+    def set_next_write_len(self, value: int):
+        '''Sets the byte-length of the next write.
+
+        After one more write, the length will be reset to a full 32 bytes.
+        '''
+        assert 0 <= value <= 32
+        self._next_write_len = value
 
     def read_unsigned(self) -> int:
         return 0
@@ -505,8 +514,10 @@ class KeccakMsgWSR(WSR):
 
     def commit(self) -> None:
         if self._pending_write:
-            self._kmac.write(
-                    int.to_bytes(self._next_value, byteorder='little', length=32))
+            value_bytes = int.to_bytes(self._next_value, byteorder='little', length=32)
+
+            self._kmac.write(value_bytes[:self._next_write_len])
+            self._next_write_len = 32
         super().commit()
 
     def changes(self) -> Sequence[Trace]:
@@ -537,17 +548,17 @@ class KeccakDigestWSR(WSR):
         self._kmac = kmac
         self._digest_bytes = bytes()
         self._waiting_for_digest = False
-        self._pending_request = False
+        self._next_pending_request = False
 
     def has_value(self) -> bool:
-        return self._kmac.is_squeezing() && len(self._digest_bytes) == 32
+        return self._kmac.is_squeezing() and len(self._digest_bytes) == 32
 
     def request_value(self) -> bool:
         '''Returns true if the full register value is ready.'''
         if self._waiting_for_digest:
             return False
-        if self._kmac.is_squeezing():
-            return len(self._digest_bytes) == 32
+        if self._kmac.is_squeezing() and len(self._digest_bytes) == 32:
+            return True
         self._next_pending_request = True
         return False
 
@@ -570,7 +581,7 @@ class KeccakDigestWSR(WSR):
             # Check if new data is ready. We are guaranteed to have enough
             # bytes available because the rate is always higher than 32 bytes.
             if self._kmac.digest_ready():
-                self.digest_bytes += self._kmac.read(32 - len(self._digest_bytes))
+                self._digest_bytes += self._kmac.read(32 - len(self._digest_bytes))
                 self._waiting_for_digest = False
         elif self._next_pending_request:
             if self._kmac.is_absorbing():
