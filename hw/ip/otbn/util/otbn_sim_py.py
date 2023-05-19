@@ -64,7 +64,7 @@ def inject_dmem(sim: StandaloneSim, additional_data: List[Tuple[int, bytes]]):
     for w in struct.iter_unpack("<32s", dmem):
         for v in struct.iter_unpack("<I", w[0]):
             assert len(v) == 1
-            new_dmem += v[0].to_bytes(4, 'little')  # TODO: Check BO
+            new_dmem += v[0].to_bytes(4, 'little')
 
     assert len(dmem) == len(new_dmem)
 

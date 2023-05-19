@@ -627,7 +627,7 @@ class Transformer:
 
         # Strings that should be spat out verbatim
         self.acc = []  # type: List[str]
-
+        self.macros = []  # type: List[str]
         # The key symbol for this statement
         self.key_sym = None  # type: Optional[str]
 
@@ -986,8 +986,8 @@ class Transformer:
         self.state = 0
 
         # If key_sym is a directive (starts with '.'), we can just pass it
-        # straight through.
-        if self.key_sym.startswith('.'):
+        # straight through. Also applies for macros.
+        if self.key_sym.startswith('.') or self.key_sym in self.macros:
             self.out_handle.write(self.key_sym)
             self.out_handle.write(''.join(self.acc))
             self.acc = []
@@ -1046,6 +1046,8 @@ class Transformer:
 
         # We don't add key_sym to acc here: it will be read from self.key_sym
         # at the end of the instruction / directive.
+        if "macro" in line:
+            self.macros.append(re.search(r".macro\s(\w+)", line).group(1))
         self._continue_stmt(line, pos + match.end())
         return
 
