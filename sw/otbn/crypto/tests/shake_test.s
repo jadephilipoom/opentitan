@@ -546,6 +546,10 @@ output:
     .word 0xffc17355
     .word 0xffcf9f05
 op_state:
-    .word 0x00000000
+    .word 0x00000000 /* bool append_d */
+    .word 0x00000000 /* size_t d */
+    .word 0x00000000 /* size_t offset */
+    .word 0x00000000 /* size_t r */
+    .word 0x00000000 /* bool squeezing */
 mode:
-    .word 0x00000000
+    .word 0x00000000 /* 0 = 256 bit, 1 = 128 bit */

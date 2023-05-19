@@ -677,6 +677,18 @@ otbn_sim_test(
     ],
 )
 
+otbn_sim_test(
+    name = "key_pair_dilithium_test",
+    srcs = [
+        "key_pair_dilithium_test.s",
+    ],
+    exp = "key_pair_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:key_pair_dilithium",
+
+    ],
+)
+
 otbn_sim_py_test(
     name = "dilithium_test",
     srcs = [
@@ -689,6 +701,7 @@ otbn_sim_py_test(
         ":poly_add_dilithium_test",
         ":poly_sub_dilithium_test",
         ":poly_reduce32_dilithium_test",
+        ":key_pair_dilithium_test",
         ],
 )
 

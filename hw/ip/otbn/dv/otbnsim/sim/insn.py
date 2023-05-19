@@ -18,6 +18,10 @@ import otbn_sim_py_shared as shared
 from dilithiumpy.shake_wrapper import Shake
 
 
+def eprint(text):
+    print(text, file=sys.stderr)
+
+
 class ADD(RV32RegReg):
     insn = insn_for_mnemonic('add', 3)
 
@@ -289,7 +293,6 @@ class SW(OTBNInsn):
         base = state.gprs.get_reg(self.grs1).read_unsigned()
         addr = (base + self.offset) & ((1 << 32) - 1)
         value = state.gprs.get_reg(self.grs2).read_unsigned()
-
         bad_grs1 = state.gprs.call_stack_err and (self.grs1 == 1)
 
         saw_err = False
@@ -540,6 +543,7 @@ class SHAKESTART(OTBNInsn):
         self.mode = op_vals['grs2']
 
     def execute(self, state: OTBNState) -> None:
+        eprint("SHAKESTART")
         op_state = state.gprs.get_reg(self.op_state).read_unsigned()
         mode = state.gprs.get_reg(self.mode).read_unsigned()
 
@@ -551,8 +555,12 @@ class SHAKESTART(OTBNInsn):
         mode = state.dmem.load_u32(mode)
 
         from hashlib import shake_256, shake_128
-        # Shake(shake_128, 168)
-        shared.SHAKE_INSTANCE = Shake(shake_256, 136)
+        if mode == 0:
+            shared.SHAKE_INSTANCE = Shake(shake_256, 136)
+        elif mode == 1:
+            shared.SHAKE_INSTANCE = Shake(shake_128, 168)
+        else:
+            raise ValueError(f"Unsupported mode {mode}")
 
         # TODO: Initialize something
 
@@ -567,6 +575,7 @@ class SHAKEABSORB(OTBNInsn):
         self.buflen = op_vals['grs3']
 
     def execute(self, state: OTBNState) -> None:
+        eprint("SHAKEABSORB")
         op_state = state.gprs.get_reg(self.op_state).read_unsigned()
         buf = state.gprs.get_reg(self.buf).read_unsigned()
         buflen = state.gprs.get_reg(self.buflen).read_unsigned()
@@ -575,17 +584,23 @@ class SHAKEABSORB(OTBNInsn):
             state.stop_at_end_of_cycle(ErrBits.BAD_DATA_ADDR)
             return
 
-        if buflen % 4 != 0:
-            raise ValueError("Length not a multiple of word size")
-
         op_state = state.dmem.load_u32(op_state)
 
         in_words = []
         for w in range(buflen // 4):
             in_words.append(state.dmem.load_u32(buf + w * 4))
-
+        eprint(f"buflen {buflen}")
         in_bytes = struct.pack("<" + "I" * len(in_words), *in_words)
-
+        # it is required for the buffer to be of a size that is a multiple by 4
+        # (such that there will be no OOB read), but buflen may still be
+        # non-divisible by 4 for reading with byte accuracy
+        rest_bytes = buflen % 4
+        if buflen % 4 != 0:
+            # raise ValueError("Length not a multiple of word size")
+            word_part = state.dmem.load_u32(buf + (buflen // 4) * 4)
+            word_part &= (2**(rest_bytes * 8) - 1)
+            in_bytes += (word_part).to_bytes(rest_bytes, byteorder='little')
+        eprint("in_bytes " + in_bytes.hex())
         shared.SHAKE_INSTANCE.absorb(in_bytes)
 
 
@@ -599,6 +614,7 @@ class SHAKESQUEEZE(OTBNInsn):
         self.buflen = op_vals['grs3']
 
     def execute(self, state: OTBNState) -> None:
+        eprint("SHAKESQUEEZE")
         import struct
         op_state = state.gprs.get_reg(self.op_state).read_unsigned()
         buf = state.gprs.get_reg(self.buf).read_unsigned()
