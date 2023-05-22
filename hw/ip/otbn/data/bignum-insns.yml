@@ -122,7 +122,7 @@
         Whether to regard this as a vector instruction or not.
     - name: nored
       abbrev: nr
-      type: option(, nored)
+      type: option( nored)
       doc: |
         Disable reduction.
     - name: wrd
@@ -522,7 +522,7 @@
         Whether to regard this as a vector instruction or not.
     - name: nored
       abbrev: nr
-      type: option(, nored)
+      type: option( nored)
       doc: |
         Disable reduction
     - name: wrd
