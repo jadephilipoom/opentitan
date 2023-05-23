@@ -534,109 +534,6 @@ class LOOPI(OTBNInsn):
             state.loop_start(self.iterations, self.bodysize)
 
 
-class SHAKESTART(OTBNInsn):
-    insn = insn_for_mnemonic('shake_start', 2)
-
-    def __init__(self, raw: int, op_vals: Dict[str, int]):
-        super().__init__(raw, op_vals)
-        self.op_state = op_vals['grs1']
-        self.mode = op_vals['grs2']
-
-    def execute(self, state: OTBNState) -> None:
-        eprint("SHAKESTART")
-        op_state = state.gprs.get_reg(self.op_state).read_unsigned()
-        mode = state.gprs.get_reg(self.mode).read_unsigned()
-
-        if not state.dmem.is_valid_32b_addr(mode) and not state.dmem.is_valid_32b_addr(op_state):
-            state.stop_at_end_of_cycle(ErrBits.BAD_DATA_ADDR)
-            return
-
-        op_state = state.dmem.load_u32(op_state)
-        mode = state.dmem.load_u32(mode)
-
-        from hashlib import shake_256, shake_128
-        if mode == 0:
-            shared.SHAKE_INSTANCE = Shake(shake_256, 136)
-        elif mode == 1:
-            shared.SHAKE_INSTANCE = Shake(shake_128, 168)
-        else:
-            raise ValueError(f"Unsupported mode {mode}")
-
-        # TODO: Initialize something
-
-
-class SHAKEABSORB(OTBNInsn):
-    insn = insn_for_mnemonic('shake_absorb', 3)
-
-    def __init__(self, raw: int, op_vals: Dict[str, int]):
-        super().__init__(raw, op_vals)
-        self.op_state = op_vals['grs1']
-        self.buf = op_vals['grs2']
-        self.buflen = op_vals['grs3']
-
-    def execute(self, state: OTBNState) -> None:
-        eprint("SHAKEABSORB")
-        op_state = state.gprs.get_reg(self.op_state).read_unsigned()
-        buf = state.gprs.get_reg(self.buf).read_unsigned()
-        buflen = state.gprs.get_reg(self.buflen).read_unsigned()
-
-        if not state.dmem.is_valid_32b_addr(buf) and not state.dmem.is_valid_32b_addr(op_state):
-            state.stop_at_end_of_cycle(ErrBits.BAD_DATA_ADDR)
-            return
-
-        op_state = state.dmem.load_u32(op_state)
-
-        in_words = []
-        for w in range(buflen // 4):
-            in_words.append(state.dmem.load_u32(buf + w * 4))
-        eprint(f"buflen {buflen}")
-        in_bytes = struct.pack("<" + "I" * len(in_words), *in_words)
-        # it is required for the buffer to be of a size that is a multiple by 4
-        # (such that there will be no OOB read), but buflen may still be
-        # non-divisible by 4 for reading with byte accuracy
-        rest_bytes = buflen % 4
-        if buflen % 4 != 0:
-            # raise ValueError("Length not a multiple of word size")
-            word_part = state.dmem.load_u32(buf + (buflen // 4) * 4)
-            word_part &= (2**(rest_bytes * 8) - 1)
-            in_bytes += (word_part).to_bytes(rest_bytes, byteorder='little')
-        eprint("in_bytes " + in_bytes.hex())
-        shared.SHAKE_INSTANCE.absorb(in_bytes)
-
-
-class SHAKESQUEEZE(OTBNInsn):
-    insn = insn_for_mnemonic('shake_squeeze', 3)
-
-    def __init__(self, raw: int, op_vals: Dict[str, int]):
-        super().__init__(raw, op_vals)
-        self.op_state = op_vals['grs1']
-        self.buf = op_vals['grs2']
-        self.buflen = op_vals['grs3']
-
-    def execute(self, state: OTBNState) -> None:
-        eprint("SHAKESQUEEZE")
-        import struct
-        op_state = state.gprs.get_reg(self.op_state).read_unsigned()
-        buf = state.gprs.get_reg(self.buf).read_unsigned()
-        buflen = state.gprs.get_reg(self.buflen).read_unsigned()
-
-        if not state.dmem.is_valid_32b_addr(buf) and not state.dmem.is_valid_32b_addr(op_state):
-            state.stop_at_end_of_cycle(ErrBits.BAD_DATA_ADDR)
-            return
-
-        if buflen % 4 != 0:
-            raise ValueError("Length not a multiple of word size")
-
-        op_state = state.dmem.load_u32(op_state)
-
-        out_bytes = shared.SHAKE_INSTANCE.read(buflen)
-
-        ctr = 0
-        for w in struct.unpack("<" + "I" * (buflen // 4), out_bytes):
-            state.dmem.store_u32(buf + ctr * 4, w)
-            ctr += 1
-
-
 class BNADD(OTBNInsn):
     insn = insn_for_mnemonic('bn.add', 6)
 
@@ -1523,6 +1420,14 @@ class BNWSRR(OTBNInsn):
                 # There's a pending EDN request. Stall for a cycle.
                 yield
 
+        if self.wsr == 0x9:
+            # A read from the Keccak digest register. If not enough digest
+            # material is available, request_value() returns false and
+            # initiates or continues Keccak processing.
+            while not state.wsrs.KeccakDigest.request_value():
+                # There's a pending Keccak request. Stall for a cycle.
+                yield
+
         # At this point, the WSR is ready. Does it have a valid value? (It
         # might not if this is a sideload key register and keymgr hasn't
         # provided us with a value). If not, fail with a KEY_INVALID error.
@@ -1556,7 +1461,6 @@ INSN_CLASSES = [
     CSRRS, CSRRW,
     ECALL,
     LOOP, LOOPI,
-    SHAKESTART, SHAKEABSORB, SHAKESQUEEZE,
 
     BNADD, BNADDC, BNADDI, BNADDM,
     BNMULMV,

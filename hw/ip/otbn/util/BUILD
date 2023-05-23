@@ -63,6 +63,7 @@ py_binary(
     name = "otbn_sim_test",
     srcs = ["otbn_sim_test.py"],
     deps = [
+        requirement("pycryptodome"),
         "//hw/ip/otbn/util/shared:check",
         "//hw/ip/otbn/util/shared:reg_dump",
         "//hw/ip/otbn/util/shared:mem_layout"

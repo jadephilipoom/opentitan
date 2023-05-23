@@ -18,6 +18,8 @@ class CSRFile:
         for idx in range(0x7d0, 0x7d8):
             self._known_indices.add(idx)  # MODi
         self._known_indices.add(0x7d8)  # RND_PREFETCH
+        self._known_indices.add(0x7dc)  # KECCAK_CMD
+        self._known_indices.add(0x7e0)  # KECCAK_WRITE_LEN
         self._known_indices.add(0xfc0)  # RND
         self._known_indices.add(0xfc1)  # URND
 
@@ -57,6 +59,14 @@ class CSRFile:
             # RND_PREFETCH register
             return 0
 
+        if idx == 0x7dc:
+            # KECCAK_CMD register
+            return 0
+
+        if idx == 0x7e0:
+            # KECCAK_MSG_LEN register
+            return 0
+
         if idx == 0xfc0:
             # RND register
             return wsrs.RND.read_u32()
@@ -93,6 +103,16 @@ class CSRFile:
             # RND_PREFETCH
             wsrs.RND.request_value()
             return
+
+        if idx == 0x7dc:
+            # KECCAK_CMD register
+            wsrs.Kmac.issue_cmd(value)
+            return 0
+
+        if idx == 0x7e0:
+            # KECCAK_WRITE_LEN register
+            wsrs.KeccakMsg.set_next_write_len(value)
+            return 0
 
         if idx == 0xfc0:
             # RND register (which ignores writes)
