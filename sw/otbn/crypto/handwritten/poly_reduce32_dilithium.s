@@ -10,69 +10,48 @@
  * Flags: Flags have no meaning beyond the scope of this subroutine.
  *
  * 
- * @param[in]  x30: dptr_input1, dmem pointer to first word of input1 polynomial
+ * @param[in]  x10: dptr_input1, dmem pointer to first word of input1 polynomial
  * @param[in]  w31: all-zero
- * @param[out] x29: dmem pointer to result
+ * @param[out] x11: dmem pointer to result
  *
- * clobbered registers: x2 to x6
+ * clobbered registers: x4 to x7, x10-x11
  *                      w2 to w6
  */
 .globl poly_reduce32_dilithium
 poly_reduce32_dilithium:
     /* Set up constants for input/state */
-    li x3, 3
+    li x5, 3
     li x4, 4
     li x6, 6
 
     /* Setup constant 1 << 22 */
-    la        x3, const1
-    bn.lid    x4, 0(x3)
+    la        x5, reduce32_const1
+    bn.lid    x4, 0(x5)
     bn.xor    w3, w3, w3
     bn.orv.8S w4, w3, w4 << 22 
     
     /* Load q */
-    la     x2, Q
-    bn.lid x6, 0(x2)
+    la     x7, modulus
+    bn.lid x6, 0(x7)
 
     /* Set up constants for input/state */
-    li x2, 2
+    li x7, 2    
 
     LOOPI 32, 8
-        bn.lid x2, 0(x30)
+        bn.lid x7, 0(x10)
         
         /* t = a + (1 << 22) */
-        bn.addmv.8S w5, w2, w4, nored
+        bn.addmv.8S w5, w2, w4 nored
         /* t = (a + (1 << 22)) >> 23 */
         bn.orv.8S   w5, w3, w5 a >> 23
         /* t = t * q */
         bn.mulmv.l.8S  w5, w5, w6, 0, nored
         /* a - t */
-        bn.submv.8S w2, w2, w5, nored
+        bn.submv.8S w2, w2, w5 nored
 
-        bn.sid x2, 0(x29)
+        bn.sid x7, 0(x11)
 
-        addi x30, x30, 32
-        addi x29, x29, 32
+        addi x10, x10, 32
+        addi x11, x11, 32
 
     ret
-
-.data 
-.balign 32
-const1:
-    .word 0x1
-    .word 0x1
-    .word 0x1
-    .word 0x1
-    .word 0x1
-    .word 0x1
-    .word 0x1
-    .word 0x1
-Q:
-    .word 0x7fe001
-    .word 0
-    .word 0
-    .word 0
-    .word 0
-    .word 0
-    .word 0
-    .word 0

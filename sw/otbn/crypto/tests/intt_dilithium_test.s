@@ -21,8 +21,8 @@ main:
   bn.wsrw 0x0, w2
 
   /* dmem[data] <= INTT(dmem[input]) */
-  la  x30, input
-  la  x31, twiddles
+  la  x10, input
+  la  x11, twiddles
   jal  x1, intt_dilithium
 
   ecall

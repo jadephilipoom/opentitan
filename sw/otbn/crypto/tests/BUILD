@@ -685,6 +685,13 @@ otbn_sim_test(
     exp = "key_pair_dilithium_test.exp",
     deps = [
         "//sw/otbn/crypto/handwritten:key_pair_dilithium",
+        "//sw/otbn/crypto/handwritten:ntt_dilithium",
+        "//sw/otbn/crypto/handwritten:intt_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_pointwise_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_reduce32_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_add_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_caddq_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_power2round_dilithium",
 
     ],
 )

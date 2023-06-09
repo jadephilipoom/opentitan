@@ -686,3 +686,18 @@
   literal-pseudo-op:
     # 0xC00 is the "cycle" RISC-V CSR.
     - CSRRW x0, 0xC00, x0
+
+- mnemonic: sltu
+  rv32i: false
+  synopsis: Signed less than
+  operands: [grd, grs1, grs2]
+  encoding:
+    scheme: R
+    mapping:
+      funct7: b0000000
+      rs2: grs2
+      rs1: grs1
+      funct3: b010
+      rd: grd
+      opcode: b01100
+  errs: *enc-r-errors

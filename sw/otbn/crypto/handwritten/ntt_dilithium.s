@@ -9,70 +9,66 @@
  *
  * Flags: Flags have no meaning beyond the scope of this subroutine.
  *
- * @param[in]  x30: dptr_input, dmem pointer to first word of input polynomial
- * @param[in]  x31: dptr_tw, dmem pointer to array of twiddle factors
+ * @param[in]  x10: dptr_input, dmem pointer to first word of input polynomial
+ * @param[in]  x11: dptr_tw, dmem pointer to array of twiddle factors
  * @param[in]  w31: all-zero
- * @param[out] x30: dmem pointer to result
+ * @param[out] x10: dmem pointer to result
  *
- * clobbered registers: x2 to x25, x28 to x29
+ * clobbered registers: x4 to x30, x28 to x29
  *                      w2 to w25, w30
  */
 .globl ntt_dilithium
 ntt_dilithium:
     /* Set up constants for input/state */
-    li x2, 2
-    li x3, 3
-    li x4, 4
-    li x5, 5
-    li x6, 6
-    li x7, 7
-    li x8, 8
-    li x9, 9
-    li x10, 10
-    li x11, 11
-    li x12, 12
-    li x13, 13
-    li x14, 14
-    li x15, 15
-    li x16, 16
-    li x17, 17
-
-    /* Copy input pointers */
-    addi x28, x30, 0
-    addi x29, x31, 0
+    li x4, 2
+    li x5, 3
+    li x6, 4
+    li x7, 5
+    li x8, 6
+    li x9, 7
+    li x13, 8
+    li x14, 9
+    li x15, 10
+    li x16, 11
+    li x17, 12
+    li x18, 13
+    li x19, 14
+    li x20, 15
+    li x21, 16
+    li x22, 17
 
     /* Set up constants for input/twiddle factors */
-    li x18, 18
-    li x19, 19
-    li x20, 20
-    li x21, 21
-    li x22, 22
-    li x23, 23
-    li x24, 24
-    li x25, 25
+    li x23, 18
+    li x24, 19
+    li x25, 20
+    li x26, 21
+    li x27, 22
+    li x28, 23
+    li x29, 24
+    li x30, 25
 
     /* Load twiddle factors for layers 1--4 */
-    bn.lid x18, 0(x29)
-    bn.lid x19, 32(x29)
+    bn.lid x23, 0(x11)
+    bn.lid x24, 32(x11)
     
     LOOPI 2, 129
         /* Load input data */
-        bn.lid x2, 0(x28)
-        bn.lid x3, 64(x28)
-        bn.lid x4, 128(x28)
-        bn.lid x5, 192(x28)
-        bn.lid x6, 256(x28)
-        bn.lid x7, 320(x28)
-        bn.lid x8, 384(x28)
-        bn.lid x9, 448(x28)
-        bn.lid x10, 512(x28)
-        bn.lid x11, 576(x28)
-        bn.lid x12, 640(x28)
-        bn.lid x13, 704(x28)
-        bn.lid x14, 768(x28)
-        bn.lid x15, 832(x28)
-        bn.lid x16, 896(x28)
-        bn.lid x17, 960(x28)
+        bn.lid x4, 0(x10)
+        bn.lid x5, 64(x10)
+        bn.lid x6, 128(x10)
+        bn.lid x7, 192(x10)
+        bn.lid x8, 256(x10)
+        bn.lid x9, 320(x10)
+        bn.lid x13, 384(x10)
+        bn.lid x14, 448(x10)
+        bn.lid x15, 512(x10)
+        bn.lid x16, 576(x10)
+        bn.lid x17, 640(x10)
+        bn.lid x18, 704(x10)
+        bn.lid x19, 768(x10)
+        bn.lid x20, 832(x10)
+        bn.lid x21, 896(x10)
+        bn.lid x22, 960(x10)
 
         /* Layer 1, stride 128 */
 
@@ -183,55 +179,55 @@ ntt_dilithium:
         bn.addmv.8S   w16, w16, w30
 
         /* Store output data */
-        bn.sid x2,  0(x28)
-        bn.sid x3, 64(x28)
-        bn.sid x4, 128(x28)
-        bn.sid x5, 192(x28)
-        bn.sid x6, 256(x28)
-        bn.sid x7, 320(x28)
-        bn.sid x8, 384(x28)
-        bn.sid x9, 448(x28)
-        bn.sid x10, 512(x28)
-        bn.sid x11, 576(x28)
-        bn.sid x12, 640(x28)
-        bn.sid x13, 704(x28)
-        bn.sid x14, 768(x28)
-        bn.sid x15, 832(x28)
-        bn.sid x16, 896(x28)
-        bn.sid x17, 960(x28)
+        bn.sid x4,  0(x10)
+        bn.sid x5, 64(x10)
+        bn.sid x6, 128(x10)
+        bn.sid x7, 192(x10)
+        bn.sid x8, 256(x10)
+        bn.sid x9, 320(x10)
+        bn.sid x13, 384(x10)
+        bn.sid x14, 448(x10)
+        bn.sid x15, 512(x10)
+        bn.sid x16, 576(x10)
+        bn.sid x17, 640(x10)
+        bn.sid x18, 704(x10)
+        bn.sid x19, 768(x10)
+        bn.sid x20, 832(x10)
+        bn.sid x21, 896(x10)
+        bn.sid x22, 960(x10)
         
-        addi x28, x28, 32
+        addi x10, x10, 32
     
     /* Restore input pointer */
-    addi x28, x30, 0
+    addi x10, x10, -64
 
     /* Set the twiddle pointer for layer 5 */
-    addi x29, x29, 64
+    addi x11, x11, 64
 
     /* w18--w25 are used for the twiddle factors on layers 5--8 */
     LOOPI 2, 149
         /* Load input data */
-        bn.lid x2, 0(x28)
-        bn.lid x3, 32(x28)
-        bn.lid x4, 64(x28)
-        bn.lid x5, 96(x28)
-        bn.lid x6, 128(x28)
-        bn.lid x7, 160(x28)
-        bn.lid x8, 192(x28)
-        bn.lid x9, 224(x28)
-        bn.lid x10, 256(x28)
-        bn.lid x11, 288(x28)
-        bn.lid x12, 320(x28)
-        bn.lid x13, 352(x28)
-        bn.lid x14, 384(x28)
-        bn.lid x15, 416(x28)
-        bn.lid x16, 448(x28)
-        bn.lid x17, 480(x28)
+        bn.lid x4, 0(x10)
+        bn.lid x5, 32(x10)
+        bn.lid x6, 64(x10)
+        bn.lid x7, 96(x10)
+        bn.lid x8, 128(x10)
+        bn.lid x9, 160(x10)
+        bn.lid x13, 192(x10)
+        bn.lid x14, 224(x10)
+        bn.lid x15, 256(x10)
+        bn.lid x16, 288(x10)
+        bn.lid x17, 320(x10)
+        bn.lid x18, 352(x10)
+        bn.lid x19, 384(x10)
+        bn.lid x20, 416(x10)
+        bn.lid x21, 448(x10)
+        bn.lid x22, 480(x10)
 
         /* Layer 5, stride 8 */
 
         /* Load twiddle factors */
-        bn.lid x18, 0(x29)
+        bn.lid x23, 0(x11)
 
         /* Butterflies */
         bn.mulmv.l.8S w30, w3, w18, 0
@@ -266,8 +262,8 @@ ntt_dilithium:
         /* Layer 6, stride 4 */
 
         /* Load twiddle factors */
-        bn.lid x18, 32(x29)
-        bn.lid x19, 64(x29)
+        bn.lid x23, 32(x11)
+        bn.lid x24, 64(x11)
 
         /* Butterflies */
         bn.mulmv.8S w30, w6, w18, 0
@@ -298,10 +294,10 @@ ntt_dilithium:
         /* Layer 7, stride 2 */
 
         /* Load twiddle factors */
-        bn.lid x18, 96(x29)
-        bn.lid x19, 128(x29)
-        bn.lid x20, 160(x29)
-        bn.lid x21, 192(x29)
+        bn.lid x23, 96(x11)
+        bn.lid x24, 128(x11)
+        bn.lid x25, 160(x11)
+        bn.lid x26, 192(x11)
 
         /* Butterflies */
         bn.mulmv.8S w30, w4, w18, 0
@@ -332,14 +328,14 @@ ntt_dilithium:
         /* Layer 8, stride 1 */
 
         /* Load twiddle factors */
-        bn.lid x18, 224(x29)
-        bn.lid x19, 256(x29)
-        bn.lid x20, 288(x29)
-        bn.lid x21, 320(x29)
-        bn.lid x22, 352(x29)
-        bn.lid x23, 384(x29)
-        bn.lid x24, 416(x29)
-        bn.lid x25, 448(x29)
+        bn.lid x23, 224(x11)
+        bn.lid x24, 256(x11)
+        bn.lid x25, 288(x11)
+        bn.lid x26, 320(x11)
+        bn.lid x27, 352(x11)
+        bn.lid x28, 384(x11)
+        bn.lid x29, 416(x11)
+        bn.lid x30, 448(x11)
 
         /* Butterflies */
         bn.mulmv.8S w30, w3, w18, 0
@@ -371,24 +367,24 @@ ntt_dilithium:
         bn.trans8 w2, w2
         bn.trans8 w10, w10
 
-        bn.sid x2, 0(x28)
-        bn.sid x3, 32(x28)
-        bn.sid x4, 64(x28)
-        bn.sid x5, 96(x28)
-        bn.sid x6, 128(x28)
-        bn.sid x7, 160(x28)
-        bn.sid x8, 192(x28)
-        bn.sid x9, 224(x28)
-        bn.sid x10, 256(x28)
-        bn.sid x11, 288(x28)
-        bn.sid x12, 320(x28)
-        bn.sid x13, 352(x28)
-        bn.sid x14, 384(x28)
-        bn.sid x15, 416(x28)
-        bn.sid x16, 448(x28)
-        bn.sid x17, 480(x28)
+        bn.sid x4, 0(x10)
+        bn.sid x5, 32(x10)
+        bn.sid x6, 64(x10)
+        bn.sid x7, 96(x10)
+        bn.sid x8, 128(x10)
+        bn.sid x9, 160(x10)
+        bn.sid x13, 192(x10)
+        bn.sid x14, 224(x10)
+        bn.sid x15, 256(x10)
+        bn.sid x16, 288(x10)
+        bn.sid x17, 320(x10)
+        bn.sid x18, 352(x10)
+        bn.sid x19, 384(x10)
+        bn.sid x20, 416(x10)
+        bn.sid x21, 448(x10)
+        bn.sid x22, 480(x10)
 
-        addi x29, x29, 480
-        addi x28, x28, 512
+        addi x11, x11, 480
+        addi x10, x10, 512
 
     ret

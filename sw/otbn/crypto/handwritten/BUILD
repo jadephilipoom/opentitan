@@ -35,6 +35,13 @@ otbn_library(
 )
 
 otbn_library(
+    name = "poly_pointwise_acc_dilithium",
+    srcs = [
+        "poly_pointwise_dilithium.s",
+    ],
+)
+
+otbn_library(
     name = "poly_add_dilithium",
     srcs = [
         "poly_add_dilithium.s",
@@ -52,6 +59,20 @@ otbn_library(
     name = "poly_reduce32_dilithium",
     srcs = [
         "poly_reduce32_dilithium.s",
+    ],
+)
+
+otbn_library(
+    name = "poly_caddq_dilithium",
+    srcs = [
+        "poly_caddq_dilithium.s",
+    ],
+)
+
+otbn_library(
+    name = "poly_power2round_dilithium",
+    srcs = [
+        "poly_power2round_dilithium.s",
     ],
 )
 

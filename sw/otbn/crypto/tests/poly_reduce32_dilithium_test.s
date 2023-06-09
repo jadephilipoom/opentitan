@@ -26,8 +26,8 @@ main:
   bn.wsrw 0x0, w30
 
   /* dmem[data] <= NTT(dmem[input]) */
-  la  x29, input1
-  la  x30, input1
+  la  x10, input1
+  la  x11, input1
   jal  x1, poly_reduce32_dilithium
 
   ecall
@@ -36,7 +36,6 @@ main:
 .balign 32
 /* First input */
 input1:
-    x:
   .word 0x4923b869
   .word 0x3dc494b6
   .word 0x1a616d40
@@ -293,3 +292,23 @@ input1:
   .word 0x3981cf98
   .word 0x34f7c07d
   .word 0x5c9e221c
+.global reduce32_const1
+reduce32_const1:
+    .word 0x1
+    .word 0x1
+    .word 0x1
+    .word 0x1
+    .word 0x1
+    .word 0x1
+    .word 0x1
+    .word 0x1
+.global modulus
+modulus:
+    .word 0x7fe001
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0

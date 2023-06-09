@@ -26,9 +26,9 @@ main:
   bn.wsrw 0x0, w30
 
   /* dmem[data] <= NTT(dmem[input]) */
-  la  x29, output
-  la  x30, input1
-  la  x31, input2
+  la  x12, output
+  la  x10, input1
+  la  x11, input2
   jal  x1, poly_add_dilithium
 
   ecall

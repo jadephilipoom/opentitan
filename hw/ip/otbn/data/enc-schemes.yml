@@ -131,34 +131,6 @@ J:
     imm: 31,19-12,20,30-21
     rd: 11-7
 
-SHAKE:
-  parents:
-    - rv(opcode=b00100)
-    - funct3
-  fields:
-    operation: 31-30
-
-SHAKE_start:
-  parents:
-  - SHAKE(operation=b00)
-  fields:
-    op_state: 11-7
-    mode: 19-15
-    fixed:
-        bits: 29-20
-        value: bxxxxxxxxxx
-
-SHAKE_op:
-  parents:
-  - SHAKE
-  fields:
-    op_state: 11-7
-    buf: 19-15
-    len: 24-20
-    fixed:
-        bits: 29-25
-        value: bxxxxx
-
 # A partial scheme for custom instructions with opcode b00010
 custom0:
   parents:
@@ -183,6 +155,11 @@ custom3:
 custom4:
   parents:
     - rv(opcode=b11111)
+
+# A partial scheme for custom instructions with opcode b11111
+custom5:
+  parents:
+    - rv(opcode=b00100)
 
 # A partial scheme for instructions that produce a dest WDR.
 wrd:
