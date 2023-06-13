@@ -24,7 +24,7 @@ main:
   la  x2, stack_end
   la  x10, zeta
   la  x11, pk
-  la  x11, sk
+  la  x12, sk
   jal x1, key_pair_dilithium
 
   ecall
@@ -631,3 +631,23 @@ power2round_D_preprocessed:
     .word 0xfff
     .word 0xfff
     .word 0xfff
+.global eta
+eta:
+    .word 0x2
+    .word 0x2
+    .word 0x2
+    .word 0x2
+    .word 0x2
+    .word 0x2
+    .word 0x2
+    .word 0x2
+.global polyt0_pack_const
+polyt0_pack_const:
+    .word 0x1000
+    .word 0x1000
+    .word 0x1000
+    .word 0x1000
+    .word 0x1000
+    .word 0x1000
+    .word 0x1000
+    .word 0x1000

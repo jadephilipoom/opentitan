@@ -12,7 +12,7 @@
  * @param[in]  x10: dptr_input, dmem pointer to first word of input polynomial
  * @param[in]  x11: dptr_tw, dmem pointer to array of twiddle factors
  * @param[in]  w31: all-zero
- * @param[out] x10: dmem pointer to result
+ * @param[out] x12: dmem pointer to result
  *
  * clobbered registers: x4 to x30, x28 to x29
  *                      w2 to w25, w30
@@ -51,7 +51,7 @@ ntt_dilithium:
     bn.lid x23, 0(x11)
     bn.lid x24, 32(x11)
     
-    LOOPI 2, 129
+    LOOPI 2, 130
         /* Load input data */
         bn.lid x4, 0(x10)
         bn.lid x5, 64(x10)
@@ -179,50 +179,53 @@ ntt_dilithium:
         bn.addmv.8S   w16, w16, w30
 
         /* Store output data */
-        bn.sid x4,  0(x10)
-        bn.sid x5, 64(x10)
-        bn.sid x6, 128(x10)
-        bn.sid x7, 192(x10)
-        bn.sid x8, 256(x10)
-        bn.sid x9, 320(x10)
-        bn.sid x13, 384(x10)
-        bn.sid x14, 448(x10)
-        bn.sid x15, 512(x10)
-        bn.sid x16, 576(x10)
-        bn.sid x17, 640(x10)
-        bn.sid x18, 704(x10)
-        bn.sid x19, 768(x10)
-        bn.sid x20, 832(x10)
-        bn.sid x21, 896(x10)
-        bn.sid x22, 960(x10)
+        bn.sid x4,  0(x12)
+        bn.sid x5, 64(x12)
+        bn.sid x6, 128(x12)
+        bn.sid x7, 192(x12)
+        bn.sid x8, 256(x12)
+        bn.sid x9, 320(x12)
+        bn.sid x13, 384(x12)
+        bn.sid x14, 448(x12)
+        bn.sid x15, 512(x12)
+        bn.sid x16, 576(x12)
+        bn.sid x17, 640(x12)
+        bn.sid x18, 704(x12)
+        bn.sid x19, 768(x12)
+        bn.sid x20, 832(x12)
+        bn.sid x21, 896(x12)
+        bn.sid x22, 960(x12)
         
         addi x10, x10, 32
+        addi x12, x12, 32
     
     /* Restore input pointer */
     addi x10, x10, -64
+    /* Restore output pointer */
+    addi x12, x12, -64
 
     /* Set the twiddle pointer for layer 5 */
     addi x11, x11, 64
 
     /* w18--w25 are used for the twiddle factors on layers 5--8 */
-    LOOPI 2, 149
+    LOOPI 2, 150
         /* Load input data */
-        bn.lid x4, 0(x10)
-        bn.lid x5, 32(x10)
-        bn.lid x6, 64(x10)
-        bn.lid x7, 96(x10)
-        bn.lid x8, 128(x10)
-        bn.lid x9, 160(x10)
-        bn.lid x13, 192(x10)
-        bn.lid x14, 224(x10)
-        bn.lid x15, 256(x10)
-        bn.lid x16, 288(x10)
-        bn.lid x17, 320(x10)
-        bn.lid x18, 352(x10)
-        bn.lid x19, 384(x10)
-        bn.lid x20, 416(x10)
-        bn.lid x21, 448(x10)
-        bn.lid x22, 480(x10)
+        bn.lid x4, 0(x12)
+        bn.lid x5, 32(x12)
+        bn.lid x6, 64(x12)
+        bn.lid x7, 96(x12)
+        bn.lid x8, 128(x12)
+        bn.lid x9, 160(x12)
+        bn.lid x13, 192(x12)
+        bn.lid x14, 224(x12)
+        bn.lid x15, 256(x12)
+        bn.lid x16, 288(x12)
+        bn.lid x17, 320(x12)
+        bn.lid x18, 352(x12)
+        bn.lid x19, 384(x12)
+        bn.lid x20, 416(x12)
+        bn.lid x21, 448(x12)
+        bn.lid x22, 480(x12)
 
         /* Layer 5, stride 8 */
 
@@ -367,24 +370,25 @@ ntt_dilithium:
         bn.trans8 w2, w2
         bn.trans8 w10, w10
 
-        bn.sid x4, 0(x10)
-        bn.sid x5, 32(x10)
-        bn.sid x6, 64(x10)
-        bn.sid x7, 96(x10)
-        bn.sid x8, 128(x10)
-        bn.sid x9, 160(x10)
-        bn.sid x13, 192(x10)
-        bn.sid x14, 224(x10)
-        bn.sid x15, 256(x10)
-        bn.sid x16, 288(x10)
-        bn.sid x17, 320(x10)
-        bn.sid x18, 352(x10)
-        bn.sid x19, 384(x10)
-        bn.sid x20, 416(x10)
-        bn.sid x21, 448(x10)
-        bn.sid x22, 480(x10)
+        bn.sid x4, 0(x12)
+        bn.sid x5, 32(x12)
+        bn.sid x6, 64(x12)
+        bn.sid x7, 96(x12)
+        bn.sid x8, 128(x12)
+        bn.sid x9, 160(x12)
+        bn.sid x13, 192(x12)
+        bn.sid x14, 224(x12)
+        bn.sid x15, 256(x12)
+        bn.sid x16, 288(x12)
+        bn.sid x17, 320(x12)
+        bn.sid x18, 352(x12)
+        bn.sid x19, 384(x12)
+        bn.sid x20, 416(x12)
+        bn.sid x21, 448(x12)
+        bn.sid x22, 480(x12)
 
         addi x11, x11, 480
         addi x10, x10, 512
+        addi x12, x12, 512
 
     ret

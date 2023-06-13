@@ -23,6 +23,7 @@ main:
   /* dmem[data] <= NTT(dmem[input]) */
   la  x10, input
   la  x11, twiddles
+  la  x12, output
   jal  x1, ntt_dilithium
 
   ecall
@@ -287,7 +288,8 @@ input:
     .word 0x00729269
     .word 0x0055de20
     .word 0x0044fa09
-
+output:
+  .zero 1024
 /* Modulus for reduction */
 modulus:
   .word 0x007fe001
