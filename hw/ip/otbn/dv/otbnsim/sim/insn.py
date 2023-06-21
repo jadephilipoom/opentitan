@@ -17,6 +17,12 @@ sys.path.append('../../util')
 import otbn_sim_py_shared as shared
 from dilithiumpy.shake_wrapper import Shake
 
+DEBUG_MEM = False
+DEBUG_BRANCH = False
+DEBUG_ARITH = False
+DEBUG_KMAC = False
+DEBUG_FLOW = False
+
 
 def eprint(text):
     print(text, file=sys.stderr)
@@ -33,6 +39,8 @@ class ADD(RV32RegReg):
             return
 
         result = (val1 + val2) & ((1 << 32) - 1)
+        if DEBUG_ARITH:
+            eprint(f"add {val1} + {val2} = {result}")
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
 
@@ -46,6 +54,8 @@ class ADDI(RV32RegImm):
             return
 
         result = (val1 + self.imm) & ((1 << 32) - 1)
+        if DEBUG_ARITH:
+            eprint(f"addi {val1} + {self.imm} = {result}")
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
 
@@ -86,6 +96,8 @@ class SLL(RV32RegReg):
             return
 
         result = (val1 << val2) & ((1 << 32) - 1)
+        if DEBUG_ARITH:
+            eprint(f"sll {hex(val1)} << {(val2)} = {hex(result)}")
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
 
@@ -97,7 +109,8 @@ class SLLI(RV32ImmShift):
         if state.gprs.call_stack_err:
             state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
             return
-
+        if DEBUG_ARITH:
+            eprint(f"slli {hex(val1)} << {self.shamt} = {hex((val1 << self.shamt) & ((1 << 32) - 1))}")
         result = (val1 << self.shamt) & ((1 << 32) - 1)
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
@@ -113,6 +126,8 @@ class SRL(RV32RegReg):
             return
 
         result = val1 >> val2
+        if DEBUG_ARITH:
+            eprint(f"srl {hex(val1)} >> {(val2)} = {hex((result) & ((1 << 32) - 1))}")
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
 
@@ -124,8 +139,9 @@ class SRLI(RV32ImmShift):
         if state.gprs.call_stack_err:
             state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
             return
-
         result = val1 >> self.shamt
+        if DEBUG_ARITH:
+            eprint(f"srli {hex(val1)} >> {self.shamt} = {hex(result)}")
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
 
@@ -140,6 +156,8 @@ class SRA(RV32RegReg):
             return
 
         result = val1 >> val2
+        if DEBUG_ARITH:
+            eprint(f"sra {hex(val1)} >> {val2} = {hex(result)}")
         state.gprs.get_reg(self.grd).write_signed(result)
 
 
@@ -168,6 +186,8 @@ class AND(RV32RegReg):
             return
 
         result = val1 & val2
+        if DEBUG_ARITH:
+            eprint(f"and {hex(val1)} & {hex(val2)} = {hex(val1 & val2)}")
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
 
@@ -180,7 +200,8 @@ class ANDI(RV32RegImm):
         if state.gprs.call_stack_err:
             state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
             return
-
+        if DEBUG_ARITH:
+            eprint(f"andi {hex(val1)} & {hex(val2)} = {hex(val1 & val2)}")
         result = val1 & val2
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
@@ -194,7 +215,8 @@ class OR(RV32RegReg):
         if state.gprs.call_stack_err:
             state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
             return
-
+        if DEBUG_ARITH:
+            eprint(f"or {hex(val1)} | {hex(val2)} = {hex(val1 | val2)}")
         result = val1 | val2
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
@@ -265,10 +287,14 @@ class LW(OTBNInsn):
         addr = (base + self.offset) & ((1 << 32) - 1)
 
         if not state.dmem.is_valid_32b_addr(addr):
+            if DEBUG_MEM:
+                print(f"lw {base} {self.offset}: failed", file=sys.stderr)
             state.stop_at_end_of_cycle(ErrBits.BAD_DATA_ADDR)
             return
 
         result = state.dmem.load_u32(addr)
+        if DEBUG_MEM:
+            print(f"lw {base} {self.offset}: {format(result, '08x')}", file=sys.stderr)
 
         # Stall for a single cycle for memory to respond
         yield
@@ -293,6 +319,8 @@ class SW(OTBNInsn):
         base = state.gprs.get_reg(self.grs1).read_unsigned()
         addr = (base + self.offset) & ((1 << 32) - 1)
         value = state.gprs.get_reg(self.grs2).read_unsigned()
+        if DEBUG_MEM:
+            print(f"sw {base} {self.offset}: {format(value, '08x')}", file=sys.stderr)
         bad_grs1 = state.gprs.call_stack_err and (self.grs1 == 1)
 
         saw_err = False
@@ -328,13 +356,19 @@ class BEQ(OTBNInsn):
         if state.gprs.call_stack_err:
             state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
             return
-
+        if DEBUG_BRANCH:
+            eprint(f"Branch: {val1} ?== {val2} to {self.offset}")
         tgt_pc = self.offset & ((1 << 32) - 1)
         if val1 == val2:
+            if DEBUG_BRANCH:
+                eprint("taken")
             if not state.is_pc_valid(tgt_pc):
                 state.stop_at_end_of_cycle(ErrBits.BAD_INSN_ADDR)
             else:
                 state.set_next_pc(tgt_pc)
+        else:
+            if DEBUG_BRANCH:
+                eprint("not taken")
 
 
 class BNE(OTBNInsn):
@@ -355,13 +389,19 @@ class BNE(OTBNInsn):
         if state.gprs.call_stack_err:
             state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
             return
-
+        if DEBUG_BRANCH:
+            eprint(f"Branch: {val1} ?!= {val2} to {self.offset}")
         tgt_pc = self.offset & ((1 << 32) - 1)
         if val1 != val2:
+            if DEBUG_BRANCH:
+                eprint("taken")
             if not state.is_pc_valid(tgt_pc):
                 state.stop_at_end_of_cycle(ErrBits.BAD_INSN_ADDR)
             else:
                 state.set_next_pc(tgt_pc)
+        else:
+            if DEBUG_BRANCH:
+                eprint("not taken")
 
 
 class JAL(OTBNInsn):
@@ -378,7 +418,8 @@ class JAL(OTBNInsn):
         mask32 = ((1 << 32) - 1)
         link_pc = (state.pc + 4) & mask32
         state.gprs.get_reg(self.grd).write_unsigned(link_pc)
-
+        if DEBUG_FLOW:
+            eprint(f"jal {self.offset}")
         next_pc = self.offset & mask32
         if not state.is_pc_valid(next_pc):
             state.stop_at_end_of_cycle(ErrBits.BAD_INSN_ADDR)
@@ -461,6 +502,7 @@ class CSRRW(OTBNInsn):
         self.grs1 = op_vals['grs1']
 
     def execute(self, state: OTBNState) -> Optional[Iterator[None]]:
+        # eprint("csrrw")
         if not state.csrs.check_idx(self.csr):
             # Invalid CSR index. Stop with an illegal instruction error.
             state.stop_at_end_of_cycle(ErrBits.ILLEGAL_INSN)
@@ -528,10 +570,48 @@ class LOOPI(OTBNInsn):
         self.bodysize = op_vals['bodysize']
 
     def execute(self, state: OTBNState) -> None:
+        if DEBUG_FLOW:
+            eprint("LOOPI")
         if self.iterations == 0:
             state.stop_at_end_of_cycle(ErrBits.LOOP)
         else:
             state.loop_start(self.iterations, self.bodysize)
+
+
+class SLT(RV32RegReg):
+    insn = insn_for_mnemonic('slt', 3)
+
+    def execute(self, state: OTBNState) -> None:
+        val1 = state.gprs.get_reg(self.grs1).read_signed()
+        val2 = state.gprs.get_reg(self.grs2).read_signed()
+        # eprint(f"{val1} <? {val2}")
+
+        if state.gprs.call_stack_err:
+            state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
+            return
+        if DEBUG_ARITH:
+            eprint(f"slt {val1} <s? {val2}")
+        result = 1 if val1 < val2 else 0
+        state.gprs.get_reg(self.grd).write_unsigned(result)
+
+
+class SLTU(RV32RegReg):
+    insn = insn_for_mnemonic('sltu', 3)
+
+    def execute(self, state: OTBNState) -> None:
+        val1 = state.gprs.get_reg(self.grs1).read_unsigned()
+        val2 = state.gprs.get_reg(self.grs2).read_unsigned()
+        # eprint(f"{val1} <? {val2}")
+
+        if state.gprs.call_stack_err:
+            state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
+            return
+
+        if DEBUG_ARITH:
+            eprint(f"sltu {val1} <u? {val2}")
+
+        result = 1 if val1 < val2 else 0
+        state.gprs.get_reg(self.grd).write_unsigned(result)
 
 
 class BNADD(OTBNInsn):
@@ -637,10 +717,10 @@ class BNADDM(OTBNInsn):
                 result -= mod_val
         else:
             size = 32 if self.type == 0 else 16
-
+            mod_val = extract_sub_word(mod_val, size, 0)
             result = 0
 
-            for i in range(256 // size, -1, -1):
+            for i in range(256 // size - 1, -1, -1):
                 ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
                 bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
                 resulti = ai + bi
@@ -648,6 +728,8 @@ class BNADDM(OTBNInsn):
                     resulti -= mod_val
                 elif resulti < 0 and not self.nored:
                     resulti += mod_val
+                if DEBUG_ARITH:
+                    eprint(f"addmv {ai} + {bi} = {ai + bi} = {resulti}")
                 result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))
 
         result = result & ((1 << 256) - 1)
@@ -669,24 +751,26 @@ class BNMULMV(OTBNInsn):
     def execute(self, state: OTBNState) -> None:
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
-        mod_val = state.wsrs.MOD.read_unsigned()
         size = None
         if (self.type % 2) == 0:
             size = 32
         else:
             size = 16
+        mod_val = extract_sub_word(state.wsrs.MOD.read_unsigned(), size, 0)
         result = 0
 
         # Extract the lane
         if self.type >= 2:
             bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, self.lane))
 
-        for i in range(256 // size, -1, -1):
+        for i in range(256 // size - 1, -1, -1):
             ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
             if self.type < 2:
                 bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
 
             resulti = (ai * bi)  # TODO: match to hw implementation
+            if DEBUG_ARITH:
+                eprint(f"mulmv {ai} * {bi} = {resulti} = {resulti % mod_val}")
 
             if not self.nored:  # TODO: add mask incase of nored
                 resulti = resulti % mod_val
@@ -924,13 +1008,15 @@ class BNSUBM(OTBNInsn):
                 result += mod_val
         else:
             size = 32 if self.type == 0 else 16
-
+            mod_val = extract_sub_word(mod_val, size, 0)
             result = 0
-
-            for i in range(256 // size, -1, -1):
+            mod_val = extract_sub_word(mod_val, size, 0)
+            for i in range(256 // size - 1, -1, -1):
                 ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
                 bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
                 resulti = ai - bi
+                if DEBUG_ARITH:
+                    eprint(f"submv {ai} - {bi} = {resulti}")
 
                 if resulti < 0 and not self.nored:
                     resulti += mod_val
@@ -960,6 +1046,10 @@ class BNAND(OTBNInsn):
         b_shifted = logical_byte_shift(b, self.shift_type, self.shift_bytes)
 
         result = a & b_shifted
+
+        if DEBUG_ARITH:
+            eprint(f"bn.and {a} & {b_shifted} = {result}")
+
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
         state.set_mlz_flags(self.flag_group, result)
 
@@ -985,17 +1075,18 @@ class BNANDV(OTBNInsn):
 
         result = 0
 
-        for i in range(256 // size, -1, -1):
+        for i in range(256 // size-1, -1, -1):
             ai = extract_sub_word(a, size, i)
             bi = extract_sub_word(b, size, i)
             if self.shift_arith:
-                bi_shifted = OTBNInsn.to_2s_complement(bit_shift(
-                    OTBNInsn.from_2s_complement(bi), self.shift_type,
-                    self.shift_bits, size))
+                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size, arith=True)
             else:
                 bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size)
 
             resulti = ai & bi_shifted
+
+            if DEBUG_ARITH:
+                eprint(f"bn.andv {ai} & ({bi} {'<<' if self.shift_type == 0 else '>>'}{'a' if self.shift_arith else ''} {self.shift_bits}) = {ai} & {bi_shifted} = {resulti} = {format(resulti, '08x')}")
 
             result = (result << size) | (resulti & ((1 << size) - 1))
 
@@ -1027,13 +1118,14 @@ class BNORV(OTBNInsn):
             ai = extract_sub_word(a, size, i)
             bi = extract_sub_word(b, size, i)
             if self.shift_arith:
-                bi_shifted = OTBNInsn.to_2s_complement(bit_shift(
-                    OTBNInsn.from_2s_complement(bi), self.shift_type,
-                    self.shift_bits, size))
+                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size, arith=True)
             else:
                 bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size)
 
             resulti = ai | bi_shifted
+
+            if DEBUG_ARITH:
+                eprint(f"bn.orv {ai} | ({bi} {'<<' if self.shift_type == 0 else '>>'} {self.shift_bits}) = {ai} | {bi_shifted} = {resulti} = {format(resulti, '08x')}")
 
             result = (result << size) | (resulti & ((1 << size) - 1))
 
@@ -1056,8 +1148,12 @@ class BNOR(OTBNInsn):
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
         b_shifted = logical_byte_shift(b, self.shift_type, self.shift_bytes)
-
+        
         result = a | b_shifted
+
+        if DEBUG_ARITH:
+            eprint(f"bn.or {a} & {b_shifted} = {result}")
+
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
         state.set_mlz_flags(self.flag_group, result)
 
@@ -1082,6 +1178,44 @@ class BNNOT(OTBNInsn):
         state.set_mlz_flags(self.flag_group, result)
 
 
+class BNXORV(OTBNInsn):
+    insn = insn_for_mnemonic('bn.xorv', 7)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.type = op_vals['type']
+        self.shift_type = op_vals['shift_type']
+        self.shift_bits = op_vals['shift_bits']
+        self.shift_arith = op_vals['shift_arith']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+
+        size = 32 if self.type == 0 else 16
+
+        result = 0
+
+        for i in range((256 - size) // size, -1, -1):
+            ai = extract_sub_word(a, size, i)
+            bi = extract_sub_word(b, size, i)
+            if self.shift_arith:
+                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size, arith=True)
+            else:
+                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size)
+
+            resulti = ai ^ bi_shifted
+
+            if DEBUG_ARITH:
+                eprint(f"bn.xorv {ai} ^ ({bi} {'<<' if self.shift_type == 0 else '>>'} {self.shift_bits}) = {ai} ^ {bi_shifted} = {resulti} = {format(resulti, '08x')}")
+
+            result = (result << size) | (resulti & ((1 << size) - 1))
+
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
 class BNXOR(OTBNInsn):
     insn = insn_for_mnemonic('bn.xor', 6)
 
@@ -1095,6 +1229,8 @@ class BNXOR(OTBNInsn):
         self.flag_group = op_vals['flag_group']
 
     def execute(self, state: OTBNState) -> None:
+        if DEBUG_ARITH:
+            eprint("bn.xor")
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
         b_shifted = logical_byte_shift(b, self.shift_type, self.shift_bytes)
@@ -1119,6 +1255,8 @@ class BNRSHI(OTBNInsn):
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
 
         result = (((a << 256) | b) >> self.imm) & ((1 << 256) - 1)
+        if DEBUG_ARITH:
+            eprint(f"bn.rshi {a}, {b} = {result}")
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
 
 
@@ -1215,7 +1353,8 @@ class BNLID(OTBNInsn):
         grs1_val = state.gprs.get_reg(self.grs1).read_unsigned()
         addr = (grs1_val + self.offset) & ((1 << 32) - 1)
         grd_val = state.gprs.get_reg(self.grd).read_unsigned()
-
+        if DEBUG_MEM:
+            print(f"bn.lid {grs1_val} {self.offset}", file=sys.stderr)
         bad_grs1 = state.gprs.call_stack_err and (self.grs1 == 1)
         bad_grd = state.gprs.call_stack_err and (self.grd == 1)
 
@@ -1279,7 +1418,8 @@ class BNSID(OTBNInsn):
 
         bad_grs1 = state.gprs.call_stack_err and (self.grs1 == 1)
         bad_grs2 = state.gprs.call_stack_err and (self.grs2 == 1)
-
+        if DEBUG_MEM:
+            print(f"bn.sid {grs1_val} {self.offset}", file=sys.stderr)
         saw_err = False
 
         if state.gprs.call_stack_err:
@@ -1437,6 +1577,8 @@ class BNWSRR(OTBNInsn):
 
         # The WSR is ready and has a value. Read it.
         val = state.wsrs.read_at_idx(self.wsr)
+        if DEBUG_KMAC:
+            eprint(f"read WSR: {format(val, '064x')}")
         state.wdrs.get_reg(self.wrd).write_unsigned(val)
 
 
@@ -1450,12 +1592,15 @@ class BNWSRW(OTBNInsn):
 
     def execute(self, state: OTBNState) -> None:
         val = state.wdrs.get_reg(self.wrs).read_unsigned()
+        if DEBUG_KMAC:
+            eprint(f"write WSR: {format(val, '064x')}")
         state.wsrs.write_at_idx(self.wsr, val)
 
 
 INSN_CLASSES = [
     ADD, ADDI, LUI, SUB, SLL, SLLI, SRL, SRLI, SRA, SRAI,
     AND, ANDI, OR, ORI, XOR, XORI,
+    SLT, SLTU,
     LW, SW,
     BEQ, BNE, JAL, JALR,
     CSRRS, CSRRW,
@@ -1467,7 +1612,7 @@ INSN_CLASSES = [
     BNMULQACC, BNMULQACCWO, BNMULQACCSO,
     BNSUB, BNSUBB, BNSUBI, BNSUBM,
     BNAND, BNOR, BNNOT, BNXOR,
-    BNANDV, BNORV,
+    BNANDV, BNORV, BNXORV,
     BNRSHI,
     BNSEL,
     BNCMP, BNCMPB,

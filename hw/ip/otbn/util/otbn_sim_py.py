@@ -17,6 +17,7 @@ from shared.check import CheckResult
 from shared.reg_dump import parse_reg_dump
 from shared.dmem_dump import parse_dmem_dump
 # Import the simulator as python module for injecting dmem
+from hw.ip.otbn.dv.otbnsim.sim.stats import ExecutionStatAnalyzer
 from hw.ip.otbn.dv.otbnsim.sim.standalonesim import StandaloneSim
 from hw.ip.otbn.dv.otbnsim.sim.load_elf import load_elf
 from dilithiumpy import test_dilithium
@@ -97,10 +98,12 @@ def run_sim(elf: str, additional_data: List[Tuple[int, int, bytes]]) -> Tuple[
 
     sim.state.ext_regs.commit()
 
-    sim.start(False)  # TODO: stats?
+    sim.start(True)  # TODO: stats?
+
     reg_dump = StringIO()
     sim.run(verbose=False, dump_file=reg_dump)
-
+    analyzer = ExecutionStatAnalyzer(sim.stats, otbn_sim_py_shared.ELF_MAP[elf])
+    print(analyzer.dump())
     if exp_end_addr is not None:
         if sim.state.pc != exp_end_addr:
             print('Run stopped at PC {:#x}, but _expected_end_addr was {:#x}.'

@@ -65,7 +65,7 @@
 
 #define rej_sample_check(val, mask, Q, out_ptr, tmp, addr_boundary, label)/*MACRO
 MACRO*/     and  val, mask, val /* Mask the bytes from Shake */ /*MACRO
-MACRO*/     sltu tmp, val, Q   /* (tmp = 1) <= val <? Q */ /*MACRO
+MACRO*/     slt tmp, val, Q   /* (tmp = 1) <= val <? Q */ /*MACRO
 MACRO*/     beq  tmp, zero, label /*MACRO
 MACRO*/     sw   val, 0(out_ptr) /*MACRO
 MACRO*/     beq  out_ptr, addr_boundary, end_rej_sample_loop /*MACRO
@@ -352,6 +352,8 @@ rej_eta_sample_loop:
         
         /* Loop counter, we have 32B to read from shake */
         addi t4, zero, 32
+        bn.addi w14, bn0, 0xFF
+        bn.addi w15, bn0, 15
 rej_eta_sample_loop_inner:
             /* Get state into working copy */
             bn.add w9, shake_reg, bn0
@@ -359,17 +361,14 @@ rej_eta_sample_loop_inner:
             bn.or  shake_reg, bn0, shake_reg >> 8
             
             /* Mask out all other bytes */
-            bn.addi w11, bn0, 0xFF
-            bn.and  w9, w9, w11
+            bn.and  w9, w9, w14
             /* Prepare "t1" */
             bn.rshi w10, bn0, w9 >> 4
             /* Prepare "t0" */
-            bn.addi w11, bn0, 15
-            bn.and  w9, w9, w11
+            bn.and  w9, w9, w15
 
             /* Instead of < 15, != 15 can also be checked */
-            bn.addi w11, bn0, 15
-            bn.cmp w9, w11
+            bn.cmp w9, w15
              /* Get the FG0.Z flag into a register.
                 t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
             csrrs    t2, 0x7c0, zero
@@ -471,101 +470,101 @@ end_rej_eta_sample_loop:
                       POLYT1_PACKEDBYTES bytes
  * @param[in]     a1: pointer to input polynomial
  *
- * clobbered registers: TODO
+ * clobbered registers: a0-a1, t0-t2
  */
 
 polyt1_pack_dilithium:
     /* Collect bytes in a2 */
     LOOPI 16, 63
-        xor a2, a2, a2
+        xor t2, t2, t2
         /* coefficient 1 */
         lw t0, 0(a1)
-        or a2, a2, t0 /* 10 */
+        or t2, t2, t0 /* 10 */
         /* coefficient 2 */
         lw t0, 4(a1)
         slli t1, t0, 10
-        or a2, a2, t1 /* 20 */
+        or t2, t2, t1 /* 20 */
         /* coefficient 3 */
         lw t0, 8(a1)
         slli t1, t0, 20
-        or a2, a2, t1 /* 30 */
+        or t2, t2, t1 /* 30 */
         /* coefficient 4 - 2 bits */
         lw t0, 12(a1)
         slli t1, t0, 30
-        or a2, a2, t1 /* 32 */
+        or t2, t2, t1 /* 32 */
         /* Store 32 bits */
-        sw a2, 0(a0)
+        sw t2, 0(a0)
         /* coefficient 4 - 8 bits */
         srli t0, t0, 2
-        or a2, zero, t0 /* 8 */
+        or t2, zero, t0 /* 8 */
 
         /* coefficient 5 */
         lw t0, 16(a1)
         slli t1, t0, 8
-        or a2, a2, t1 /* 18 */
+        or t2, t2, t1 /* 18 */
         /* coefficient 6 */
         lw t0, 20(a1)
         slli t1, t0, 18
-        or a2, a2, t1 /* 28 */
+        or t2, t2, t1 /* 28 */
         /* coefficient 7 - 4 bits */
         lw t0, 24(a1)
         slli t1, t0, 28
-        or a2, a2, t1
+        or t2, t2, t1
         /* Store 32 bits */
-        sw a2, 4(a0)
+        sw t2, 4(a0)
         /* coefficient 7 - 6 bits */
         srli t0, t0, 4
-        or a2, zero, t0 /* 6 */
+        or t2, zero, t0 /* 6 */
 
         /* coefficient 8 */
         lw t0, 28(a1)
         slli t1, t0, 6
-        or a2, a2, t1 /* 16 */
+        or t2, t2, t1 /* 16 */
         /* coefficient 9 */
         lw t0, 32(a1)
         slli t1, t0, 16
-        or a2, a2, t1 /* 26 */
+        or t2, t2, t1 /* 26 */
         /* coefficient 10 - 6 bits */
         lw t0, 36(a1)
         slli t1, t0, 26
-        or a2, a2, t1
+        or t2, t2, t1
         /* Store 32 bits */
-        sw a2, 8(a0)
+        sw t2, 8(a0)
         /* coefficient 10 - 4 bits */
         srli t0, t0, 6
-        or a2, zero, t0 /* 4 */
+        or t2, zero, t0 /* 4 */
 
         /* coefficient 11 */
         lw t0, 40(a1)
         slli t1, t0, 4
-        or a2, a2, t1 /* 14 */
+        or t2, t2, t1 /* 14 */
         /* coefficient 12 */
         lw t0, 44(a1)
         slli t1, t0, 14
-        or a2, a2, t1 /* 24 */
+        or t2, t2, t1 /* 24 */
         /* coefficient 13 - 8 bits */
         lw t0, 48(a1)
         slli t1, t0, 24
-        or a2, a2, t1
+        or t2, t2, t1
         /* Store 32 bits */
-        sw a2, 12(a0)
+        sw t2, 12(a0)
         /* coefficient 13 - 2 bits */
         srli t0, t0, 8
-        or a2, zero, t0 /* 2 */
+        or t2, zero, t0 /* 2 */
 
         /* coefficient 14 */
         lw t0, 52(a1)
         slli t1, t0, 2
-        or a2, a2, t1 /* 12 */
+        or t2, t2, t1 /* 12 */
         /* coefficient 15 */
         lw t0, 56(a1)
         slli t1, t0, 12
-        or a2, a2, t1 /* 22 */
+        or t2, t2, t1 /* 22 */
         /* coefficient 16 */
         lw t0, 60(a1)
         slli t0, t0, 22
-        or a2, a2, t0 /* 32 */
-        sw a2, 16(a0)
+        or t2, t2, t0 /* 32 */
+        sw t2, 16(a0)
 
         addi a1, a1, 64
         addi a0, a0, 20
@@ -585,197 +584,203 @@ polyt1_pack_dilithium:
                       POLYETA_PACKEDBYTES bytes
  * @param[in]     a1: pointer to input polynomial
  *
- * clobbered registers: TODO
+ * clobbered registers: a0-a1, t0-t3, w1, w2
  */
 
 polyeta_pack_dilithium:
-    /* ETA - coeff */
-    la t0, eta
+    /* Compute ETA - coeff */
+    /* Setup WDRs */
     addi t1, zero, 1
     addi t2, zero, 2
 
+    /* Load precomputed eta */
+    la t0, eta
     bn.lid t1, 0(t0)
 
     LOOPI 32, 4
+        /* w2 <= coeffs[i:i+8] */
         bn.lid t2, 0(a1)
+        /* w2 <= eta - w2 */
         bn.submv.8S w2, w1, w2 nored
+        /* coeffs[i:i+8] <= w2 */
         bn.sid t2, 0(a1)
         addi a1, a1, 32
+
     /* reset pointer */
     addi a1, a1, -1024
 
-    /* Collect bytes in a2 */
+    /* Collect bytes in t3 */
     LOOPI 8, 105
-        xor a2, a2, a2
+        xor t3, t3, t3
         /* oooooooooooooooooooooooooooooooo */
         /* coefficient 0 */
         lw t0, 0(a1)
-        or a2, a2, t0 /* 0 */
+        or t3, t3, t0 /* 0 */
         /* ***ooooooooooooooooooooooooooooo| */
         /* coefficient 1 */
         lw t0, 4(a1)
         slli t1, t0, 3
-        or a2, a2, t1 /* 3 */
+        or t3, t3, t1 /* 3 */
         /* ******oooooooooooooooooooooooooo| */
         /* coefficient 2 */
         lw t0, 8(a1)
         slli t1, t0, 6
-        or a2, a2, t1 /* 6 */
+        or t3, t3, t1 /* 6 */
         /* *********ooooooooooooooooooooooo| */
         /* coefficient 3 */
         lw t0, 12(a1)
         slli t1, t0, 9
-        or a2, a2, t1 /* 9 */
+        or t3, t3, t1 /* 9 */
         /* ************oooooooooooooooooooo| */
         /* coefficient 4 */
         lw t0, 16(a1)
         slli t1, t0, 12
-        or a2, a2, t1 /* 12 */
+        or t3, t3, t1 /* 12 */
         /* ***************ooooooooooooooooo| */
         /* coefficient 5 */
         lw t0, 20(a1)
         slli t1, t0, 15
-        or a2, a2, t1 /* 15 */
+        or t3, t3, t1 /* 15 */
         /* ******************oooooooooooooo| */
         /* coefficient 6 */
         lw t0, 24(a1)
         slli t1, t0, 18
-        or a2, a2, t1 /* 18 */
+        or t3, t3, t1 /* 18 */
         /* *********************ooooooooooo| */
         /* coefficient 7 */
         lw t0, 28(a1)
         slli t1, t0, 21
-        or a2, a2, t1 /* 21 */
+        or t3, t3, t1 /* 21 */
         /* ************************oooooooo| */
         /* coefficient 8 */
         lw t0, 32(a1)
         slli t1, t0, 24
-        or a2, a2, t1 /* 24 */
+        or t3, t3, t1 /* 24 */
         /* ***************************ooooo| */
         /* coefficient 9 */
         lw t0, 36(a1)
         slli t1, t0, 27
-        or a2, a2, t1 /* 27 */
+        or t3, t3, t1 /* 27 */
         /* ******************************oo| */
         /* coefficient 10 */
         lw t0, 40(a1)
         slli t1, t0, 30
-        or a2, a2, t1 /* 30 */
+        or t3, t3, t1 /* 30 */
         /* ********************************|x */
-        sw a2, 0(a0)
+        sw t3, 0(a0)
         srli t0, t0, 2
-        or a2, zero, t0
+        or t3, zero, t0
         /* *ooooooooooooooooooooooooooooooo */
         /* coefficient 11 */
         lw t0, 44(a1)
         slli t1, t0, 1
-        or a2, a2, t1 /* 1 */
+        or t3, t3, t1 /* 1 */
         /* ****oooooooooooooooooooooooooooo| */
         /* coefficient 12 */
         lw t0, 48(a1)
         slli t1, t0, 4
-        or a2, a2, t1 /* 4 */
+        or t3, t3, t1 /* 4 */
         /* *******ooooooooooooooooooooooooo| */
         /* coefficient 13 */
         lw t0, 52(a1)
         slli t1, t0, 7
-        or a2, a2, t1 /* 7 */
+        or t3, t3, t1 /* 7 */
         /* **********oooooooooooooooooooooo| */
         /* coefficient 14 */
         lw t0, 56(a1)
         slli t1, t0, 10
-        or a2, a2, t1 /* 10 */
+        or t3, t3, t1 /* 10 */
         /* *************ooooooooooooooooooo| */
         /* coefficient 15 */
         lw t0, 60(a1)
         slli t1, t0, 13
-        or a2, a2, t1 /* 13 */
+        or t3, t3, t1 /* 13 */
         /* ****************oooooooooooooooo| */
         /* coefficient 16 */
         lw t0, 64(a1)
         slli t1, t0, 16
-        or a2, a2, t1 /* 16 */
+        or t3, t3, t1 /* 16 */
         /* *******************ooooooooooooo| */
         /* coefficient 17 */
         lw t0, 68(a1)
         slli t1, t0, 19
-        or a2, a2, t1 /* 19 */
+        or t3, t3, t1 /* 19 */
         /* **********************oooooooooo| */
         /* coefficient 18 */
         lw t0, 72(a1)
         slli t1, t0, 22
-        or a2, a2, t1 /* 22 */
+        or t3, t3, t1 /* 22 */
         /* *************************ooooooo| */
         /* coefficient 19 */
         lw t0, 76(a1)
         slli t1, t0, 25
-        or a2, a2, t1 /* 25 */
+        or t3, t3, t1 /* 25 */
         /* ****************************oooo| */
         /* coefficient 20 */
         lw t0, 80(a1)
         slli t1, t0, 28
-        or a2, a2, t1 /* 28 */
+        or t3, t3, t1 /* 28 */
         /* *******************************o| */
         /* coefficient 21 */
         lw t0, 84(a1)
         slli t1, t0, 31
-        or a2, a2, t1 /* 31 */
+        or t3, t3, t1 /* 31 */
         /* ********************************|xx */
-        sw a2, 4(a0)
+        sw t3, 4(a0)
         srli t0, t0, 1
-        or a2, zero, t0
+        or t3, zero, t0
         /* **oooooooooooooooooooooooooooooo */
         /* coefficient 22 */
         lw t0, 88(a1)
         slli t1, t0, 2
-        or a2, a2, t1 /* 2 */
+        or t3, t3, t1 /* 2 */
         /* *****ooooooooooooooooooooooooooo| */
         /* coefficient 23 */
         lw t0, 92(a1)
         slli t1, t0, 5
-        or a2, a2, t1 /* 5 */
+        or t3, t3, t1 /* 5 */
         /* ********oooooooooooooooooooooooo| */
         /* coefficient 24 */
         lw t0, 96(a1)
         slli t1, t0, 8
-        or a2, a2, t1 /* 8 */
+        or t3, t3, t1 /* 8 */
         /* ***********ooooooooooooooooooooo| */
         /* coefficient 25 */
         lw t0, 100(a1)
         slli t1, t0, 11
-        or a2, a2, t1 /* 11 */
+        or t3, t3, t1 /* 11 */
         /* **************oooooooooooooooooo| */
         /* coefficient 26 */
         lw t0, 104(a1)
         slli t1, t0, 14
-        or a2, a2, t1 /* 14 */
+        or t3, t3, t1 /* 14 */
         /* *****************ooooooooooooooo| */
         /* coefficient 27 */
         lw t0, 108(a1)
         slli t1, t0, 17
-        or a2, a2, t1 /* 17 */
+        or t3, t3, t1 /* 17 */
         /* ********************oooooooooooo| */
         /* coefficient 28 */
         lw t0, 112(a1)
         slli t1, t0, 20
-        or a2, a2, t1 /* 20 */
+        or t3, t3, t1 /* 20 */
         /* ***********************ooooooooo| */
         /* coefficient 29 */
         lw t0, 116(a1)
         slli t1, t0, 23
-        or a2, a2, t1 /* 23 */
+        or t3, t3, t1 /* 23 */
         /* **************************oooooo| */
         /* coefficient 30 */
         lw t0, 120(a1)
         slli t1, t0, 26
-        or a2, a2, t1 /* 26 */
+        or t3, t3, t1 /* 26 */
         /* *****************************ooo| */
         /* coefficient 31 */
         lw t0, 124(a1)
         slli t1, t0, 29
-        or a2, a2, t1 /* 29 */
+        or t3, t3, t1 /* 29 */
         /* ********************************| */
-        sw a2, 8(a0)
+        sw t3, 8(a0)
 
         addi a1, a1, 128
         addi a0, a0, 12

@@ -148,7 +148,7 @@ class RV32ImmShift(OTBNInsn):
         self.shamt = op_vals['shamt']
 
 
-def bit_shift(value: int, shift_type: int, shift_bits: int, size: int) -> int:
+def bit_shift(value: int, shift_type: int, shift_bits: int, size: int, arith: bool = False) -> int:
     '''Logical shift value by shift_bits to the left or right.
 
     value should be an unsigned size-bit value. shift_type should be 0 (shift
@@ -164,7 +164,18 @@ def bit_shift(value: int, shift_type: int, shift_bits: int, size: int) -> int:
     assert 0 <= shift_type <= 1
     assert 0 <= shift_bits
 
-    shifted = value << shift_bits if shift_type == 0 else value >> shift_bits
+    if not arith:
+        shifted = value << shift_bits if shift_type == 0 else value >> shift_bits
+    else:
+        # arithmetic shift
+        if shift_type == 1:
+            shifted = value >> shift_bits
+            if ((value & (1 << 31)) >> 31) == 1:
+                # extend the most significant bits with the prior msb
+                shifted |= (((2 ** shift_bits) - 1) << (32 - shift_bits))
+        else:
+            shifted = value << shift_bits
+
     return shifted & mask
 
 

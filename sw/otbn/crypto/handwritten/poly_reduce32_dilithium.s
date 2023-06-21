@@ -25,7 +25,7 @@ poly_reduce32_dilithium:
     li x6, 6
 
     /* Setup constant 1 << 22 */
-    la        x5, reduce32_const1
+    la        x5, reduce32_const
     bn.lid    x4, 0(x5)
     bn.xor    w3, w3, w3
     bn.orv.8S w4, w3, w4 << 22 

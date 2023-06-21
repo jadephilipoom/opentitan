@@ -600,8 +600,8 @@ twiddles_inv:
     /* ninv */
     .word 0x007f6021
 
-.global reduce32_const1
-reduce32_const1:
+.global reduce32_const
+reduce32_const:
     .word 0x1
     .word 0x1
     .word 0x1

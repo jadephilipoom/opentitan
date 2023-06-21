@@ -753,6 +753,29 @@
       funct3: b110
       wrd: wrd
 
+- mnemonic: bn.xorv
+  synopsis: Bitwise XOR vector
+  operands: *bn-andv-operands
+  glued-ops: true
+  syntax: *bn-andv-syntax 
+  doc: |
+    Performs a bitwise or operation.
+    Takes the values stored in registers referenced by `wrs1` and `wrs2` and stores the result in the register referenced by `wrd`.
+    The content of the second source register can be shifted by an immediate before it is consumed by the operation.
+  errs: []
+  iflow: *bn-andv-iflow
+  encoding:
+    scheme: bnav
+    mapping:
+      shift_type: shift_type
+      shift_bits: shift_bits
+      shift_arith: shift_arith
+      wrs2: wrs2
+      wrs1: wrs1
+      funct2: b10
+      type: type
+      wrd: wrd
+
 - mnemonic: bn.rshi
   synopsis: Concatenate and right shift immediate
   operands:

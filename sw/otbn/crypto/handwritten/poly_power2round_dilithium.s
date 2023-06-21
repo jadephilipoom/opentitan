@@ -32,9 +32,9 @@ poly_power2round_dilithium:
 
     li x5, 5
 
-    LOOPI 32, 10
+    LOOPI 32, 7
         /* Load input */
-        bn.lid x5, 0(x10)
+        bn.lid x5, 0(x10++)
         
         /* Compute */
         /* (a + (1 << (D-1)) - 1) */
@@ -47,12 +47,7 @@ poly_power2round_dilithium:
         bn.submv.8S w7, w5, w7 nored
 
         /* Store */
-        bn.sid x6, 0(x12)
-        bn.sid x7, 0(x11)
-
-        /* Inc */
-        addi x10, x10, 32
-        addi x11, x11, 32
-        addi x12, x12, 32
+        bn.sid x6, 0(x12++)
+        bn.sid x7, 0(x11++)
 
     ret

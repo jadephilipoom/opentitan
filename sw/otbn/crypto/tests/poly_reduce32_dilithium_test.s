@@ -292,8 +292,8 @@ input1:
   .word 0x3981cf98
   .word 0x34f7c07d
   .word 0x5c9e221c
-.global reduce32_const1
-reduce32_const1:
+.global reduce32_const
+reduce32_const:
     .word 0x1
     .word 0x1
     .word 0x1
