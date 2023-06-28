@@ -220,7 +220,7 @@ polyt1_unpack_dilithium:
  *
  * clobbered registers: a0-a1, t0-t6
  */
-
+/* TODO: remove s-regs */
 .global polyz_unpack_dilithium
 polyz_unpack_dilithium:
     /* TODO: vectorize subtraction */
@@ -401,7 +401,7 @@ _loop_poly_chknorm_dilithium:
     bn.orv.8S   w2, bn0, w1 a >> 31 /* a->coeffs[i] >> 31 */
     bn.andv.8S  w2, w2, w1 a << 1 /* t & 2*a->coeffs[i] */
     bn.submv.8S w2, w1, w2 nored /* a->coeffs[i] - (t & 2*a->coeffs[i]) */
-    bn.sid t2, STACK_WDR2GPR(fp)
+    bn.sid      t2, STACK_WDR2GPR(fp)
     
     addi t4, fp, STACK_WDR2GPR
     /* Check bound */
@@ -572,9 +572,9 @@ _loop_inner_skip_load_poly_challenge:
 .global poly_uniform
 poly_uniform:
     /* 32 byte align the sp */
-    andi s11, sp, 31
-    beq s11, zero, aligned
-    sub sp, sp, s11
+    andi a5, sp, 31
+    beq a5, zero, aligned
+    sub sp, sp, a5
 aligned:
     /* save fp to stack */
     addi sp, sp, -32
@@ -716,7 +716,7 @@ end_rej_sample_loop:
     lw fp, 0(sp)
     addi sp, sp, 32
     /* Correct alignment offset (unalign) */
-    add sp, sp, s11
+    add sp, sp, a5
 
     ret
 
@@ -1081,7 +1081,7 @@ polyeta_unpack_dilithium:
     ret
 
 /**
- * poly_decode_h_dilithium
+ * polyvec_decode_h_dilithium
  *
  * Decode h from signature into polyvec h. Check extra indices. 
  * 
@@ -1094,8 +1094,8 @@ polyeta_unpack_dilithium:
  *
  * clobbered registers: a0-a1, t0-t2
  */
-.global poly_decode_h_dilithium
-poly_decode_h_dilithium:
+.global polyvec_decode_h_dilithium
+polyvec_decode_h_dilithium:
     /* Initialize h to zero */
     add t1, zero, a0
     li t0, 31
@@ -1441,7 +1441,6 @@ polyt0_unpack_dilithium:
  * @param[in]     a0: pointer to output polynomial
  * @param[in]     a1: byte array with seed of length CRHBYTES
  * @param[in]     a2: nonce
- * @param[in]     a3: pointer to copy of output polynomial
  *
  * clobbered registers: TODO
  */
@@ -1623,5 +1622,325 @@ poly_uniform_gamma1_dilithium:
     addi sp, fp, 0
     /* Pop ebp */
     lw fp, 0(sp)
-    addi sp, sp, 320
+    addi sp, sp, 32
+    ret
+
+/**
+ * poly_decompose_dilithium
+ *
+ *  For all coefficients c of the input polynomial, compute high and low bits
+ *  c0, c1 such c mod Q = c1*ALPHA + c0 with -ALPHA/2 < c0 <= ALPHA/2 except c1
+ *  = (Q-1)/ALPHA where we set c1 = 0 and -ALPHA/2 <= c0 = c mod Q - Q < 0.
+ *  Assumes coefficients to be standard representatives.
+ * 
+ * Returns: -
+ *
+ * Flags: TODO
+ *
+ * @param[in]     a0: a0 pointer to output polynomial with coefficients c0
+ * @param[in]     a1: a1: pointer to output polynomial with coefficients c1
+ * @param[in]     a2: *a: pointer to input polynomial
+ *
+ * clobbered registers: TODO
+ */
+.global poly_decompose_dilithium
+poly_decompose_dilithium:
+    /* TODO: improve handling of constants */
+    LOOPI 32, 7
+        li t0, 0
+        li t1, 1
+        li t2, 2
+        bn.lid t0, 0(a2++)
+        jal x1, decompose_dilithium
+        bn.sid t1, 0(a0++)
+        bn.sid t2, 0(a1++)
+
+    ret
+
+/**
+ * poly_make_hint_dilithium
+ *
+ *  Compute hint polynomial. The coefficients of which indicate whether the low
+ *  bits of the corresponding coefficient of the input polynomial overflow into
+ *  the high bits.
+ * 
+ * Returns: -
+ *
+ * Flags: TODO
+ *
+ * @param[in]     a0: pointer to output hint polynomial
+ * @param[in]     a1: a0 pointer to low part of input polynomial
+ * @param[in]     a2: a1: pointer to high part of input polynomial
+ *
+ * clobbered registers: TODO
+ */
+.global poly_make_hint_dilithium
+poly_make_hint_dilithium:
+    /*li      a7,-94208
+        li      a6,8192000
+        li      t3,8286208
+        addi      a5,a0, 0
+        addi    t1,a1,1024
+        li      a0,0
+        addi    a7,a7,-1025
+        addi    a6,a6,-2048
+        addi    t3,t3,-1023
+        li      t4,1
+        beq zero, zero, .L5
+.L13:
+        beq     a4,t3,.L11
+.L3:
+        sw      t4,0(a5)
+        addi    a1,a1,4
+        addi    a0,a0,1
+        addi    a5,a5,4
+        addi    a2,a2,4
+        beq     t1,a1,.L12
+.L5:
+        lw      a4,0(a1)
+        add     a3,a4,a7
+        sltu    t6, a6, a3
+        beq zero, t6, .L13
+        sw      zero,0(a5)
+.L14:
+        addi    a1,a1,4
+        addi    a5,a5,4
+        addi    a2,a2,4
+        bne     t1,a1,.L5
+.L12:
+        ret
+.L11:
+        lw      a4,0(a2)
+        beq     a4,zero,.L3
+        sw      zero,0(a5)
+        beq zero, zero, .L14*/
+
+    li   t2, 0
+    li   t4, 1
+
+    li   t6,94208
+    addi t6,t6,1024
+    li   a6,192512
+    addi a6,a6,-2048
+    li   a7,-94208
+    addi a7,a7,-1024
+    LOOPI 256, 18
+        lw t0, 0(a1)
+        lw t1, 0(a2)
+        add     a4,t0,t6
+        addi    a5,t0, 0
+        sltu    t5,a6,a4
+        beq     t4, t5, _L3
+        li      t0,0
+        beq     a5,a7,_L6
+        beq zero, zero, _loop_end_poly_make_hint_dilithium
+_L6:
+        sltu t0, zero, t1
+        beq zero, zero, _loop_end_poly_make_hint_dilithium
+_L3:
+        li      t0,1
+        beq zero, zero, _loop_end_poly_make_hint_dilithium
+_loop_end_poly_make_hint_dilithium:
+        sw t0, 0(a0)
+        add t2, t2, t0
+        addi a1, a1, 4
+        addi a2, a2, 4
+        addi a0, a0, 4
+    addi a0, t2, 0
+    ret
+
+/**
+ * polyz_pack_dilithium
+ *
+ * Pack polynomial z with coefficients fitting in 18 bits. 
+ * 
+ * Returns: -
+ *
+ * Flags: TODO
+ *
+ * @param[in]     a1: pointer to input polynomial
+ * @param[in]     a0: pointer to output byte array with at least
+ *                    POLYZ_PACKEDBYTES bytes
+ *
+ * clobbered registers: a0-a1, t0-t6
+ */
+.global polyz_pack_dilithium
+polyz_pack_dilithium:
+    li t0, 0
+    li t1, 1
+    la t2, gamma1_vec_const
+    bn.lid t1, 0(t2)
+    LOOPI 32, 3
+        bn.lid t0, 0(a1)
+        bn.submv.8S w0, w1, w0 nored
+        bn.sid t0, 0(a1++)
+    addi a1, a1, -1024
+
+    LOOPI 16, 75
+        xor t2, t2, t2
+        /* oooooooooooooooooooooooooooooooo */
+        /* coefficient 0 */
+        lw t0, 0(a1)
+        or t2, t2, t0 /* 0 */
+        /* ******************oooooooooooooo| */
+        /* coefficient 1 */
+        lw t0, 4(a1)
+        slli t1, t0, 18
+        or t2, t2, t1 /* 18 */
+        /* ********************************|xxxx */
+        sw t2, 0(a0)
+        srli t0, t0, 14
+        or t2, zero, t0
+        /* ****oooooooooooooooooooooooooooo */
+        /* coefficient 2 */
+        lw t0, 8(a1)
+        slli t1, t0, 4
+        or t2, t2, t1 /* 4 */
+        /* **********************oooooooooo| */
+        /* coefficient 3 */
+        lw t0, 12(a1)
+        slli t1, t0, 22
+        or t2, t2, t1 /* 22 */
+        /* ********************************|xxxxxxxx */
+        sw t2, 4(a0)
+        srli t0, t0, 10
+        or t2, zero, t0
+        /* ********oooooooooooooooooooooooo */
+        /* coefficient 4 */
+        lw t0, 16(a1)
+        slli t1, t0, 8
+        or t2, t2, t1 /* 8 */
+        /* **************************oooooo| */
+        /* coefficient 5 */
+        lw t0, 20(a1)
+        slli t1, t0, 26
+        or t2, t2, t1 /* 26 */
+        /* ********************************|xxxxxxxxxxxx */
+        sw t2, 8(a0)
+        srli t0, t0, 6
+        or t2, zero, t0
+        /* ************oooooooooooooooooooo */
+        /* coefficient 6 */
+        lw t0, 24(a1)
+        slli t1, t0, 12
+        or t2, t2, t1 /* 12 */
+        /* ******************************oo| */
+        /* coefficient 7 */
+        lw t0, 28(a1)
+        slli t1, t0, 30
+        or t2, t2, t1 /* 30 */
+        /* ********************************|xxxxxxxxxxxxxxxx */
+        sw t2, 12(a0)
+        srli t0, t0, 2
+        or t2, zero, t0
+        /* ****************oooooooooooooooo */
+        /* coefficient 8 */
+        lw t0, 32(a1)
+        slli t1, t0, 16
+        or t2, t2, t1 /* 16 */
+        /* ********************************|xx */
+        sw t2, 16(a0)
+        srli t0, t0, 16
+        or t2, zero, t0
+        /* **oooooooooooooooooooooooooooooo */
+        /* coefficient 9 */
+        lw t0, 36(a1)
+        slli t1, t0, 2
+        or t2, t2, t1 /* 2 */
+        /* ********************oooooooooooo| */
+        /* coefficient 10 */
+        lw t0, 40(a1)
+        slli t1, t0, 20
+        or t2, t2, t1 /* 20 */
+        /* ********************************|xxxxxx */
+        sw t2, 20(a0)
+        srli t0, t0, 12
+        or t2, zero, t0
+        /* ******oooooooooooooooooooooooooo */
+        /* coefficient 11 */
+        lw t0, 44(a1)
+        slli t1, t0, 6
+        or t2, t2, t1 /* 6 */
+        /* ************************oooooooo| */
+        /* coefficient 12 */
+        lw t0, 48(a1)
+        slli t1, t0, 24
+        or t2, t2, t1 /* 24 */
+        /* ********************************|xxxxxxxxxx */
+        sw t2, 24(a0)
+        srli t0, t0, 8
+        or t2, zero, t0
+        /* **********oooooooooooooooooooooo */
+        /* coefficient 13 */
+        lw t0, 52(a1)
+        slli t1, t0, 10
+        or t2, t2, t1 /* 10 */
+        /* ****************************oooo| */
+        /* coefficient 14 */
+        lw t0, 56(a1)
+        slli t1, t0, 28
+        or t2, t2, t1 /* 28 */
+        /* ********************************|xxxxxxxxxxxxxx */
+        sw t2, 28(a0)
+        srli t0, t0, 4
+        or t2, zero, t0
+        /* **************oooooooooooooooooo */
+        /* coefficient 15 */
+        lw t0, 60(a1)
+        slli t1, t0, 14
+        or t2, t2, t1 /* 14 */
+        /* ********************************| */
+        sw t2, 32(a0)
+
+        addi a1, a1, 64
+        addi a0, a0, 36
+    ret
+
+/**
+ * polyvec_encode_h_dilithium
+ *
+ * Encode h to signature from polyvec h.
+ * 
+ * Returns: -
+ *
+ * Flags: TODO
+ *
+ * @param[in]     a1: pointer to input polynomial h
+ * @param[in]     a0: pointer to output byte array signature
+ *
+ * clobbered registers: a0-a1, t0-t2
+ */
+.global polyvec_encode_h_dilithium
+polyvec_encode_h_dilithium:
+    li t0, 0 /* k = 0 */
+    li t1, 0 /* i = 0 */
+    li a2, 0xFFFFFFFC
+    LOOPI K, 25
+        li t2, 0 /* j = 0 */
+        LOOPI N, 13
+            lw t3, 0(a1)
+            addi a1, a1, 4
+            beq zero, t3, skip_store_polyvec_encode_h_dilithium
+            add t4, a0, t0 /* *sig + k */
+            andi t5, t4, 0x3 /* preserve lower 2 bits */
+            and t4, t4, a2 /* align */
+            lw t6, 0(t4) /* load form aligned(sig+k) */
+            slli t5, t5, 3 /* #bytes -> #bits */
+            sll t5, t2, t5 /* j << #bits */
+            or t6, t6, t5
+            sw t6, 0(t4)
+            addi t0, t0, 1 /* k++ */
+skip_store_polyvec_encode_h_dilithium:
+            addi t2, t2, 1
+        addi t2, t1, OMEGA /* OMEGA + i */
+        add t2, a0, t2 /* *sig + OMEGA + i */
+        andi t3, t2, 0x3 /* preserve lower 2 bits */
+        and t2, t2, a2 /* align */
+        lw t4, 0(t2) /* load from aligned(*sig + OMEGA + i) */
+        slli t3, t3, 3 /* #bytes -> #bits */
+        sll t3, t0, t3 /* k << #bits */
+        or t4, t4, t3
+        sw t4, 0(t2)
+        addi t1, t1, 1
+
     ret

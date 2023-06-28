@@ -251,7 +251,7 @@ verify_dilithium:
     /* Load pointer to h */
     li a0, STACK_H
     add a0, fp, a0
-    jal x1, poly_decode_h_dilithium
+    jal x1, polyvec_decode_h_dilithium
     /* Raise error */
     bne a0, zero, exit_err
 

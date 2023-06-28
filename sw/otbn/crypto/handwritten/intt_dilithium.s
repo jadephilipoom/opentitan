@@ -43,7 +43,7 @@ intt_dilithium:
     li x24, 19 /* x19 */
     li x25, 20 /* x20 */
     li x26, 21 /* x21 */
-    li x27, 22 /* x22 */
+    li x31, 22 /* x22 */
     li x28, 23 /* x23 */
     li x29, 24 /* x24 */
     li x30, 25 /* x25 */
@@ -78,7 +78,7 @@ intt_dilithium:
         bn.lid x24, 32(x11)
         bn.lid x25, 64(x11)
         bn.lid x26, 96(x11)
-        bn.lid x27, 128(x11)
+        bn.lid x31, 128(x11)
         bn.lid x28, 160(x11)
         bn.lid x29, 192(x11)
         bn.lid x30, 224(x11)

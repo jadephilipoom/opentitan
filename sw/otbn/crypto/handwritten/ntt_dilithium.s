@@ -42,7 +42,7 @@ ntt_dilithium:
     li x24, 19
     li x25, 20
     li x26, 21
-    li x27, 22
+    li x31, 22
     li x28, 23
     li x29, 24
     li x30, 25
@@ -335,7 +335,7 @@ ntt_dilithium:
         bn.lid x24, 256(x11)
         bn.lid x25, 288(x11)
         bn.lid x26, 320(x11)
-        bn.lid x27, 352(x11)
+        bn.lid x31, 352(x11)
         bn.lid x28, 384(x11)
         bn.lid x29, 416(x11)
         bn.lid x30, 448(x11)

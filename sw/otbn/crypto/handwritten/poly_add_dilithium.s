@@ -25,16 +25,12 @@ poly_add_dilithium:
     li x5, 3
     li x4, 4
 
-    LOOPI 32, 7
-        bn.lid x6, 0(x10)
-        bn.lid x5, 0(x11)
+    LOOPI 32, 4
+        bn.lid x6, 0(x10++)
+        bn.lid x5, 0(x11++)
         
         bn.addmv.8S w2, w2, w3
         
-        bn.sid x6, 0(x12)
-
-        addi x10, x10, 32
-        addi x11, x11, 32
-        addi x12, x12, 32
+        bn.sid x6, 0(x12++)
 
     ret
