@@ -208,7 +208,7 @@ ntt_dilithium:
     addi x11, x11, 64
 
     /* w18--w25 are used for the twiddle factors on layers 5--8 */
-    LOOPI 2, 150
+    LOOPI 2, 210
         /* Load input data */
         bn.lid x4, 0(x12)
         bn.lid x5, 32(x12)
@@ -259,8 +259,42 @@ ntt_dilithium:
         bn.addmv.8S   w16, w16, w30
 
         /* Transpose */
-        bn.trans8 w2, w2
-        bn.trans8 w10, w10
+        /* bn.trans8 w2, w2 */
+        bn.trans.8S w23, w2, 0
+        bn.trans.8S w23, w3, 1
+        bn.trans.8S w23, w4, 2
+        bn.trans.8S w23, w5, 3
+        bn.trans.8S w23, w6, 4
+        bn.trans.8S w23, w7, 5
+        bn.trans.8S w23, w8, 6
+        bn.trans.8S w23, w9, 7
+        bn.addi w2, w23, 0
+        bn.addi w3, w24, 0
+        bn.addi w4, w25, 0
+        bn.addi w5, w26, 0
+        bn.addi w6, w27, 0
+        bn.addi w7, w28, 0
+        bn.addi w8, w29, 0
+        bn.addi w9, w30, 0
+        
+        /* bn.trans8 w10, w10 */
+        bn.trans.8S w23, w10, 0
+        bn.trans.8S w23, w11, 1
+        bn.trans.8S w23, w12, 2
+        bn.trans.8S w23, w13, 3
+        bn.trans.8S w23, w14, 4
+        bn.trans.8S w23, w15, 5
+        bn.trans.8S w23, w16, 6
+        bn.trans.8S w23, w17, 7
+        bn.addi w10, w23, 0
+        bn.addi w11, w24, 0
+        bn.addi w12, w25, 0
+        bn.addi w13, w26, 0
+        bn.addi w14, w27, 0
+        bn.addi w15, w28, 0
+        bn.addi w16, w29, 0
+        bn.addi w17, w30, 0
+
 
         /* Layer 6, stride 4 */
 
@@ -367,8 +401,41 @@ ntt_dilithium:
         bn.addmv.8S w16, w16, w30
 
         /* Transpose back */
-        bn.trans8 w2, w2
-        bn.trans8 w10, w10
+        /* bn.trans8 w2, w2 */
+        bn.trans.8S w23, w2, 0
+        bn.trans.8S w23, w3, 1
+        bn.trans.8S w23, w4, 2
+        bn.trans.8S w23, w5, 3
+        bn.trans.8S w23, w6, 4
+        bn.trans.8S w23, w7, 5
+        bn.trans.8S w23, w8, 6
+        bn.trans.8S w23, w9, 7
+        bn.addi w2, w23, 0
+        bn.addi w3, w24, 0
+        bn.addi w4, w25, 0
+        bn.addi w5, w26, 0
+        bn.addi w6, w27, 0
+        bn.addi w7, w28, 0
+        bn.addi w8, w29, 0
+        bn.addi w9, w30, 0
+        
+        /* bn.trans8 w10, w10 */
+        bn.trans.8S w23, w10, 0
+        bn.trans.8S w23, w11, 1
+        bn.trans.8S w23, w12, 2
+        bn.trans.8S w23, w13, 3
+        bn.trans.8S w23, w14, 4
+        bn.trans.8S w23, w15, 5
+        bn.trans.8S w23, w16, 6
+        bn.trans.8S w23, w17, 7
+        bn.addi w10, w23, 0
+        bn.addi w11, w24, 0
+        bn.addi w12, w25, 0
+        bn.addi w13, w26, 0
+        bn.addi w14, w27, 0
+        bn.addi w15, w28, 0
+        bn.addi w16, w29, 0
+        bn.addi w17, w30, 0
 
         bn.sid x4, 0(x12)
         bn.sid x5, 32(x12)

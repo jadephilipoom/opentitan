@@ -1068,8 +1068,37 @@
       dst: wrd
   errs: []
 
-- mnemonic: bn.trans8
-  synopsis: Transpose 8x8 
+# - mnemonic: bn.trans8
+#   synopsis: Transpose 8x8 
+#   operands:
+#     - name: wrd
+#       doc: |
+#         Start destination WDR. Destination registers are <wrd>, <wrd+1>, ...,
+#         <wrd+7>.
+#       type: wrb
+#     - name: wrs
+#       doc: Start source WDR. Source registers are <wrs>, <wrs+1>, ..., <wrs+7>.
+#       type: wrs
+#   glued-ops: true
+#   doc: |
+#     Transpose the 8x8 matrix formed by <wrs+i> i in [0,7] as rows.
+
+#     Flags are not used or saved.
+#   syntax: |
+#     <wrd>, <wrs>
+#   errs: []
+#   iflow:
+#     - to: [wrd]
+#       from: [wrs]
+#   encoding:
+#     scheme: bntrans
+#     mapping:
+#       wrs: wrs
+#       funct3: b010
+#       wrd: wrd
+
+- mnemonic: bn.trans
+  synopsis: Partial transpose
   operands:
     - name: wrd
       doc: |
@@ -1079,13 +1108,25 @@
     - name: wrs
       doc: Start source WDR. Source registers are <wrs>, <wrs+1>, ..., <wrs+7>.
       type: wrs
+    - name: type
+      abbrev: t
+      type: enum(.8S,.16H)
+      doc: |
+        Select the data type of the registers. `.8S` interprets the WDRs as 8
+        32-bit registers, `.16H` as 16 16-bit registers.
+    - name: wrd_lane
+      doc: Select the lane of the `<wrd+i>` i in [0,7] copy the data to
+      type: uimm
   glued-ops: true
   doc: |
-    Transpose the 8x8 matrix formed by <wrs+i> i in [0,7] as rows.
+    Write the elements of one vector into a specified lane of a set of other
+    vectors. The number of other vectors depends on the number of elements in
+    the source vector. Vector <wrs> is the source, while <wrd+i> i in [0,7] are
+    the destination registers. 
 
     Flags are not used or saved.
   syntax: |
-    <wrd>, <wrs>
+    <type> <wrd>, <wrs>, <wrd_lane>
   errs: []
   iflow:
     - to: [wrd]
@@ -1096,6 +1137,8 @@
       wrs: wrs
       funct3: b010
       wrd: wrd
+      wrd_lane: wrd_lane
+      type: type
 
 - mnemonic: bn.movr
   synopsis: Copy content between WDRs (register-indirect addressing)

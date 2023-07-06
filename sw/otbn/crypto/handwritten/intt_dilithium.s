@@ -48,7 +48,7 @@ intt_dilithium:
     li x29, 24 /* x24 */
     li x30, 25 /* x25 */
 
-    LOOPI 2, 149
+    LOOPI 2, 209
         /* Load input data */
         bn.lid x4, 0(x10)
         bn.lid x5, 32(x10)
@@ -68,8 +68,41 @@ intt_dilithium:
         bn.lid x22, 480(x10)
 
         /* Transpose */
-        bn.trans8 w2, w2
-        bn.trans8 w10, w10
+        /* bn.trans8 w2, w2 */
+        bn.trans.8S w23, w2, 0
+        bn.trans.8S w23, w3, 1
+        bn.trans.8S w23, w4, 2
+        bn.trans.8S w23, w5, 3
+        bn.trans.8S w23, w6, 4
+        bn.trans.8S w23, w7, 5
+        bn.trans.8S w23, w8, 6
+        bn.trans.8S w23, w9, 7
+        bn.addi w2, w23, 0
+        bn.addi w3, w24, 0
+        bn.addi w4, w25, 0
+        bn.addi w5, w26, 0
+        bn.addi w6, w27, 0
+        bn.addi w7, w28, 0
+        bn.addi w8, w29, 0
+        bn.addi w9, w30, 0
+        
+        /* bn.trans8 w10, w10 */
+        bn.trans.8S w23, w10, 0
+        bn.trans.8S w23, w11, 1
+        bn.trans.8S w23, w12, 2
+        bn.trans.8S w23, w13, 3
+        bn.trans.8S w23, w14, 4
+        bn.trans.8S w23, w15, 5
+        bn.trans.8S w23, w16, 6
+        bn.trans.8S w23, w17, 7
+        bn.addi w10, w23, 0
+        bn.addi w11, w24, 0
+        bn.addi w12, w25, 0
+        bn.addi w13, w26, 0
+        bn.addi w14, w27, 0
+        bn.addi w15, w28, 0
+        bn.addi w16, w29, 0
+        bn.addi w17, w30, 0
 
         /* Reverse Layer 8, stride 1 */
 
@@ -176,8 +209,41 @@ intt_dilithium:
         bn.mulmv.8S w17, w30, w19, 0
 
         /* Transpose */
-        bn.trans8 w2, w2
-        bn.trans8 w10, w10
+        /* bn.trans8 w2, w2 */
+        bn.trans.8S w23, w2, 0
+        bn.trans.8S w23, w3, 1
+        bn.trans.8S w23, w4, 2
+        bn.trans.8S w23, w5, 3
+        bn.trans.8S w23, w6, 4
+        bn.trans.8S w23, w7, 5
+        bn.trans.8S w23, w8, 6
+        bn.trans.8S w23, w9, 7
+        bn.addi w2, w23, 0
+        bn.addi w3, w24, 0
+        bn.addi w4, w25, 0
+        bn.addi w5, w26, 0
+        bn.addi w6, w27, 0
+        bn.addi w7, w28, 0
+        bn.addi w8, w29, 0
+        bn.addi w9, w30, 0
+        
+        /* bn.trans8 w10, w10 */
+        bn.trans.8S w23, w10, 0
+        bn.trans.8S w23, w11, 1
+        bn.trans.8S w23, w12, 2
+        bn.trans.8S w23, w13, 3
+        bn.trans.8S w23, w14, 4
+        bn.trans.8S w23, w15, 5
+        bn.trans.8S w23, w16, 6
+        bn.trans.8S w23, w17, 7
+        bn.addi w10, w23, 0
+        bn.addi w11, w24, 0
+        bn.addi w12, w25, 0
+        bn.addi w13, w26, 0
+        bn.addi w14, w27, 0
+        bn.addi w15, w28, 0
+        bn.addi w16, w29, 0
+        bn.addi w17, w30, 0
 
         /* Reverse Layer 5, stride 8 */
 

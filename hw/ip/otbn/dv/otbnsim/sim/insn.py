@@ -21,7 +21,7 @@ DEBUG_MEM = False
 DEBUG_BRANCH = False
 DEBUG_ARITH = False
 DEBUG_KMAC = False
-DEBUG_FLOW = False
+DEBUG_FLOW = True
 
 
 def eprint(text):
@@ -686,6 +686,8 @@ class BNADDI(OTBNInsn):
         full_result = a + b
         mask256 = (1 << 256) - 1
         masked_result = full_result & mask256
+        if DEBUG_ARITH:
+            eprint(f"bn.addi {format(a, '064x')} + {b} = {format(a+b, '064x')} = {format(masked_result, '064x')}")
         carry_flag = bool((full_result >> 256) & 1)
         flags = FlagReg.mlz_for_result(carry_flag, masked_result)
 
@@ -1466,19 +1468,52 @@ class BNMOV(OTBNInsn):
         state.wdrs.get_reg(self.wrd).write_unsigned(value)
 
 
-class BNTRANS8(OTBNInsn):
-    insn = insn_for_mnemonic('bn.trans8', 2)
+# class BNTRANS8(OTBNInsn):
+#     insn = insn_for_mnemonic('bn.trans8', 2)
+
+#     def __init__(self, raw: int, op_vals: Dict[str, int]):
+#         super().__init__(raw, op_vals)
+#         self.wrd = op_vals['wrd']
+#         self.wrs = op_vals['wrs']
+
+#     def execute(self, state: OTBNState) -> None:
+#         for i in range(8):
+#             result = 0
+#             for j in range(7, -1, -1):
+#                 result = (result << 32) | (extract_sub_word(state.wdrs.get_reg(self.wrs + j).read_unsigned(), 32, i) & ((1 << 32) - 1))
+#             state.wdrs.get_reg(self.wrd + i).write_unsigned(result)
+
+
+class BNTRANS(OTBNInsn):
+    insn = insn_for_mnemonic('bn.trans', 4)
 
     def __init__(self, raw: int, op_vals: Dict[str, int]):
         super().__init__(raw, op_vals)
+        self.type = op_vals['type']
         self.wrd = op_vals['wrd']
         self.wrs = op_vals['wrs']
+        self.lane = op_vals['wrd_lane']
 
     def execute(self, state: OTBNState) -> None:
-        for i in range(8):
-            result = 0
-            for j in range(7, -1, -1):
-                result = (result << 32) | (extract_sub_word(state.wdrs.get_reg(self.wrs + j).read_unsigned(), 32, i) & ((1 << 32) - 1))
+        size = 32  # if self.type == 0 else 16
+        mask = 2**size - 1
+        for i in range(7, -1, -1):
+            result = state.wdrs.get_reg(self.wrd + i).read_unsigned()
+            if DEBUG_ARITH:
+                eprint(self.lane)
+                eprint(format(result, '064x'))
+            # set lane of vector to zero
+            result &= ~(mask << (size * self.lane))
+            if DEBUG_ARITH:
+                eprint(f"clear: {format(result, '064x')}")
+            # extract new word
+            eprint(f"in: {format(state.wdrs.get_reg(self.wrs).read_unsigned(), '064x')}")
+            new = extract_sub_word(state.wdrs.get_reg(self.wrs).read_unsigned(), size, i)
+            new <<= (size * self.lane)
+            result |= new
+            result &= 2**256-1
+            if DEBUG_ARITH:
+                eprint(f"out {self.wrd + i} {hex(result)}")
             state.wdrs.get_reg(self.wrd + i).write_unsigned(result)
 
 
@@ -1617,6 +1652,6 @@ INSN_CLASSES = [
     BNSEL,
     BNCMP, BNCMPB,
     BNLID, BNSID,
-    BNMOV, BNMOVR, BNTRANS8,
+    BNMOV, BNMOVR, BNTRANS,
     BNWSRR, BNWSRW
 ]
