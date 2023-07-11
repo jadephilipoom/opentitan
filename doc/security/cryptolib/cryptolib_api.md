@@ -336,12 +336,9 @@ SHA-2 functions are supported by [OTBN][otbn] and SHA-256 is supported by the [H
 
 APIs are defined to support the following modes: SHA2\[256, 384, 512\], SHA3\[224, 256, 384, 512\], SHAKE\[128, 256\] and cSHAKE\[128,256\].
 
-The HASH API (**SHA2 only**) supports two kinds of use cases:
-- **One-shot API**: when the entire data is available upfront
-- **Streaming API** to support streaming use-case where entire input data is not available at the start of the hash operation and the hash is continually updated with blocks of data when they are available.
+For **SHA2 only**, the hash API supports both one-shot and streaming modes of operation.
 
 Kindly refer to the links in the [reference](#reference) section for more information on HASH construction and supported modes.
-
 
 Digest length for SHA2 and SHA3 hash modes:
 
@@ -388,258 +385,48 @@ It is implemented using the INIT/UPDATE/FINAL structure:
 {{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_hash_update }}
 {{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_hash_final }}
 
-MAC
+## MAC
 
-A message authentication code provides integrity and authentication
-checks using a secret key shared between two parties. The MAC that uses
-a cryptographic hash function in conjunction with a secret key is called
-a HMAC, while a MAC that is based on KECCAK is called KMAC.
+A message authentication code provides integrity and authentication checks using a secret key shared between two parties.
+OpenTitan supports two kinds of MACS:
+- HMAC, a simple construction based on cryptographic hash functions
+- KMAC, a Keccak-based MAC
 
-OpenTitan supports HMAC-SHA256 mode of operation with a key length of
-256bits. The supports KMAC128 and KMAC 256, with a key length of \[128,
-192, 256, 384, 512\] bits.
+OpenTitan's [HMAC block][hmac] supports HMAC-SHA256 mode of operation with a key length of 256 bits.
+The [KMAC block][kmac] supports KMAC128 and KMAC 256, with a key length of \[128, 192, 256, 384, 512\] bits.
 
-APIs are defined in the for HMAC-SHA256 and KMAC256. Key sizes supported
-are 256bits for HMAC and \[128, 192, 256, 384, 512\] bits for KMAC.
+APIs are defined in the for HMAC-SHA256 and KMAC256.
+Key sizes supported are 256 bits for HMAC and \[128, 192, 256, 384, 512\] bits for KMAC.
 
-The HMAC API supports two kinds of use cases: and .
+The HMAC API supports both one-shot and streaming modes of operation.
 
-(**One-shot API**: When the entire data is available upfront ; and a
-**Split API **to support streaming use-case where entire input data is
-not available at the start of the HMAC operation and the MAC is
-continually updated with blocks of data as in when they are available).
+Kindly refer to the links in the section for more information on the HMAC and the KMAC constructions and supported modes.
 
-Kindly refer to the links in the section for more information on the
-HMAC and the KMAC constructions and supported modes.
+### Key Generation
 
-API
+{{#header-snippet sw/device/lib/crypto/include/mac.h otcrypto_mac_keygen }}
 
-Oneshot API
+### One-shot API
 
-MAC
+This mode is used when the entire data to be authenticated is available upfront.
 
-This mode is used when the entire data to be HASHED is available
-upfront. This is a generic MAC API where the required mode and output
-length (for KMAC) is passed as an input parameter. The supported modes
-are HMAC-SHA256, KMAC128, KMAC256.
+{{#header-snippet sw/device/lib/crypto/include/mac.h otcrypto_hmac }}
+{{#header-snippet sw/device/lib/crypto/include/mac.h otcrypto_kmac }}
 
-/\*\*
+### Streaming API
 
-\* Performs the HMAC / KMAC function on the input data.
+The streaming mode API is used for incremental hashing use-case, where the data to be hashed is split and passed in multiple blocks.
 
-\*
+The streaming mode is supported **only for HMAC-SHA256**.
 
-\* HMAC: This function computes the required MAC function on the
+It is implemented using the INIT/UPDATE/FINAL structure:
+- **INIT** initializes the context parameter.
+- **UPDATE** is called repeatedly with message bytes.
+- **FINAL** computes the final tag, copies the result to the output buffer, and clears context.
 
-\* \`input_message\` using the \`key\` and returns a \`digest\`.
-
-\*
-
-\* KMAC: This function computes the KMAC on the \`input_message\` using
-
-\* the \`key\` and returns a \`digest\` of \`required_output_len\`. The
-
-\* customization string is passed through \`customization_string\`
-
-\* parameter. If no customization is desired it can be empty. The
-
-\* \`customization_string\` and \`required_output_len\` is only used for
-
-\* KMAC modes and is ignored for the HMAC mode.
-
-\*
-
-\* The caller should allocate space for the \`digest\` buffer, (expected
-
-\* length is 32 bytes for HMAC and \`required_output_len\`for KMAC), and
-
-\* set the length of expected output in the \`len\` field of \`digest\`.
-
-\* If the user-set length and the output length does not match, an
-
-\* error message will be returned.
-
-\*
-
-\* \@param key Pointer to the blinded key struct with key shares
-
-\* \@param input_message Input message to be hashed
-
-\* \@param mac_mode Required operation to be performed (HMAC/KMAC)
-
-\* \@param customization_string Customization string for KMAC
-
-\* \@param required_output_len Required output length from KMAC, in
-
-\* bytes
-
-\* \@param digest Output digest after hashing the input data
-
-\* \@return crypto_status_t The result of the KMAC128 operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_mac**(const
-**crypto\_blinded\_key\_t** \*key,\
-** crypto\_const\_uint8\_buf\_t** input_message,\
-** mac\_mode\_t** mac_mode,\
-** crypto\_uint8\_buf\_t** customization_string,\
-** size\_t** required_output_len,\
-** crypto\_uint8\_buf\_t** \*digest);
-
-Streaming API
-
-The streaming mode API is used for incremental hashing use-case, where
-the data to be hashed is split and passed in multiple blocks. The
-streaming mode is supported only for HMAC mode (HMAC-SHA256).
-
-The INIT →UPDATE →FINAL mode works as below,
-
-The **INIT **mode initializes the context parameter
-
-Populates the HMAC context with the digest size, block size, hash update
-and final APIs to be used based on the hash mode.
-
-The **UPDATE **mode is called repeatedly with message bytes to be hashed
-
-Process the input data using the selected MAC function. The unprocessed
-bytes are stored in the context and later combined with subsequent input
-bytes before calling an update or final function. The intermediate
-digest is stored back in the context.
-
-The **FINAL **mode computes the final HASH and copies the result to the
-digest parameter and clears context
-
-Process the partial data, pads the data to the block length. The final
-digest is copied to the digest parameter after processing.
-
-The following APIs are used to perform HMAC computation on the streaming
-data. The required mode is set through the INIT function. The UPDATE
-function is repeatedly called to process input data and lastly the FINAL
-function is called to generate the final digest value.
-
-HMAC
-
-/\*\*
-
-\* Performs the INIT operation for HMAC.
-
-\*
-
-\* Initializes the generic HMAC context. The required HMAC mode is
-
-\* selected through the \`hmac_mode\` parameter. Populates the HMAC
-
-\* context with the digest size, block size, HMAC update and HMAC
-
-\* final APIs to be called based on the mode.
-
-\*
-
-\* The structure of HMAC context and how it populates the required
-
-\* fields based on the HMAC mode are internal to the specific HMAC
-
-\* implementation.
-
-\*
-
-\* The HMAC streaming API supports only the \`kMacModeHmacSha256\` mode.
-
-\* Other modes are not supported and an error would be returned. The
-
-\* interface is designed to be generic to support other required modes
-
-\* in the future.
-
-\*
-
-\* \@param ctx Pointer to the generic HMAC context struct
-
-\* \@param key Pointer to the blinded HMAC key struct
-
-\* \@param hmac_mode Required HMAC mode
-
-\* \@return crypto_status_t Result of the HMAC init operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_hmac\_init**(**hmac\_context\_t**
-\*ctx,\
-const **crypto\_blinded\_key\_t** \*key,\
-**mac\_mode\_t **hmac_mode);
-
-/\*\*
-
-\* Performs the UPDATE operation for HMAC.
-
-\*
-
-\* The update operation processes the \`input_message\` using the
-
-\* selected compression function. The intermediate digest is stored
-
-\* in the HMAC context \`ctx\`. Any partial data is stored back in
-
-\* the context and combined with the subsequent bytes.
-
-\*
-
-\* #otcrypto_hmac_init should be called before calling this function.
-
-\*
-
-\* \@param ctx Pointer to the generic HMAC context struct
-
-\* \@param input_message Input message to be hashed
-
-\* \@return crypto_status_t Result of the HMAC update operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_hmac\_update**(\
-**hmac\_context\_t** \*const ctx,\
-**crypto\_const\_uint8\_buf\_t** input_message);
-
-/\*\*
-
-\* Performs the FINAL operation for HMAC.
-
-\*
-
-\* The final operation processes the remaining partial blocks,
-
-\* computes the final digest and copies it to the \`digest\` parameter.
-
-\*
-
-\* #otcrypto_hmac_update should be called before calling this
-
-\* function.
-
-\*
-
-\* The caller should allocate space for the \`digest\` buffer, (expected
-
-\* length is 32 bytes for HMAC), and set the length of expected output
-
-\* in the \`len\` field of \`digest\`. If the user-set length and the
-
-\* output length does not match, an error message will be returned.
-
-\*
-
-\* \@param ctx Pointer to the generic HMAC context struct
-
-\* \@param digest Output digest after hashing the input blocks
-
-\* \@return crypto_status_t Result of the HMAC final operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_hmac\_final**(**hmac\_context\_t**
-\*const ctx,\
-**crypto\_uint8\_buf\_t** \*digest);
+{{#header-snippet sw/device/lib/crypto/include/mac.h otcrypto_hmac_init }}
+{{#header-snippet sw/device/lib/crypto/include/mac.h otcrypto_hmac_update }}
+{{#header-snippet sw/device/lib/crypto/include/mac.h otcrypto_hmac_final }}
 
 RSA
 
