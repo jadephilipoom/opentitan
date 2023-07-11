@@ -4,10 +4,8 @@ Status: **RFC Approved by TC: 2022-05-13**
 
 ## Objective
 
-This document is intended for users of the OpenTitan crypto library. It
-defines C interfaces (APIs) and data structures to perform the required
-cryptographic operations such as encryption, signature generation etc.,
-and lists implementation specific details that are opaque to a user.
+This document is intended for users of the OpenTitan crypto library.
+It defines C interfaces (APIs) and data structures to perform the required cryptographic operations such as encryption, signature generation etc., and lists implementation specific details that are opaque to a user.
 
 The cryptographic API is defined for the following crypto modes:
 - Symmetric ciphers (AES)
@@ -18,13 +16,12 @@ The cryptographic API is defined for the following crypto modes:
 - Random number generation (DRBG)
 - Key derivation (KDF)
 
-Some of these crypto modes can operate on streaming data and several
-modes support asynchronous (non-blocking) modes of operation. These are
-discussed in the later part of this specification.
+Some of these crypto modes can operate on streaming data and several modes support asynchronous (non-blocking) modes of operation.
+These are discussed in the later part of this specification.
 
 ## Symbols and Abbreviations
 
-The following abbreviations are used in this specification
+The following abbreviations are used in this specification:
 - **AAD**: Additional Authenticated Data
 - **AD**: Authenticated Decryption
 - **AE**: Authenticated Encryption
@@ -63,10 +60,8 @@ The following abbreviations are used in this specification
 
 ## Final list of crypto algorithms and modes
 
-The was used to capture the required cryptographic support in OpenTitan.
-Based on the inputs from the cryptographic use case table, a list of
-crypto algorithms (and modes) for which an API needs to be exposed are
-identified and are listed.
+The [cryptographic use case table][use-case-table] was used to capture the required cryptographic support in OpenTitan.
+Based on the inputs from the cryptographic use case table, a list of crypto algorithms (and modes) for which an API needs to be exposed are identified and listed.
 
 **Symmetric crypto**
 -   AES-ECB
@@ -117,7 +112,6 @@ identified and are listed.
 -   X25519 Keygen
 
 **Asymmetric crypto**
-
 -   RSA (Signature, Verification)
 -   ECDSA (Signature, Verification)
 -   ECDH Key exchange
@@ -142,11 +136,9 @@ identified and are listed.
 
 ## Structs and Enums
 
-This section defines the public and private data structures that are
-used with the API interfaces.
+This section defines the public and private data structures that are used with the API interfaces.
 
-Private data structures are implementation specific, and are opaque to
-users of the API.
+Private data structures are implementation specific, and are opaque to users of the API.
 
 ### Public data structures
 
@@ -196,57 +188,41 @@ The following data structures are considered implementation specific.
 
 ## Streaming and Asynchronous modes of operation
 
-OpenTitan may implement additional API interfaces for several
-cryptographic modes based on the specific use-cases from applications
-such as ability to perform cryptographic operations on partial input
-data, capability to stop and resume cryptographic operations etc. These
-API modes are detailed below.
+OpenTitan may implement additional API interfaces for several cryptographic modes based on the specific use-cases from applications such as ability to perform cryptographic operations on partial input data, capability to stop and resume cryptographic operations etc.
+These API modes are detailed below.
 
 ### One shot and Streaming mode
 
-Based on the input data availability, several cryptographic modes
-discussed in this specification implement two types of APIs: One-shot
-APIs and streaming mode APIs.
+Based on the input data availability, several cryptographic modes discussed in this specification implement two types of APIs: One-shot APIs and streaming mode APIs.
 
-A one-shot API is used when the entire data to be operated is available
-upfront. The entire data (pointer) is passed to the one-shot API as an
-input and the result is immediately available after the operation.
+A one-shot API is used when the entire data to be operated is available upfront.
+The entire data (pointer) is passed to the one-shot API as an input and the result is immediately available after the operation.
 
-Streaming APIs are to support use-cases where the entire data to be
-transformed isn't available at the start of the operation and also in
-use-cases with limited memory availability. Such streaming APIs operate
-iteratively over bytes of data, in blocks, as they are fed. Partial
-inputs are buffered in the context until a full block is available to
-process. The partial result from the block is stored in a context
-parameter and is used again in the subsequent rounds, until the final
-round. Only in the final round the result of the cryptographic operation
-is available.
+Streaming APIs are to support use-cases where the entire data to be transformed isn't available at the start of the operation and also in use-cases with limited memory availability.
+Such streaming APIs operate iteratively over bytes of data, in blocks, as they are fed.
+Partial inputs are buffered in the context until a full block is available to
+process.
+The partial result from the block is stored in a context parameter and is used again in the subsequent rounds, until the final round.
+Only in the final round is the result of the cryptographic operation available.
 
-Cryptographic modes such as HASH and HMAC support streaming APIs along
-with the default one-shot APIs.
+Cryptographic modes such as HASH and HMAC support streaming APIs along with the default one-shot APIs.
 
 **Crypto modes that support streaming modes:**
 1.  HASH (SHA2 modes only)
 2.  HMAC (HMAC-SHA256 only)
 
-## Synchronous and Asynchronous mode
+### Synchronous and Asynchronous mode
 
-Synchronous mode of operation is when the crypto call does not return to
-the caller until the cryptographic operation is complete. This mode
-blocks the CPU and no other process can utilize it until it returns,
-hence it is also known as blocking mode of operation.
+Synchronous mode of operation is when the crypto call does not return to the caller until the cryptographic operation is complete.
+This mode blocks the CPU and no other process can utilize it until it returns, hence it is also known as blocking mode of operation.
 
-OpenTitan's TockOS has a low latency return call programming model where
-the CPU blocking should not be longer than (5-10ms). Cryptographic modes
-which take longer time to complete their operation must implement an
-asynchronous mode to provide non-blocking mode of operation.
+OpenTitan maintains compatibility with TockOS, which has a low latency return call programming model where the CPU blocking should not be longer than (5-10ms).
+Cryptographic modes which take longer time to complete their operation must implement an asynchronous mode to provide non-blocking mode of operation.
 
-The defines a way to asynchronously run the long running cryptographic
-operations that use OTBN. The OTBN accelerator itself is treated as a
-"separate thread"to achieve this intended non-blocking operation.
+The [asynchronous API for OpenTitan proposal][async-proposal] defines a way to asynchronously run the long running cryptographic operations that use OTBN.
+The OTBN accelerator itself is treated as a "separate thread"to achieve this intended non-blocking operation.
 
-Each asynchronous operation will have two function calls associated with
-it:
+Each asynchronous operation will have two function calls associated with it:
 - **\<algorithm\>\_async\_start**
   - Takes input arguments. Checks if OTBN is idle and cleared. If so: does any
     necessary synchronous preprocessing, initializes OTBN, and starts the OTBN
@@ -257,8 +233,7 @@ it:
     OTBN status and returns "OK" and output or "Async Incomplete" or "Internal
     Error"
 
-Cryptographic modes such as RSA and ECC that take a longer time support
-asynchronous APIs along with the default synchronous APIs.
+Cryptographic modes such as RSA and ECC that take a longer time support asynchronous APIs along with the default synchronous APIs.
 
 **Crypto modes that support asynchronous modes:**
 1.  RSA Keygen
@@ -277,14 +252,11 @@ asynchronous APIs along with the default synchronous APIs.
 
 ## AES
 
-Advanced Encryption Standard (AES) is the symmetric block cipher for
-encryption and decryption. AES operates with a data block length of 128
-bits and with cipher keys of length 128, 192 or 256 bits.
+Advanced Encryption Standard (AES) is the symmetric block cipher for encryption and decryption.
+AES operates with a data block length of 128 bits and with cipher keys of length 128, 192 or 256 bits.
 
-The unit is a cryptographic accelerator, implemented in hardware, to
-perform encryption and decryption on 16-byte blocks of data. OpenTitan
-AES IP supports five (5) confidentiality modes of operation, with a key
-length of 128 bits, 192 bits and 256 bits.
+OpenTitan's [AES block][aes] unit is a cryptographic accelerator, implemented in hardware, to perform encryption and decryption on 16-byte blocks of data.
+OpenTitan AES IP supports five (5) confidentiality modes of operation, with a key length of 128 bits, 192 bits and 256 bits.
 
 OpenTitan AES supported confidentiality modes:
 1.  Electronic Codebook (ECB)
@@ -293,21 +265,16 @@ OpenTitan AES supported confidentiality modes:
 4.  Output Feedback (OFB)
 5.  Counter (CTR)
 
-APIs are defined to support five block cipher (confidentiality) modes of
-operation: AES-\[ECB, CBC, CFB, OFB and CTR\] and AES-\[GCM, KWP\] for
-authenticated encryption. Padding schemes such as pkcs7, iso9797m1,
-iso9797m2, x923, random padding and null padding are supported and are
-defined in the **aes\_padding\_t** structure from .
+APIs are defined to support five block cipher (confidentiality) modes of operation: AES-\[ECB, CBC, CFB, OFB and CTR\] and AES-\[GCM, KWP\] for authenticated encryption.
+Padding schemes are defined in the **aes\_padding\_t** structure from [this section](#structs-and-enums).
 
-Kindly refer to the links in the section for more information on AES and
-the block cipher modes of operation.
+Kindly refer to the links in the [reference](#reference) section for more information on AES and the block cipher modes of operation.
 
 Doxygen documentation for AES-based algorithms is [here](https://opentitan.org/gen/doxy/include_2aes_8h.html).
 
 ### API
 
-A one-shot API initializes the required block cipher mode of operation (ECB,
-CBC, CFB, OFB or CTR) and performs the required encryption/decryption.
+A one-shot API initializes the required block cipher mode of operation (ECB, CBC, CFB, OFB or CTR) and performs the required encryption/decryption.
 
 #### Key generation
 
@@ -320,34 +287,23 @@ CBC, CFB, OFB or CTR) and performs the required encryption/decryption.
 
 #### AES-GCM
 
-AES-GCM (Galois/Counter Mode) is used for authenticated encryption of
-the associated data and provides both confidentiality and authenticity
-of data. Confidentiality using a variation of the AES counter mode and
-authenticity of the confidential data using a universal hash function
-that is defined over a binary Galois field. GCM can also provide
-authentication assurance for additional data that is not encrypted.
+AES-GCM (Galois/Counter Mode) is used for authenticated encryption of the associated data and provides both confidentiality and authenticity of data.
+Confidentiality using a variation of the AES counter mode and authenticity of the confidential data using a universal hash function that is defined over a binary Galois field.
+GCM can also provide authentication assurance for additional data that is not encrypted.
 
-Kindly refer to the and the links in the section for more information on
-AES-GCM mode and its construction.
+Kindly refer to the [block cipher GCM specification][gcm-spec] and the links in the [reference](#reference) section for more information on AES-GCM mode and its construction.
 
-AES GCM consists of two related functions: An authenticated encryption
-function to generate a ciphertext and an authentication tag from the
-plaintext and an authenticated decryption function to verify the tag and
-to recover the plaintext forem the ciphertext.
+AES-GCM consists of two related functions:
+- an authenticated encryption function to generate a ciphertext and an authentication tag from the plaintext, and
+- an authenticated decryption function to verify the tag and to recover the plaintext from the ciphertext.
 
-In addition, we expose the internal GHASH and GCTR operation that GCM relies
-upon (from , section 6.4). This allows flexibility for use-cases that need
-custom GCM constructs: for example, we do not provide AES-GCM in streaming mode
-here because it encourages decryption and processing of unauthenticated data,
-but some users may need it for compatibility purposes. Additionally, the GHASH
-operation can be used to construct GCM with block ciphers other than AES.
+In addition, we expose the internal GHASH and GCTR operation that GCM relies upon (from [NIST SP800-38D][gcm-spec], section 6.4).
+This allows flexibility for use-cases that need custom GCM constructs: for example, we do not provide AES-GCM in streaming mode here because it encourages decryption and processing of unauthenticated data, but some users may need it for compatibility purposes.
+Additionally, the GHASH operation can be used to construct GCM with block ciphers other than AES.
 
-##### GCM - Authenticated Encryption
+##### GCM - Authenticated Encryption and Decryption
 
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_encrypt_gcm }}
-
-##### GCM - Authenticated Decryption
-
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_decrypt_gcm }}
 
 ##### GCM - GHASH and GCTR
@@ -359,649 +315,78 @@ operation can be used to construct GCM with block ciphers other than AES.
 
 #### AES-KWP
 
-AES Key Wrap (KW) is a deterministic authenticated-encryption mode of
-operation of the AES algorithm. AES-KW is designed to protect the
-confidentiality and the authenticity/integrity of cryptographic keys. A
-variant of the Key-wrap algorithm with an internal padding scheme called
-Key-wrap with padding (KWP) is defined for interoperability.
+AES Key Wrap (KW) is a deterministic authenticated-encryption mode of operation of the AES algorithm.
+AES-KW is designed to protect the confidentiality and the authenticity/integrity of cryptographic keys.
+A variant of the Key-wrap algorithm with an internal padding scheme called Key-wrap with padding (KWP) is defined for interoperability.
 
-Kindly refer to the and the links in the section for more information on
-AES-KWP mode and its construction.
+Kindly refer to the [block cipher key-wrapping specification][kwp-spec] and the links in the [reference](#reference) section for more information on AES-KWP mode and its construction.
 
-AES KWP mode comprises two related functions: Authenticated encryption
-and authenticated decryption ; to convert a plaintext to a longer
-ciphertext and vice versa.
-
-##### KWP - Authenticated Encryption
+AES KWP mode comprises two related functions, authenticated encryption and authenticated decryption.
 
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_kwp_encrypt }}
-
-##### KWP - Authenticated Decryption
-
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_kwp_decrypt }}
 
-HASH
+## HASH
 
-A cryptographic hash (HASH) function is a deterministic one-way function
-that maps an arbitrary length message to a fixed length digest. HASH
-algorithms are used to verify the integrity of the message, i.e. any
-change to the message will, with a very high probability, result in a
-different message digest.
+A cryptographic hash (HASH) function is a deterministic one-way function that maps an arbitrary length message to a fixed length digest.
+Hash algorithms are used to verify the integrity of the message, i.e. any change to the message will, with a very high probability, result in a different message digest.
 
-OpenTitan supports SHA-256 cryptographic hash function, while the
-supports the fixed digest length SHA3\[224, 256, 384, 512\]
-cryptographic hash functions, and the extendable-output functions of
-variable digest length SHAKE\[128, 256\] and cSHAKE\[128, 256\].
+OpenTitan's [KMAC block][kmac] supports the fixed digest length SHA3\[224, 256, 384, 512\] cryptographic hash functions, and the extendable-output functions of variable digest length SHAKE\[128, 256\] and cSHAKE\[128, 256\].
+SHA-2 functions are supported by [OTBN][otbn] and SHA-256 is supported by the [HMAC block][hmac]
 
-APIs are defined to support the following modes: SHA2\[256, 384, 512\],
-SHA3\[224, 256, 384, 512\], SHAKE\[128, 256\] and cSHAKE\[128,256\].
+APIs are defined to support the following modes: SHA2\[256, 384, 512\], SHA3\[224, 256, 384, 512\], SHAKE\[128, 256\] and cSHAKE\[128,256\].
 
-The HASH API (**SHA2 only)** supports two kinds of use cases: and .
+The HASH API (**SHA2 only**) supports two kinds of use cases:
+- **One-shot API**: when the entire data is available upfront
+- **Streaming API** to support streaming use-case where entire input data is not available at the start of the hash operation and the hash is continually updated with blocks of data when they are available.
 
-(**One-shot API**: When the entire data is available upfront ; and a
-**Split API **to support streaming use-case where entire input data is
-not available at the start of the HASH operation and the HASH is
-continually updated with blocks of data as in when they are available).
+Kindly refer to the links in the [reference](#reference) section for more information on HASH construction and supported modes.
 
-Kindly refer to the links in the section for more information on HASH
-construction and supported modes.
 
-  --------------- ---------------------------
-  **Hash Mode**   **Digest Length (bytes)**
+Digest length for SHA2 and SHA3 hash modes:
 
-  SHA256          32
+| **Hash Mode** | **Digest Length (bytes)** |
+| ------------- | ------------------------- |
+| SHA-256       | 32                        |
+| SHA-384       | 32                        |
+| SHA-512       | 32                        |
+| SHA3-224      | 32                        |
+| SHA3-256      | 32                        |
+| SHA3-384      | 32                        |
+| SHA3-512      | 32                        |
 
-  SHA384          48
+### One-shot Hash API
 
-  SHA512          64
+This mode is used when the entire data to be hashed is available upfront.
 
-  SHA3-224        28
+This is a generic hash API where the required digest type and length is passed as an input parameter.
+The supported hash modes are SHA256, SHA384, SHA512, SHA3-224, SHA3-256, SHA3-384 and SHA3-512.
 
-  SHA3-256        32
+{{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_hash }}
 
-  SHA3-384        48
 
-  SHA3-512        64
+### HASH-XOF
 
-  --------------- ---------------------------
+Two separate APIs (SHAKE, CSHAKE) are defined below for the SHA3 based Extendable-Output Functions (XOF).
+The supported XOF modes for SHAKE are SHAKE128 and  SHAKE256; and for CSHAKE are cSHAKE128 and cSHAKE256.
 
-**Table-1**: Digest length for SHA2 and SHA3 hash modes
+<!-- TODO: fix header to have shake/cshake! -->
+{{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_xof }}
 
-API
+### Streaming Hash API
 
-Oneshot API
+The streaming mode API is used for incremental hashing use-case, where the data to be hashed is split and passed in multiple blocks.
 
-This mode is used when the entire data to be HASHED is available
-upfront.
+The streaming mode is supported **only for SHA2** hash modes (SHA256, SHA384, SHA512).
 
-HASH
+It is implemented using the INIT/UPDATE/FINAL structure:
+- **INIT** initializes the context parameter.
+- **UPDATE** is called repeatedly with message bytes to be hashed.
+- **FINAL** computes the final digest, copies the result to the output buffer, and clears context.
 
-This is a generic Hash API where the required digest type and length is
-passed as an input parameter. The supported Hash modes are SHA256,
-SHA384, SHA512, SHA3-224, SHA3-256, SHA3-384 and SHA3-512.
-
-/\*\*
-
-\* Performs the required hash function on the input data.
-
-\*
-
-\* The caller should allocate space for the \`digest\` buffer, (expected
-
-\* length depends on \`hash_mode\`, refer table-1), and set the length
-
-\* of expected output in the \`len\` field of \`digest\`. If the
-user-set
-
-\* length and the output length does not match, an error message will
-
-\* be returned.
-
-\*
-
-\* This function hashes the \`input_message\` using the \`hash_mode_t\`
-
-\* hash function and returns a \`digest\`.
-
-\*
-
-\* \@param input_message Input message to be hashed
-
-\* \@param hash_mode Required hash mode for the digest
-
-\* \@param digest Output digest after hashing the input message
-
-\* \@return crypto_status_t Result of the hash operation
-
-\*/
-
-**crypto\_status\_t otcrypto\_hash**(**crypto\_const\_uint8\_buf\_t**
-input_message,\
-**hash\_mode\_t** hash_mode,\
-**crypto\_uint8\_buf\_t** \*digest);
-
-HASH-XOF
-
-This is a generic Hash XOF (Extendable-Output Functions) API where the
-required digest type and length is passed as an input parameter. The
-supported Hash-XOF modes are SHAKE128, SHAKE256, cSHAKE128, cSHAKE256.
-
-Note: SHAKE and cSHAKE
-
-When N (function name) and S (customization string) are both empty
-strings,
-
-cSHAKE128(X, L, \"\", \"\") = SHAKE128(X, L)
-
-cSHAKE256(X, L, \"\", \"\") = SHAKE256(X, L).
-
-/\*\*
-
-\* Performs the required extendable output function on the input data.
-
-\*
-
-\* The \`function_name_string\` is used by NIST to define functions
-
-\* based on cSHAKE. When no function other than cSHAKE is desired; it
-
-\* can be empty. The \`customization_string\` is used to define a
-
-\* variant of the cSHAKE function. If no customization is desired it
-
-\* can be empty. The \`function_name_string\` and
-\`customization_string\`
-
-\* are ignored when the \`xof_mode\` is set to kHashModeSha3Shake128 or
-
-\* kHashModeSha3Shake256.
-
-\*
-
-\* The caller should allocate space for the \`digest\` buffer,\
-\* (expected length same as \`required_output_len\`), and set the length
-
-\* of expected output in the \`len\` field of \`digest\`. If the
-user-set
-
-\* length and the output length does not match, an error message will
-
-\* be returned.
-
-\*
-
-\* \@param input_message Input message for extendable output function
-
-\* \@param hash_mode Required extendable output function
-
-\* \@param function_name_string NIST Function name string
-
-\* \@param customization_string Customization string for cSHAKE
-
-\* \@param required_output_len Required output length, in bytes
-
-\* \@param digest Output from the extendable output function
-
-\* \@return crypto_status_t Result of the xof operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_xof**(**crypto\_const\_uint8\_buf\_t**
-input_message,\
-**xof\_mode\_t** xof_mode,\
-**crypto\_uint8\_buf\_t** function_name_string,\
-**crypto\_uint8\_buf\_t** customization_string,\
-**size\_t** required_output_len,\
-**crypto\_uint8\_buf\_t** \*digest);
-
-Streaming API
-
-The streaming mode API is used for incremental hashing use-case, where
-the data to be hashed is split and passed in multiple blocks.
-
-The streaming mode is supported **only for SHA2** hash modes (SHA256,
-SHA384, SHA512).
-
-It is implemented using the INIT →UPDATE →FINAL mode APIs structure,
-
-The **INIT **mode initializes the context parameter
-
-Populates the hash context with the digest size, block size, hash update
-and final APIs to be used based on the hash mode.
-
-The **UPDATE **mode is called repeatedly with message bytes to be hashed
-
-Process the input data using the selected hash compression function. The
-unprocessed bytes are stored in the context and later combined with
-subsequent input bytes before calling an update or final function. The
-intermediate digest is stored back in the context.
-
-The **FINAL **mode computes the final HASH and copies the result to the
-digest parameter and clears context
-
-Process the partial data, pads the data to the block length. The final
-HASH is copied to the digest parameter after processing.
-
-SHA2 Hash Algorithm block, digest and state size reference
-
-  --------------- --------------------- ----------------------- ---------------------
-  **Algorithm**   **Digest Size**       **Block size**          **State size**
-
-  SHA2-256        256 bits (32 bytes)   512 bits (64 bytes)     256 bits (32 bytes)
-
-  SHA2-384        384 bits (48 bytes)   1024 bits (128 bytes)   512 bits (64 bytes)
-
-  SHA2-512        512 bits (64 bytes)   1024 bits (128 bytes)   512 bits (64 bytes)
-
-  --------------- --------------------- ----------------------- ---------------------
-
-The following APIs are used to perform hash computation on the streaming
-data. The required hash mode is set through the INIT function. The
-UPDATE function is repeatedly called to process input data and lastly
-the FINAL function is called to generate the final digest value.
-
-HASH
-
-/\*\*
-
-\* Performs the INIT operation for a cryptographic hash function.
-
-\*
-
-\* Initializes the generic hash context. The required hash mode is
-
-\* selected through the \`hash_mode\` parameter. Only
-\`kHashModeSha256\`,
-
-\* \`kHashModeSha384\` and \`kHashModeSha512\` are supported. Other
-modes
-
-\* are not supported and an error would be returned.
-
-\*
-
-\* Populates the hash context with the selected hash mode and its
-
-\* digest and block sizes. The structure of hash context and how it
-
-\* populates the required fields are internal to the specific hash
-
-\* implementation.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@param hash_mode Required hash mode
-
-\* \@return crypto_status_t Result of the hash init operation
-
-\*/\
-**crypto\_status\_t** **otcrypto\_hash\_init**(**hash\_context\_t**
-\*const ctx,\
-** hash\_mode\_t** hash_mode);
-
-/\*\*
-
-\* Performs the UPDATE operation for a cryptographic hash function.
-
-\*
-
-\* The update operation processes the \`input_message\` using the
-
-\* selected hash compression function. The intermediate digest is
-
-\* stored in the context \`ctx\`. Any partial data is stored back in
-
-\* the context and combined with the subsequent bytes.
-
-\*
-
-\* #otcrypto_hash_init should be called before this function.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@param input_message Input message to be hashed
-
-\* \@return crypto_status_t Result of the hash update operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_hash\_update**(\
-**hash\_context\_t** \*const ctx,\
-**crypto\_const\_uint8\_buf\_t** input_message);
-
-/\*\*
-
-\* Performs the FINAL operation for a cryptographic hash function.
-
-\*
-
-\* The final operation processes the remaining partial blocks,
-
-\* computes the final hash and copies it to the \`digest\` parameter.
-
-\*
-
-\* #otcrypto_hash_update should be called before this function.
-
-\*
-
-\* The caller should allocate space for the \`digest\` buffer, (expected
-
-\* length depends on \`hash_mode\`, refer table-1), and set the length
-
-\* of expected output in the \`len\` field of \`digest\`. If the
-user-set
-
-\* length and the output length does not match, an error message will
-
-\* be returned.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@param digest Output digest after hashing the input blocks
-
-\* \@return crypto_status_t Result of the hash final operation
-
-\*/\
-**crypto\_status\_t** **otcrypto\_hash\_final **(**hash\_context\_t**
-\*const ctx,\
-**crypto\_uint8\_buf\_t** \*digest);
-
-/\*
-
-\* **NOTE**: APIs in the following section are Internal only.
-
-\*
-
-\* These APIs should not be called directly and are meant
-
-\* to be used by the generic hash API. The APIs for SHA
-
-\* 256/384/512 APIs are not added to the API header file.
-
-\*/
-
-HASH-SHA2-256
-
-Defines the INIT, UPDATE and FINAL APIs for SHA256 hash function, to be
-called from generic hash function API.
-
-/\*\*
-
-\* Performs the SHA2-256 INIT operation.
-
-\*
-
-\* Initializes the SHA2-256 parameters in the context.
-
-\*
-
-\* This API is internal to the generic hash API and should not be
-
-\* called directly.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@return crypto_status_t Result of the SHA256 init operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_sha256\_init**(**hash\_context\_t**
-\*const ctx);
-
-/\*\*
-
-\* Performs the SHA2-256 UPDATE operation.
-
-\*
-
-\* The update operation processes the data using the SHA256 function.
-
-\* The intermediate digest and unprocessed partial data is stored
-
-\* back in the context.
-
-\*
-
-\* This API is internal to the generic hash API and should not be
-
-\* called directly.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@param input_message Input message to be hashed
-
-\* \@return crypto_status_t Result of the SHA256 update operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_sha256\_update**(\
-**hash\_context\_t** \*const ctx,\
-**crypto\_const\_uint8\_buf\_t** input_message);
-
-/\*\*
-
-\* Performs the SHA2-256 FINAL operation.
-
-\*
-
-\* The final function processes the remaining data and copies the
-
-\* final hash to the \`digest\` parameter.
-
-\*
-
-\* This API is internal to the generic hash API and should not be
-
-\* called directly.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@param digest Output digest after hashing the input blocks
-
-\* \@return crypto_status_t Result of the SHA256 final operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_sha256\_final**(**hash\_context\_t**
-\*const ctx,\
-**crypto\_uint8\_buf\_t** \*digest);
-
-HASH-SHA2-384
-
-Defines the INIT, UPDATE and FINAL APIs for SHA384 hash function, that
-would be called from a generic hash function API
-
-/\*\*
-
-\* Performs the SHA2-384 INIT operation.
-
-\*
-
-\* Initializes the SHA2-384 parameters in the context.
-
-\*
-
-\* This API is internal to the generic hash API and should not be
-
-\* called directly.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@return crypto_status_t Result of the SHA384 init operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_sha384\_init**(**hash\_context\_t**
-\*const ctx);
-
-/\*\*
-
-\* Performs the SHA2-384 UPDATE operation.
-
-\*
-
-\* The update operation processes the data using the SHA384 function.
-
-\* The intermediate digest and unprocessed partial data is stored
-
-\* back in the context.
-
-\*
-
-\* This API is internal to the generic hash API and should not be
-
-\* called directly.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@param input_message Input message to be hashed
-
-\* \@return crypto_status_t Result of the SHA384 update operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_sha384\_update**(\
-**hash\_context\_t** \*const ctx,\
-**crypto\_const\_uint8\_buf\_t** input_message);
-
-/\*\*
-
-\* Performs the SHA2-384 FINAL operation.
-
-\*
-
-\* The final function processes the remaining data and copies
-
-\* the final hash to the \`digest\` parameter.
-
-\*
-
-\* This API is internal to the generic hash API and should not be
-
-\* called directly.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@param digest Output digest after hashing the input blocks
-
-\* \@return crypto_status_t Result of the SHA384 final operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_sha384\_final**(**hash\_context\_t**
-\*const ctx,\
-**crypto\_uint8\_buf\_t** \*digest);
-
-HASH-SHA2-512
-
-Defines the INIT, UPDATE and FINAL APIs for SHA512 hash function, to be
-called from generic hash function API.
-
-/\*\*
-
-\* Performs the SHA2-512 INIT operation.
-
-\*
-
-\* Initializes the SHA2-512 parameters in the context.
-
-\*
-
-\* This API is internal to the generic hash API and should not be
-
-\* called directly.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@return crypto_status_t Result of the SHA512 init operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_sha512\_init**(**hash\_context\_t**
-\*const ctx);
-
-/\*\*
-
-\* Performs the SHA2-512 UPDATE operation.
-
-\*
-
-\* The update operation processes the data using the SHA512 function.
-
-\* The intermediate digest and unprocessed partial data is stored
-
-\* back in the context.
-
-\*
-
-\* This API is internal to the generic hash API and should not be
-
-\* called directly.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@param input_message Input message to be hashed
-
-\* \@return crypto_status_t Result of the SHA512 update operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_sha512\_update**(\
-**hash\_context\_t** \*const ctx,\
-**crypto\_const\_uint8\_buf\_t** input_message);
-
-/\*\*
-
-\* Performs the SHA2-512 FINAL operation.
-
-\*
-
-\* The final function processes the remaining data and copies the
-
-\* final hash to the \`digest\` parameter.
-
-\*
-
-\* This API is internal to the generic hash API and should not be
-
-\* called directly.
-
-\*
-
-\* \@param ctx Pointer to the generic hash context struct
-
-\* \@param digest Output digest after hashing the input blocks
-
-\* \@return crypto_status_t Result of the SHA512 final operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_sha512\_final**(**hash\_context\_t**
-\*const ctx,\
-**crypto\_uint8\_buf\_t** \*digest);
+{{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_hash_init }}
+{{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_hash_update }}
+{{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_hash_final }}
 
 MAC
 
@@ -3493,3 +2878,11 @@ References
 1.  : Transitioning the Use of Cryptographic Algorithms and Key Lengths
 
 2.  : Recommendation for Key Management (Part 1 General)
+
+[aes]: ../../../hw/ip/aes/README.md
+[async-proposal]: https://docs.google.com/document/d/1tOUYNEvcPuGgx0KIfDpSn2mKVJCVVm_EuimVQcRJtNI
+[gcm-spec]: https://csrc.nist.gov/publications/detail/sp/800-38d/final
+[kmac]:  ../../../hw/ip/kmac/README.md
+[kwp-spec]: https://csrc.nist.gov/publications/detail/sp/800-38f/final
+[otbn]: ../../../hw/ip/otbn/README.md
+[use-case-table]: https://docs.google.com/document/d/1fHUUL4i39FJXk-lbVNDizVZSWObizGE2pTWVhQKb41c
