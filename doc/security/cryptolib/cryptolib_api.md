@@ -395,12 +395,12 @@ OpenTitan supports two kinds of MACS:
 OpenTitan's [HMAC block][hmac] supports HMAC-SHA256 mode of operation with a key length of 256 bits.
 The [KMAC block][kmac] supports KMAC128 and KMAC 256, with a key length of \[128, 192, 256, 384, 512\] bits.
 
-APIs are defined in the for HMAC-SHA256 and KMAC256.
+APIs are defined in the following section for HMAC-SHA256 and KMAC256.
 Key sizes supported are 256 bits for HMAC and \[128, 192, 256, 384, 512\] bits for KMAC.
 
 The HMAC API supports both one-shot and streaming modes of operation.
 
-Kindly refer to the links in the section for more information on the HMAC and the KMAC constructions and supported modes.
+Kindly refer to the links in the [reference](#reference) section for more information on the HMAC and the KMAC constructions and supported modes.
 
 ### Key Generation
 
@@ -428,179 +428,52 @@ It is implemented using the INIT/UPDATE/FINAL structure:
 {{#header-snippet sw/device/lib/crypto/include/mac.h otcrypto_hmac_update }}
 {{#header-snippet sw/device/lib/crypto/include/mac.h otcrypto_hmac_final }}
 
-RSA
+## RSA
 
-RSA (Rivest--Shamir--Adleman) is an asymmetric cryptographic algorithm
-used for authentication and data confidentiality.
+RSA (Rivest-Shamir-Adleman) is an asymmetric cryptographic algorithm used for authentication and data confidentiality.
 
-**RSA Key Pair**
+### RSA Key Pair
 
-RSA schemes employ two key types: RSA public key (known to everyone) and
-RSA private key (sensitive). Together they form an RSA key pair.
+RSA schemes employ two key types: RSA public key (known to everyone) and RSA private key (sensitive).
+Together they form an RSA key pair.
 
-RSA *public key* is denoted by (n, e), where:
+The RSA *public key* is denoted by (n, e), where:
+- n is the RSA modulus, a positive integer
+- e is the RSA public exponent, a positive integer
 
-n the RSA modulus, a positive integer
+The RSA *private key* is denoted by the pair (n, d), where
+- n is the RSA modulus, a positive integer
+- d is the RSA private exponent, a positive integer
 
-e the RSA public exponent, a positive integer
+### RSA Supported Modes
 
-RSA* private key *is denoted by the pair (n, d), where
+OpenTitan uses the [OpenTitan Big Number Accelerator][otbn], an asymmetric cryptographic accelerator, to speed up the underlying RSA operations.
 
-n the RSA modulus, a positive integer
+APIs are defined in the to support RSA Key generation and RSA digital signature generation and a verification for the key lengths of \[1024, 2048, 3072, 4096\] bits.
+Two PKCS signature schemes are supported: (RSASSA-PSS, RSASSA-PKCS1-v1_5).
+Supported padding schemes are defined in the **rsa\_padding\_t** structure in [this section](#structs-and-enums).
 
-d the RSA private exponent, a positive integer
+The API for RSA supports [asynchronous](#synchronous-and-asynchronous-mode) operation.
 
-**Supported Modes**
+Kindly refer to the links in the [reference](#reference) section for more information on RSA.
 
-OpenTitan uses the OpenTitan Big Number Accelerator (), an asymmetric
-cryptographic accelerator, to speed up the underlying RSA operations.
+### Hash Function for RSA Signatures
 
-APIs are defined in the to support RSA Key generation and RSA digital
-signature generation and a verification for the key lengths of \[1024,
-2048, 3072, 4096\] bits. Two PKCS signature schemes are supported:
-(RSASSA-PSS, RSASSA-PKCS1-v1_5). Padding schemes such as OAEP, PKCS,
-PSS, and null padding are supported and are defined in the
-**rsa\_padding\_t** structure in .
+An approved hash function is used during the generation digital signatures.
+The length in bits of the hash function output block must meet or exceed the security strength associated with the bit length of the modulus n in order to uphold RSA's security guarantees.
 
-The APIs for RSA key generation and digital signature modes support two
-kinds of use cases: and an mode of operation.
+It is recommended that the security strength of the modulus and the security strength of the hash function be the same unless an agreement has been made between participating entities to use a stronger hash function.
 
-(**Synchronous API**: Blocking mode, where the crypto call does not
-return to the program until the crypto operation is complete ; and an
-**Asynchronous mode **where long-running cryptographic operations that
-use OTBN accelerator are called asynchronously to let other shorter
-computations to happen in the background. This is to support TockOS's
-low latency return call programming model, which requires long running
-operations to implement asynchronous interfaces).
+### Synchronous (Blocking Mode) API
 
-Kindly refer to the links in the section for more information on RSA,
-encryption and digital signature schemes.
+#### Key Generation
 
-**HASH function for RSA schemes**
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_keygen }}
 
-An approved hash function is used during the generation of key pairs and
-digital signatures. When used during the generation of an RSA key pair,
-the length in bits of the hash function output block shall meet or
-exceed the security strength associated with the bit length of the
-modulus n.
+#### Signature
 
-It is recommended that the security strength of the modulus and the
-security strength of the hash function be the same unless an agreement
-has been made between participating entities to use a stronger hash
-function
-
-API / Wrapper
-
-Synchronous (blocking mode) API
-
-RSA Key Generation
-
-/\*\*
-
-\* Performs the RSA key generation.
-
-\*
-
-\* Computes RSA private key (d) and RSA public key exponent (e) and
-
-\* modulus (n).
-
-\*
-
-\* \@param required_key_len Requested key length
-
-\* \@param rsa_public_key Pointer to RSA public exponent struct
-
-\* \@param rsa_private_key Pointer to RSA private exponent struct
-
-\* \@return crypto_status_t Result of the RSA key generation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_rsa\_keygen**(**rsa\_key\_size\_t**
-required_key_len,\
-**rsa\_public\_key\_t** \*rsa_public_key,\
-**rsa\_private\_key\_t** \*rsa_private_key);
-
-RSA Signature
-
-/\*\*
-
-\* Computes the digital signature on the input message data.
-
-\*
-
-\* The caller should allocate space for the \`signature\` buffer,\
-\* (expected length same as modulus length from \`rsa_private_key\`),
-
-\* and set the length of expected output in the \`len\` field of
-
-\* \`signature\`. If the user-set length and the output length does not
-
-\* match, an error message will be returned.
-
-\*
-
-\* \@param rsa_private_key Pointer to RSA private exponent struct
-
-\* \@param input_message Input message to be signed
-
-\* \@param padding_mode Padding scheme to be used for the data
-
-\* \@param hash_mode Hashing scheme to be used for the signature scheme
-
-\* \@param signature Pointer to generated signature struct
-
-\* \@return crypto_status_t The result of the RSA sign generation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_rsa\_sign**(const
-**rsa\_private\_key\_t **\*rsa_private_key,\
-** crypto\_const\_uint8\_buf\_t **input_message,\
-** rsa\_padding\_t** padding_mode,\
-** rsa\_hash\_t** hash_mode,\
-** crypto\_uint8\_buf\_t **\*signature);
-
-RSA Verification
-
-/\*\*
-
-\* Verifies the authenticity of the input signature.
-
-\*
-
-\* The generated signature is compared against the input signature and
-
-\* PASS / FAIL is returned.
-
-\*
-
-\* \@param rsa_public_key Pointer to RSA public exponent struct
-
-\* \@param input_message Input message to be signed for verification
-
-\* \@param padding_mode Padding scheme to be used for the data
-
-\* \@param hash_mode Hashing scheme to be used for the signature scheme
-
-\* \@param signature Pointer to the input signature to be verified
-
-\* \@param verification_result Returns the result of signature
-
-\* verification (Pass/Fail)
-
-\* \@return crypto_status_t The status of the RSA verify operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_rsa\_verify**(const
-**rsa\_public\_key\_t **\*rsa_public_key,\
-** crypto\_const\_uint8\_buf\_t **input_message,\
-** rsa\_padding\_t** padding_mode,\
-** rsa\_hash\_t** hash_mode,\
-** crypto\_const\_uint8\_buf\_t **signature,\
-** verification\_status\_t **\*verification_result);
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_sign }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_verify }}
 
 ECC
 
@@ -2568,29 +2441,29 @@ strength and transition recommendations.
 
 **AES**
 1. [FIPS 197][aes-spec]: Announcing the Advanced Encryption Standard (AES)
-2. [NIST SP800-98A][aes-basic-modes-spec]: Recommendation for Block Cipher Modes of Operation: Methods and Techniques
+2. [NIST SP800-38A][aes-basic-modes-spec]: Recommendation for Block Cipher Modes of Operation: Methods and Techniques
 3. [NIST SP800-38D][gcm-spec]: Recommendation for Block Cipher Modes of Operation: Galois/Counter Mode (GCM) and GMAC
 4. [NIST SP800-38F][kwp-spec]: Recommendation for Block Cipher Modes of Operation: Methods for Key wrapping
 
 **HASH**
-1. [FIPS 180][sha2-spec]: Secure Hash Standard
+1. [FIPS 180-4][sha2-spec]: Secure Hash Standard
 2. [FIPS 202][sha3-spec]: SHA-3 Standard: Permutation-Based Hash and Extendable-Output Functions
 3. [NIST SP800-185][sha3-derived-spec]: SHA-3 Derived Functions: cSHAKE, KMAC, TupleHash, and ParallelHash
 
 **MAC**
 1. [IETF RFC 2104][hmac-rfc]: HMAC: Keyed-Hashing for Message Authentication
 2. [IETF RFC 4231][hmac-testvectors-rfc]: Identifiers and Test Vectors for HMAC-SHA-224, HMAC-SHA-256, HMAC-SHA-384, and HMAC-SHA-512
-3. [IETF RFC 4868][hmac-usage-rgc]: Using HMAC-SHA-256, HMAC-SHA-384, and HMAC-SHA-512
+3. [IETF RFC 4868][hmac-usage-rfc]: Using HMAC-SHA-256, HMAC-SHA-384, and HMAC-SHA-512
 4. [NIST SP800-185][sha3-derived-spec]: SHA-3 Derived Functions: cSHAKE, KMAC, TupleHash, and ParallelHash
 
 **RSA**
 1. [IETF RFC 8017][rsa-rfc]: PKCS #1: RSA Cryptography Specifications Version 2.2
-2. [FIPS 186][fips-186]: Digital Signature Standard
+2. [FIPS 186-5][fips-186]: Digital Signature Standard
 
 **ECC**
 1. [SEC1][sec1]: Elliptic Curve Cryptography
 2. [SEC2][sec2]: Recommended Elliptic Curve Domain Parameters
-3. [FIPS 186][fips-186]: Digital Signature Standard
+3. [FIPS 186-5][fips-186]: Digital Signature Standard
 4. [NIST SP800-56A][ecdh-spec]: Recommendation for Pair-Wise Key-Establishment Schemes Using Discrete Logarithm Cryptography
 5. [IETF RFC 5639][brainpool-rfc]: Elliptic Curve Cryptography (ECC) Brainpool Standard Curves and Curve Generation
 6. [IETF RFC 4492][ecc-tls-rfc]: Elliptic Curve (ECC) Cipher Suites for Transport Layer Security (TLS)
@@ -2609,21 +2482,21 @@ strength and transition recommendations.
 1. [NIST SP800-108][kdf-spec]: Recommendation for Key Derivation using Pseudorandom Functions
 
 **Key Management, Security Strength**
-1. [NIST SP800-131][nist-sp800-131]: Transitioning the Use of Cryptographic Algorithms and Key Lengths
+1. [NIST SP800-131][nist-sp800-131a]: Transitioning the Use of Cryptographic Algorithms and Key Lengths
 2. [NIST-SP800-57][nist-sp800-57]: Recommendation for Key Management (Part 1 General)
 
 [aes]: ../../../hw/ip/aes/README.md
 [aes-spec]: https://csrc.nist.gov/publications/detail/fips/197/final
-[aes-basic-modes-spec]: https://csrc.nist.gov/publications/detail/sp/800-98a/final
+[aes-basic-modes-spec]: https://csrc.nist.gov/publications/detail/sp/800-38a/final
 [async-proposal]: https://docs.google.com/document/d/1tOUYNEvcPuGgx0KIfDpSn2mKVJCVVm_EuimVQcRJtNI
 [brainpool-rfc]: https://datatracker.ietf.org/doc/html/rfc5639
 [bsi-ais31]: https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Certification/Interpretations/AIS_31_Functionality_classes_for_random_number_generators_e.html
 [csrng]:  ../../../hw/ip/csrng/README.md
 [ecc-rfc]: https://datatracker.ietf.org/doc/html/rfc7448
 [ecc-tls-rfc]: https://datatracker.ietf.org/doc/html/rfc4492
-[ecdh-spec]: https://csrc.nist.gov/publications/detail/sp/800-56a/final
+[ecdh-spec]: https://csrc.nist.gov/publications/detail/sp/800-56a/rev-3/final
 [eddsa-rfc]: https://datatracker.ietf.org/doc/html/rfc8032
-[fips-186]: https://csrc.nist.gov/publications/detail/fips/186/final
+[fips-186]: https://csrc.nist.gov/publications/detail/fips/186/5/final
 [gcm-spec]: https://csrc.nist.gov/publications/detail/sp/800-38d/final
 [hmac-rfc]: https://datatracker.ietf.org/doc/html/rfc2104
 [hmac-testvectors-rfc]: https://datatracker.ietf.org/doc/html/rfc4231
@@ -2631,17 +2504,17 @@ strength and transition recommendations.
 [kdf-spec]: https://csrc.nist.gov/publications/detail/sp/800-108/final
 [kmac]:  ../../../hw/ip/kmac/README.md
 [kwp-spec]: https://csrc.nist.gov/publications/detail/sp/800-38f/final
-[nist-drbg-spec]: https://csrc.nist.gov/publications/detail/sp/800-90a/final
+[nist-drbg-spec]: https://csrc.nist.gov/publications/detail/sp/800-90a/rev-1/final
 [nist-ecc-domain-params]: https://csrc.nist.gov/publications/detail/sp/800-186/final
 [nist-entropy-spec]: https://csrc.nist.gov/publications/detail/sp/800-90b/final
-[nist-sp800-131]: https://csrc.nist.gov/publications/detail/sp/800-131/final
-[nist-sp800-57]: https://csrc.nist.gov/publications/detail/sp/800-57/final
+[nist-sp800-131a]: https://csrc.nist.gov/publications/detail/sp/800-131a/rev-2/final
+[nist-sp800-57]: https://csrc.nist.gov/publications/detail/sp/800-57-part-1/rev-5/final
 [otbn]: ../../../hw/ip/otbn/README.md
 [rsa-rfc]: https://datatracker.ietf.org/doc/html/rfc8017
 [safe-curves]: https://safecurves.cr.yp.to/
 [sec1]: https://www.secg.org/sec1-v2.pdf
 [sec2]: https://www.secg.org/sec2-v2.pdf
-[sha2-spec]: https://csrc.nist.gov/publications/detail/fips/180/final
+[sha2-spec]: https://csrc.nist.gov/publications/detail/fips/180/4/final
 [sha3-spec]: https://csrc.nist.gov/publications/detail/fips/202/final
 [sha3-derived-spec]: https://csrc.nist.gov/publications/detail/sp/800-185/final
 [use-case-table]: https://docs.google.com/document/d/1fHUUL4i39FJXk-lbVNDizVZSWObizGE2pTWVhQKb41c
