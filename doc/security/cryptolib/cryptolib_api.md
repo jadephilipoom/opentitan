@@ -219,19 +219,22 @@ This mode blocks the CPU and no other process can utilize it until it returns, h
 OpenTitan maintains compatibility with TockOS, which has a low latency return call programming model where the CPU blocking should not be longer than (5-10ms).
 Cryptographic modes which take longer time to complete their operation must implement an asynchronous mode to provide non-blocking mode of operation.
 
-The [asynchronous API for OpenTitan proposal][async-proposal] defines a way to asynchronously run the long running cryptographic operations that use OTBN.
-The OTBN accelerator itself is treated as a "separate thread"to achieve this intended non-blocking operation.
+The [asynchronous API for OpenTitan cryptolib][async-proposal] defines a way to asynchronously run the long running cryptographic operations that use OTBN.
+The OTBN accelerator itself is treated as a "separate thread" to achieve non-blocking operation with virtually zero overhead.
 
-Each asynchronous operation will have two function calls associated with it:
 - **\<algorithm\>\_async\_start**
-  - Takes input arguments. Checks if OTBN is idle and cleared. If so: does any
-    necessary synchronous preprocessing, initializes OTBN, and starts the OTBN
-    routine. Returns "OK"if the operation was successfully started.
+    - Takes input arguments. Checks that OTBN is available and idle. If
+      so: does any necessary synchronous preprocessing, initializes
+      OTBN, and starts the OTBN routine.
 - **\<algorithm\>\_async\_finalize**
-  - Takes caller-allocated output buffers. Checks if the app loaded onto OTBN
-    is the expected one; if not, returns "Invalid Input"status message. Checks
-    OTBN status and returns "OK" and output or "Async Incomplete" or "Internal
-    Error"
+    - Takes caller-allocated output buffers. Blocks until OTBN is done
+      processing if needed, then checks whether it had errors. If not, does any
+      necessary postprocessing and writes results to the buffers.
+
+A few noteworthy aspects of this setup:
+- While an asynchronous operation is running, OTBN will be unavailable and attempts to use it will return errors.
+- Only one asynchronous operation may be in progress at any given time.
+- The caller is responsible for properly managing asynchronous calls, including ensuring that the entity receiving the `finalize` results is the same as the one who called `start`.
 
 Cryptographic modes such as RSA and ECC that take a longer time support asynchronous APIs along with the default synchronous APIs.
 
@@ -466,14 +469,18 @@ It is recommended that the security strength of the modulus and the security str
 
 ### Synchronous (Blocking Mode) API
 
-#### Key Generation
-
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_keygen }}
-
-#### Signature
-
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_sign }}
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_verify }}
+
+### Asynchronous API
+
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_keygen_async_start }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_keygen_async_finalize }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_sign_async_start }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_sign_async_finalize }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_verify_async_start }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_verify_async_finalize }}
 
 ## ECC
 
@@ -544,36 +551,9 @@ Each party should generate a key pair, exchange public keys, and then generate t
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_x25519_keygen }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_x25519 }}
 
-## Asynchronous APIs
+### Asynchronous API
 
-The [Asynchronous API for OpenTitan Cryptolib][async-proposal] defines a way to asynchronously run the long running cryptographic operations that use OTBN.
-The OTBN accelerator itself is treated as a "separate thread" to achieve non-blocking operation with minimal overhead.
-
-Each asynchronous operation will have two function calls associated with it:
-
-- **\<algorithm\>\_async\_start**
-    - Takes input arguments. Checks that OTBN is available and idle. If
-      so: does any necessary synchronous preprocessing, initializes
-      OTBN, and starts the OTBN routine.
-- **\<algorithm\>\_async\_finalize**
-    - Takes caller-allocated output buffers. Blocks until OTBN is done
-      processing if needed, then checks whether it had errors. If not, does any
-      necessary postprocessing and writes results to the buffers.
-
-A few noteworthy aspects of this setup:
-- While an asynchronous operation is running, OTBN will be unavailable.
-- The caller is responsible for properly managing asynchronous calls, including ensuring that the entity receiving the `finalize` results is the same as the one who called `start`.
-
-### Asynchronous RSA
-
-{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_keygen_async_start }}
-{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_keygen_async_finalize }}
-{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_sign_async_start }}
-{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_sign_async_finalize }}
-{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_verify_async_start }}
-{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_verify_async_finalize }}
-
-## Asynchronous ECDSA
+#### ECDSA
 
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdsa_keygen_async_start }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdsa_keygen_async_finalize }}
@@ -582,15 +562,14 @@ A few noteworthy aspects of this setup:
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdsa_verify_async_start }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdsa_verify_async_finalize }}
 
-
-#### Asynchronous ECDH
+#### ECDH
 
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdh_keygen_async_start }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdh_keygen_async_finalize }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdh_async_start }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdh_async_finalize }}
 
-#### Asynchronous Ed25519
+#### Ed25519
 
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ed25519_keygen_async_start }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ed25519_keygen_async_finalize }}
@@ -599,254 +578,60 @@ A few noteworthy aspects of this setup:
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ed25519_verify_async_start }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ed25519_verify_async_finalize }}
 
-#### Asynchronous X25519
+#### X25519
 
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_x25519_keygen_async_start }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_x25519_keygen_async_finalize }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_x25519_async_start }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_x25519_async_finalize }}
 
-DRBG
+## DRBG
 
-Random bit generators (RBG) are used to generate cryptographically
-secure random bits. The random bits can be generated using a
-non-deterministic random bit generator (NRBG) or a deterministic random
-bit generator (DRBG).
+Random bit generators (RBG) are used to generate cryptographically secure random bits.
+They can be nondeterministic (NRBG) or deterministic (DRBG).
 
-The DRBG module generates (deterministic) pseudo-random bits from an
-input seed (entropy) value, using an underlying algorithm such as HASH,
-HMAC or AES. These random bits are then used directly or after
-processing, by the application in need of random values.
+The DRBG module generates (deterministic) pseudo-random bits from an input seed (entropy) value, using an underlying algorithm such as HASH, HMAC or AES.
+These random bits are then used directly or after processing, by the application in need of random values.
 
-OpenTitan's random bit generator, (Cryptographically Secure Random
-Number Generator) uses a block cipher based DRBG mechanism
-(AES_CTR_DRBG) as specified in . OpenTitan's RNG targets compliance with
-both , as well as and . The CSRNG operates at 256 bit security strength.
+OpenTitan's random bit generator, [CSRNG][csrng] (Cryptographically Secure Random Number Generator) uses a block cipher based DRBG mechanism (AES_CTR_DRBG) as specified in [NIST SP800-90A][drbg-spec].
+OpenTitan's RNG targets compliance with both [BSI AIS31 recommendations for Common Criteria][bsi-ais31], as well as [NIST SP800-90A][nist-drbg-spec] and [NIST SP800-90C (second draft)][nist-rng-spec].
+The CSRNG operates at a 256-bit security strength.
 
-Based on the requirements from the , APIs are defined in the to support
-DRBG mechanisms such as DRBG Instantiate, Reseed, Generate and
-Uninstantiate.
+Based on the requirements from the [use-case table][use-case-table], we support the DRBG operations Instantiate, Reseed, Generate, Uninstantiate, Manual Instantiate, and Manual Reseed.
 
-The APIs for DRBG Instantiate and Reseed support two ways of obtaining
-the required entropy: In an **auto entropy **mode the required entropy
-is provided by the CSRNG IP (which gets its entropy from the ENTROPY_SRC
-module) and in the **manual entropy **mode the required entropy is
-obtained from the user as an input parameter. The user-provided entropy
-generates deterministic pseudo-random bits from a known seed.
+The Instantiate and Reseed operations fetch new entropy from OpenTitan's [ENTROPY_SRC][entropy-src].
+The Manual Instantiate and Manual Reseed operations, however, get their entropy from the user as an input parameter.
+These can be used to provide entropy from a different source, but users should be careful to ensure that the entropy is high-quality enough for their application.
 
-\
-The picture below shows an example of a functional model of a DRBG.
-
-**DRBG Functional Model**
-
-A DRBG mechanism takes several parameters as input such as: Entropy
-input, nonce, personalization string and additional input, based on its
-operating mode.
-
-To learn more about these input parameters and other details such as
-DRBG mechanism, entropy requirements, seed construction, derivation
-function and prediction resistance, kindly refer to the , , and
-documents and the links in the section.
-
-API
-
-NOTE:
-
+**Notes:**
 1.  The \`drbg_entropy_mode\` context parameter is used to disallow
     mixing of DRBG operations with auto entropy and (user-provided)
     manual entropy
-
 2.  Entropy length - **The accepted entropy length is 384bits**. The API
     will reject the user provided entropy if the length is not 384-bits
     (24 bytes).
 
-**AUTO ENTROPY**
+The picture below shows an example of a functional model of a DRBG.
 
-The entropy for instantiation and reseed is [automatically
-provided]{.underline} by the CSRNG IP, which gets its entropy from the
-ENTROPY_SRC module.
+<img src="drbg_mechanism.png" style="width: 800px;">
 
-DRBG-CTR-INSTANTIATE
+### DRBG Functional Model
 
-/\*\*
+A DRBG mechanism takes several parameters as input, depending on its operating mode:
+- entropy
+- nonce
+- personalization string
+- additional input
 
-\* Instantiates the DRBG system.
+To learn more about these input parameters and other DRBG details suc as entropy requirements, seed construction, derivation functions and prediction resistance, kindly refer to the [NIST SP800-90A][nist-drbg-spec], [NIST SP800-90B][nist-entropy-spec], [NIST SP800-90C][nist-rng-spec], and [BSI AIS31][bsi-ais31] documents and the links in the [reference](#reference) section.
 
-\*
 
-\* Initializes the DRBG and the context for DRBG. Gets the required
-
-\* entropy input automatically from the entropy source.
-
-\*
-
-\* \@param drbg_state Pointer to the DRBG working state
-
-\* \@param nonce Pointer to the nonce bit-string
-
-\* \@param perso_string Pointer to personalization bitstring
-
-\* \@return crypto_status_t Result of the DRBG instantiate operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_drbg\_instantiate**(**drbg\_state\_t**
-\*drbg_state,\
-** crypto\_uint8\_buf\_t** nonce,\
-** crypto\_uint8\_buf\_t** perso_string);
-
-DRBG-CTR-RESEED
-
-/\*\*
-
-\* Reseeds the DRBG with fresh entropy.
-
-\*
-
-\* Reseeds the DRBG with fresh entropy that is automatically fetched
-
-\* from the entropy source and updates the working state parameters.
-
-\*
-
-\* \@param drbg_state Pointer to the DRBG working state
-
-\* \@param additional_input Pointer to the additional input for DRBG
-
-\* \@return crypto_status_t Result of the DRBG reseed operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_drbg\_reseed**(**drbg\_state\_t**
-\*drbg_state,\
-**crypto\_uint8\_buf\_t **additional_input);
-
-**MANUAL ENTROPY **
-
-The entropy required for instantiation and reseed is manually provided
-to the APIs, by the user.
-
-DRBG-CTR-MANUAL-INSTANTIATE
-
-/\*\*
-
-\* Instantiates the DRBG system.
-
-\*
-
-\* Initializes DRBG and the DRBG context. Gets the required entropy
-
-\* input from the user through the \`entropy\` parameter.
-
-\*
-
-\* \@param drbg_state Pointer to the DRBG working state
-
-\* \@param entropy Pointer to the user defined entropy value
-
-\* \@param nonce Pointer to the nonce bit-string
-
-\* \@param personalization_string Pointer to personalization bitstring
-
-\* \@return crypto_status_t Result of the DRBG manual instantiation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_drbg\_manual\_instantiate**(\
-** drbg\_state\_t** \*drbg_state,\
-** crypto\_uint8\_buf\_t **entropy,\
-** crypto\_uint8\_buf\_t **nonce,\
-** crypto\_uint8\_buf\_t **perso_string);
-
-DRBG-CTR-MANUAL-RESEED
-
-/\*\*
-
-\* Reseeds the DRBG with fresh entropy.
-
-\*
-
-\* Reseeds the DRBG with entropy input from the user through \`entropy\`
-
-\* parameter and updates the working state parameters.
-
-\*
-
-\* \@param drbg_state Pointer to the DRBG working state
-
-\* \@param entropy Pointer to the user defined entropy value
-
-\* \@param additional_input Pointer to the additional input for DRBG
-
-\* \@return crypto_status_t Result of the manual DRBG reseed operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_drbg\_manual\_reseed**(\
-**drbg\_state\_t** \*drbg_state,\
-** crypto\_uint8\_buf\_t** entropy,\
-** crypto\_uint8\_buf\_t** additional_input);
-
-DRBG-CTR-GENERATE
-
-/\*\*
-
-\* DRBG function for generating random bits.
-
-\*
-
-\* Used to generate pseudo random bits after DRBG instantiation or
-
-\* DRBG reseeding.
-
-\*
-
-\* The caller should allocate space for the \`drbg_output\` buffer,\
-\* (of length \`output_len\`), and set the length of expected
-
-\* output in the \`len\` field of \`drbg_output\`. If the user-set
-length
-
-\* and the output length does not match, an error message will be
-
-\* returned.
-
-\*
-
-\* \@param drbg_state Pointer to the DRBG working state
-
-\* \@param additional_input Pointer to the additional data
-
-\* \@param output_len Required length of pseudorandom output, in bytes
-
-\* \@param drbg_output Pointer to the generated pseudo random bits
-
-\* \@return crypto_status_t Result of the DRBG generate operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_drbg\_generate**(**drbg\_state\_t**
-\*drbg_state,\
-** crypto\_uint8\_buf\_t **additional_input,\
-** size\_t** output_len,\
-** crypto\_uint8\_buf\_t** \*drbg_output);
-
-DRBG-CTR-UNINSTANTIATE
-
-/\*\*
-
-\* Uninstantiates DRBG and clears the context.
-
-\*
-
-\* \@param drbg_state Pointer to the DRBG working state
-
-\* \@return crypto_status_t Result of the DRBG uninstantiate operation
-
-\*/
-
-**crypto\_status\_t**
-**otcrypto\_drbg\_uninstantiate**(**drbg\_state\_t** \*drbg_state);
+{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_instantiate }}
+{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_reseed }}
+{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_generate }}
+{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_uninstantiate }}
+{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_manual_instantiate }}
+{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_manual_reseed }}
 
 KDF
 
@@ -1272,6 +1057,7 @@ strength and transition recommendations.
 [ecc-tls-rfc]: https://datatracker.ietf.org/doc/html/rfc4492
 [ecdh-spec]: https://csrc.nist.gov/publications/detail/sp/800-56a/rev-3/final
 [eddsa-rfc]: https://datatracker.ietf.org/doc/html/rfc8032
+[entropy-src]:  ../../../hw/ip/entropy_src/README.md
 [fips-186]: https://csrc.nist.gov/publications/detail/fips/186/5/final
 [gcm-spec]: https://csrc.nist.gov/publications/detail/sp/800-38d/final
 [hmac-rfc]: https://datatracker.ietf.org/doc/html/rfc2104
@@ -1283,6 +1069,7 @@ strength and transition recommendations.
 [nist-drbg-spec]: https://csrc.nist.gov/publications/detail/sp/800-90a/rev-1/final
 [nist-ecc-domain-params]: https://csrc.nist.gov/publications/detail/sp/800-186/final
 [nist-entropy-spec]: https://csrc.nist.gov/publications/detail/sp/800-90b/final
+[nist-rng-spec]: https://csrc.nist.gov/CSRC/media/Publications/sp/800-90c/draft/documents/sp800_90c_second_draft.pdf
 [nist-sp800-131a]: https://csrc.nist.gov/publications/detail/sp/800-131a/rev-2/final
 [nist-sp800-57]: https://csrc.nist.gov/publications/detail/sp/800-57-part-1/rev-5/final
 [otbn]: ../../../hw/ip/otbn/README.md
