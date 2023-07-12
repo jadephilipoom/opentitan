@@ -275,20 +275,17 @@ Kindly refer to the links in the [reference](#reference) section for more inform
 
 Doxygen documentation for AES-based algorithms is [here](https://opentitan.org/gen/doxy/include_2aes_8h.html).
 
-### API
-
-A one-shot API initializes the required block cipher mode of operation (ECB, CBC, CFB, OFB or CTR) and performs the required encryption/decryption.
-
-#### Key generation
+### Key generation
 
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_keygen }}
 
+### Block Cipher
 
-#### One-shot AES
+A one-shot API initializes the required block cipher mode of operation (ECB, CBC, CFB, OFB or CTR) and performs the required encryption/decryption.
 
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes }}
 
-#### AES-GCM
+### AES-GCM
 
 AES-GCM (Galois/Counter Mode) is used for authenticated encryption of the associated data and provides both confidentiality and authenticity of data.
 Confidentiality using a variation of the AES counter mode and authenticity of the confidential data using a universal hash function that is defined over a binary Galois field.
@@ -304,19 +301,19 @@ In addition, we expose the internal GHASH and GCTR operation that GCM relies upo
 This allows flexibility for use-cases that need custom GCM constructs: for example, we do not provide AES-GCM in streaming mode here because it encourages decryption and processing of unauthenticated data, but some users may need it for compatibility purposes.
 Additionally, the GHASH operation can be used to construct GCM with block ciphers other than AES.
 
-##### GCM - Authenticated Encryption and Decryption
+#### GCM - Authenticated Encryption and Decryption
 
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_encrypt_gcm }}
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_decrypt_gcm }}
 
-##### GCM - GHASH and GCTR
+#### GCM - GHASH and GCTR
 
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_gcm_ghash_init }}
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_gcm_ghash_update }}
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_gcm_ghash_final }}
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_gcm_gctr }}
 
-#### AES-KWP
+### AES-KWP
 
 AES Key Wrap (KW) is a deterministic authenticated-encryption mode of operation of the AES algorithm.
 AES-KW is designed to protect the confidentiality and the authenticity/integrity of cryptographic keys.
