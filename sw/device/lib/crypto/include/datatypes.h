@@ -22,7 +22,21 @@ extern "C" {
 #endif  // __cplusplus
 
 /**
- * Enum to handle return values of the crypto API.
+ * Return values for the crypto library.
+ *
+ * The crypto library's return value is defined as OpenTitan's internal
+ * `status_t` in order to simplify testing. However, informally the library
+ * guarantees that the concrete value contained in the status will be one of
+ * the members of the `crypto_status_value` enum below.
+ */
+typedef status_t crypto_status_t;
+
+/**
+ * Possible status values for the cryptolib.
+ *
+ * As long as the OTCRYPTO_STATUS_DEBUG define is unset, all `crypto_status_t`
+ * codes returned by the cryptolib should be bit-by-bit equivalent with one of
+ * the values in this enum. 
  *
  * Values are built to be bit-compatible with OpenTitan's internal `status_t`
  * datatypes. The highest (sign) bit indicates if the value is an error (1) or
@@ -43,7 +57,6 @@ extern "C" {
  * without changing all error codes. Remove the seed (-s argument) to generate
  * completely new 11-bit values.
  */
-typedef status_t crypto_status_t;
 typedef enum crypto_status_value {
   // Status is OK; no errors.
   kCryptoStatusOK = (int32_t)0x739,

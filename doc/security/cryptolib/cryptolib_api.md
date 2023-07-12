@@ -625,7 +625,7 @@ A DRBG mechanism takes several parameters as input, depending on its operating m
 
 To learn more about these input parameters and other DRBG details suc as entropy requirements, seed construction, derivation functions and prediction resistance, kindly refer to the [NIST SP800-90A][nist-drbg-spec], [NIST SP800-90B][nist-entropy-spec], [NIST SP800-90C][nist-rng-spec], and [BSI AIS31][bsi-ais31] documents and the links in the [reference](#reference) section.
 
-## API
+### API
 
 {{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_instantiate }}
 {{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_reseed }}
@@ -645,7 +645,7 @@ or a KMAC).
 
 To learn more about PRFs, various key derivation mechanisms and security considerations, kindly refer to [NIST SP800-108][kdf-spec] and the links in the [reference](#reference) section.
 
-## API
+### API
 
 {{#header-snippet sw/device/lib/crypto/include/kdf.h otcrypto_kdf_ctr }}
 
@@ -670,10 +670,10 @@ To export a blinded key, the user can convert it to an unblinded key, at which p
 {{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_build_unblinded_key }}
 {{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_build_blinded_key }}
 
-### (Un)Blind Keys
+### Blinding and Unblinding Keys
 
-{{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_build_unblinded_key }}
-{{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_build_blinded_key }}
+{{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_blinded_to_unblinded_key }}
+{{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_unblinded_to_blinded_key }}
 
 ## Security Strength
 
@@ -684,193 +684,42 @@ attacker would have to perform 2^n^ operations to break the algorithm.
 
 The table below summarizes the security strength for all the .
 
-+----------------+----------------+----------------+----------------+
-| **Family**     | **Algo**       | **Security     | **Comments**   |
-|                |                | Strength       |                |
-|                |                | (bits)**       |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-| Symmetric-key  | AES128         | 128            |                |
-| block ciphers  |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | AES192         | 192            |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | AES256         | 256            |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-| HASH           | SHA256         | 128            | 128 bits for   |
-|                |                |                | Collision      |
-|                |                |                | Resistance,\   |
-|                |                |                | 256 bits for   |
-|                |                |                | Preimage       |
-|                |                |                | Resistance     |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | SHA384         | 192            | 192 bits for   |
-|                |                |                | Collision      |
-|                |                |                | Resistance,\   |
-|                |                |                | 384 bits for   |
-|                |                |                | Preimage       |
-|                |                |                | Resistance     |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | SHA512         | 256            | 256 bits for   |
-|                |                |                | Collision      |
-|                |                |                | Resistance,\   |
-|                |                |                | 512 bits for   |
-|                |                |                | Preimage       |
-|                |                |                | Resistance     |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | SHA3-224       | 112            | 112 bits for   |
-|                |                |                | Collision      |
-|                |                |                | Resistance,\   |
-|                |                |                | 224 bits for   |
-|                |                |                | Preimage       |
-|                |                |                | Resistance     |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | SHA3-256       | 128            | 128 bits for   |
-|                |                |                | Collision      |
-|                |                |                | Resistance,\   |
-|                |                |                | 256 bits for   |
-|                |                |                | Preimage       |
-|                |                |                | Resistance     |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | SHA3-384       | 192            | 192 bits for   |
-|                |                |                | Collision      |
-|                |                |                | Resistance,\   |
-|                |                |                | 384 bits for   |
-|                |                |                | Preimage       |
-|                |                |                | Resistance     |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | SHA3-512       | 256            | 256 bits for   |
-|                |                |                | Collision      |
-|                |                |                | Resistance,\   |
-|                |                |                | 512 bits for   |
-|                |                |                | Preimage       |
-|                |                |                | Resistance     |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-| HASH-XOF       | SHAKE128       | Output         | For output     |
-|                |                | 'd'bits\       | size of        |
-|                |                | min(d/2,128)   | 'd'bits,\      |
-|                |                |                | Collision      |
-|                |                |                | Resistance:    |
-|                |                |                | min(d/2,128)\  |
-|                |                |                | Preimage       |
-|                |                |                | Resistance:    |
-|                |                |                | ≥min(d,128)    |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | SHAKE256       | Output         | For output     |
-|                |                | 'd'bits\       | size of        |
-|                |                | min(d/2,256)   | 'd'bits,\      |
-|                |                |                | Collision      |
-|                |                |                | Resistance:    |
-|                |                |                | min(d/2,256)\  |
-|                |                |                | Preimage       |
-|                |                |                | Resistance:    |
-|                |                |                | ≥min(d,256)    |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | cSHAKE128      | 128            |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | cSHAKE256      | 256            |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-| \              | HMAC-SHA256    | 256            |                |
-| MAC            |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | KMAC128        | 128            |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | KMAC256        | 256            |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-| RSA            | Modulus 1024   | 80             | Legacy, not    |
-|                | bits           |                | recommended    |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | Modulus 2048   | 112            |                |
-|                | bits           |                |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | Modulus 3072   | 128            |                |
-|                | bits           |                |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | Modulus 4096   | \~144          |                |
-|                | bits           |                |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-| ECC            | NIST P256      | 128            | Key size       |
-|                |                |                | {256-383}      |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | NIST P384      | 192            | Key size       |
-|                |                |                | {384-511}      |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-|                | Curve25519     | 128            |                |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-| DRBG           | CTR_DRBG       | 256            | Based on       |
-|                |                |                | AES-CTR-256    |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
-| KDF            | KDF_CTR        | 128            | With HMAC or   |
-|                |                |                | KMAC as a PRF  |
-+----------------+----------------+----------------+----------------+
-|                |                |                |                |
-+----------------+----------------+----------------+----------------+
+| **Family**     | **Algorithm**  | **Security Strength (bits)**     | **Comments**                                          |
+|----------------|----------------|----------------------------------|-------------------------------------------------------|
+| Block cipher   | AES128         | 128                              |                                                       |
+| Block cipher   | AES192         | 192                              |                                                       |
+| Block cipher   | AES256         | 256                              |                                                       |
+| Hash function  | SHA256         | 128                              | 128 bits collision, 256 bits preimage                 |
+| Hash function  | SHA384         | 192                              | 192 bits collision, 384 bits preimage                 |
+| Hash function  | SHA512         | 256                              | 256 bits collision, 512 bits preimage                 |
+| Hash function  | SHA3-224       | 112                              | 112 bits collision, 224 bits preimage                 |
+| Hash function  | SHA3-256       | 128                              | 128 bits collision, 256 bits preimage                 |
+| Hash function  | SHA3-384       | 192                              | 192 bits collision, 384 bits preimage                 |
+| Hash function  | SHA3-512       | 256                              | 256 bits collision, 512 bits preimage                 |
+| Hash-XOF       | SHAKE128       | min(`d`/2, 128)                  | `min(d/2, 128)` collision; preimage >= `min(d, 128)`  |
+| Hash-XOF       | SHAKE256       | min(`d`/2, 256)                  | `min(d/2, 256)` collision; preimage >= `min(d, 256)`  |
+| Hash-XOF       | cSHAKE128      | 128                              |                                                       |
+| Hash-XOF       | cSHAKE256      | 256                              |                                                       |
+| MAC            | HMAC-SHA256    | 256                              |                                                       |
+| MAC            | KMAC128        | 128                              |                                                       |
+| MAC            | KMAC256        | 256                              |                                                       |
+| RSA            | RSA-2048       | 112                              |                                                       |
+| RSA            | RSA-3072       | 128                              |                                                       |
+| RSA            | RSA-4096       | \~144                            |                                                       |
+| ECC            | NIST P-256     | 128                              |                                                       |
+| ECC            | NIST P-384     | 192                              |                                                       |
+| ECC            | X25519/Ed25519 | 128                              |                                                       |
+| DRBG           | CTR_DRBG       | 256                              | Based on AES-CTR-256                                  |
+| KDF            | KDF_CTR        | 128                              | With HMAC or KMAC as PRF                              |
 
-Over time the cryptographic algorithms may become more vulnerable to
-successful attacks, requiring a transition to stronger algorithms or
-longer key lengths over time. The table below is a recommendation from ,
-that provides a projected time frame for applying cryptographic
-protection at a minimum security strength.
+Over time the cryptographic algorithms may become more vulnerable to successful attacks, requiring a transition to stronger algorithms or longer key lengths over time.
+The table below is a recommendation from [NIST SP800-57 Part 1][nist-sp800-57] about concrete time frames for different security strengths.
 
-**NIST Security strength time frames**
+<img src="nist_sec_strength_recommendations.png" style="width: 800px;">
 
-Kindly refer to the security strength links in the section for more
-information on crypto algorithms, key sizes and related security
-strength and transition recommendations.
+Kindly refer to the security strength links in the [reference](#reference) section for more information on cryptographic algorithms, key sizes and related security strength and transition recommendations.
 
 ## Reference
-
 
 **General**
 1. [OpenTitan Cryptography Use Case Table][use-case-table]

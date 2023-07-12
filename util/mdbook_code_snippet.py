@@ -93,9 +93,11 @@ def get_header_snippet(m: re.Match) -> str:
                     break
 
             # Clear lines if we're not in a relevant block (e.g. newline or
-            # unrelated declaration).
+            # unrelated declaration). Special-case ignore a macro that often
+            # appears right before function declarations.
             if not in_defn and not in_comment:
-                lines = []
+                if not line.strip() == 'OT_WARN_UNUSED_RESULT':
+                    lines = []
 
             # Look for the end of a comment.
             if in_comment and '*/' in line:
