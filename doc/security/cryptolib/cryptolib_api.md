@@ -631,6 +631,9 @@ To learn more about these input parameters and other DRBG details suc as entropy
 {{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_reseed }}
 {{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_generate }}
 {{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_uninstantiate }}
+
+#### Manual Entropy Operations
+
 {{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_manual_instantiate }}
 {{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_manual_reseed }}
 
@@ -696,10 +699,10 @@ The table below summarizes the security strength for all the .
 | Hash function  | SHA3-256       | 128                              | 128 bits collision, 256 bits preimage                 |
 | Hash function  | SHA3-384       | 192                              | 192 bits collision, 384 bits preimage                 |
 | Hash function  | SHA3-512       | 256                              | 256 bits collision, 512 bits preimage                 |
-| Hash-XOF       | SHAKE128       | min(`d`/2, 128)                  | `min(d/2, 128)` collision; preimage >= `min(d, 128)`  |
-| Hash-XOF       | SHAKE256       | min(`d`/2, 256)                  | `min(d/2, 256)` collision; preimage >= `min(d, 256)`  |
-| Hash-XOF       | cSHAKE128      | 128                              |                                                       |
-| Hash-XOF       | cSHAKE256      | 256                              |                                                       |
+| Hash-XOF       | SHAKE128       | `min(d/2, 128)`                  | `min(d/2, 128)` collision; preimage >= `min(d, 128)`  |
+| Hash-XOF       | SHAKE256       | `min(d/2, 256)`                  | `min(d/2, 256)` collision; preimage >= `min(d, 256)`  |
+| Hash-XOF       | cSHAKE128      | `min(d/2, 128)`                  | `min(d/2, 128)` collision; preimage >= `min(d, 128)`  |
+| Hash-XOF       | cSHAKE256      | `min(d/2, 256)`                  | `min(d/2, 256)` collision; preimage >= `min(d, 256)`  |
 | MAC            | HMAC-SHA256    | 256                              |                                                       |
 | MAC            | KMAC128        | 128                              |                                                       |
 | MAC            | KMAC256        | 256                              |                                                       |
