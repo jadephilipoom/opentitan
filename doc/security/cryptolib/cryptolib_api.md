@@ -475,436 +475,76 @@ It is recommended that the security strength of the modulus and the security str
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_sign }}
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_verify }}
 
-ECC
+## ECC
 
-Elliptic curve cryptography (ECC) is a public-key cryptography based on
-elliptic curves over finite fields and is widely used for key agreement
-and signature schemes. ECC has an advantage over other similar
-public-key crypto systems as it uses shorter key-lengths to provide
-equivalent security.
+Elliptic curve cryptography (ECC) is a public-key cryptography based on elliptic curves over finite fields and is widely used for key agreement and signature schemes.
+ECC has an advantage over other similar public-key crypto systems as it uses shorter key-lengths to provide equivalent security.
 
-Two key types are employed in the ECC primitive: ECC public key (Q) and
-ECC private key (d). The public key can be known to everyone, and is
-used in key agreement and to verify messages. The private key is
-sensitive, known only to the user and is used to sign messages.
+Two key types are employed in the ECC primitive: ECC public key (Q) and ECC private key (d).
+The public key can be known to everyone, and is used in key agreement and to verify messages.
+The private key is sensitive, known only to the user and is used to sign messages.
 
-**ECC Key Pair**
+### ECC Key Pair
 
-ECC *private key* is denoted by 'd' where
+An ECC *private key* is denoted by `d` where `d` is a positive integer between `{1,...n−1}`.
+Here, `n` is the order of the curve subgroup, part of the domain parameters for a given curve.
+It is the same for all private keys on the curve, and is not secret.
 
-d positive integer between {1,...n−}, (where n is the order of the
-subgroup)
+An ECC *public key* is denoted by `Q`, and `Q = dG`, where:
+- `d` is the private key
+- `G` is the public base-point of the subgroup (part of the domain parameters)
 
-ECC *public key* is denoted by Q, and Q = dG, where
+### Supported Modes
 
-d private key
+OpenTitan uses the [OpenTitan Big Number Accelerator][otbn], an asymmetric cryptographic accelerator, to speed up the underlying ECC operations.
+Elliptic curves of the short Weierstrass form, Montgomery form, and twisted Edward form are supported.
+- For short Weierstrass form three predefined named curves are supported (NIST P-256, NIST P-384 and brainpool 256) along with support for user-defined generic curves.
+- For the Montgomery form, only X25519 is supported.
+- For twisted Edwards form only Ed25519 is supported.
 
-G base-point of the sub group
+APIs are defined in the following section to support key generation, key agreement and signature schemes for Weierstrass curves and X25519/Ed25519.
 
-**Supported Modes**
+The API for all ECC schemes supports [asynchronous](#synchronous-and-asynchronous-mode) operation.
 
-OpenTitan uses the OpenTitan Big Number Accelerator (), an asymmetric
-cryptographic accelerator, to speed up the underlying ECC operations.
-Only elliptic curves over prime finite fields (P) are supported.
-Elliptic curves of the short Weierstrass form, Montgomery form, and
-twisted Edward form are supported.
+Kindly refer to the links in the [reference](#reference) section for more information on ECC construction and curve types, NIST and brainpool named curves, key generation and agreement, ECDSA and EdDSA.
 
-For short Weierstrass form three predefined named curves are supported
-(NIST P256, NIST P384 and brainpool 256) along with support for
-user-defined generic curves. Programmers have the option to set
-predefined domain parameters for named curves or input their own domain
-parameters for a user-defined curve. For the Montgomery form, only
-X25519 is supported. For twisted Edwards form only Ed25519 is supported.
+### Synchronous (Blocking Mode) API
 
-APIs are defined in the to support key generation, key agreement and
-signature schemes for Weierstrass curves and X25519/Ed25519.
+#### ECDSA
 
-The APIs for ECC key generation, ECDSA, EdDSA and key agreement modes
-support two kinds of use cases: and an mode of operation.
+For ECDSA, the cryptography library provides keypair generation, signing, and signature verification.
 
-(**Synchronous API**: Blocking mode, where the crypto call does not
-return to the program until the crypto operation is complete ; and an
-**Asynchronous mode **where long-running cryptographic operations that
-use OTBN accelerator are called asynchronously to let other shorter
-computations to happen in the background. This is to support TockOS's
-low latency return call programming model, which requires long running
-operations to implement asynchronous interfaces).
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_ecdsa_keygen }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_ecdsa_sign }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_ecdsa_verify }}
 
-Kindly refer to the links in the section for more information on ECC
-construction and curve types, NIST and brainpool named curves, key
-generation and agreement, ECDSA and EdDSA.
 
-API / Wrapper
+#### ECDH
 
-Synchronous (blocking mode) API
+For ECDH (elliptic-curve Diffie-Hellman) key exchange, the cryptography library provides keypair generation and shared-key generation.
+Each party should generate a key pair, exchange public keys, and then generate the shared key using their own private key and the other party's public key.
 
-ECDSA Keygen
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_ecdh_keygen }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_ecdh }}
 
-/\*\*
+#### Ed25519
 
-\* Performs the key generation for ECDSA operation.
+For Ed25519 (a curve-specialized version of EdDSA, the Edwards curve digital signature algorithm), we support keypair generation, signature generation, and signature verification.
+There is no need to specify curve parameters for Ed25519, since it operates on a specific curve already.
 
-\*
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_ed25519_keygen }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_ed25519_sign }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_ed25519_verify }}
 
-\* Computes private key (d) and public key (Q) keys for ECDSA
+#### X25519
 
-\* operation.
+For x25519 key exchange, the cryptography library provides keypair generation and shared-key generation.
+Each party should generate a key pair, exchange public keys, and then generate the shared key using their own private key and the other party's public key.
 
-\*
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_x25519_keygen }}
+{{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_x25519 }}
 
-\* The domain_parameter field of the \`elliptic_curve\` is required
-
-\* only for a custom curve. For named curves this field is ignored
-
-\* and can be set to NULL.
-
-\*
-
-\* \@param elliptic_curve Pointer to the elliptic curve to be used
-
-\* \@param private_key Pointer to the blinded private key (d) struct
-
-\* \@param public_key Pointer to the unblinded public key (Q) struct
-
-\* \@return crypto_status_t Result of the ECDSA key generation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_ecdsa\_keygen**(**ecc\_curve\_t**
-\*elliptic_curve,\
-** crypto\_blinded\_key\_t **\*private_key,\
-** ecc\_public\_key\_t **\*public_key);
-
-ECDSA Signature
-
-/\*\*
-
-\* Performs the ECDSA digital signature generation.
-
-\*
-
-\* The domain_parameter field of the \`elliptic_curve\` is required
-
-\* only for a custom curve. For named curves this field is ignored
-
-\* and can be set to NULL.
-
-\*
-
-\* \@param private_key Pointer to the blinded private key (d) struct
-
-\* \@param input_message Input message to be signed
-
-\* \@param elliptic_curve Pointer to the elliptic curve to be used
-
-\* \@param signature Pointer to the signature struct with (r,s) values
-
-\* \@return crypto_status_t Result of the ECDSA signature generation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_ecdsa\_sign**(const
-**crypto\_blinded\_key\_t** \*private_key,\
-**crypto\_const\_uint8\_buf\_t** input_message,\
-**ecc\_curve\_t** \*elliptic_curve,\
-** ecc\_signature\_t** \*signature);
-
-Deterministic ECDSA Signature
-
-/\*\*
-
-\* Performs the deterministic ECDSA digital signature generation.
-
-\*
-
-\* In the case of deterministic ECDSA, the random value 'k'for the
-
-\* signature generation is deterministically generated from the
-
-\* private key and the input message. Refer to for details.
-
-\*
-
-\* The domain_parameter field of the \`elliptic_curve\` is required
-
-\* only for a custom curve. For named curves this field is ignored
-
-\* and can be set to NULL.
-
-\*
-
-\* \@param private_key Pointer to the blinded private key (d) struct
-
-\* \@param input_message Input message to be signed
-
-\* \@param elliptic_curve Pointer to the elliptic curve to be used
-
-\* \@param signature Pointer to the signature struct with (r,s) values
-
-\* \@return crypto_status_t Result of the deterministic ECDSA signature
-
-\* generation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_deterministic\_ecdsa\_sign**(\
-const **crypto\_blinded\_key\_t **\*private_key,
-
-**crypto\_const\_uint8\_buf\_t** input_message,
-
-**ecc\_curve\_t** \*elliptic_curve,\
-** ecc\_signature\_t** \*signature);
-
-ECDSA Verification
-
-/\*\*
-
-\* Performs the ECDSA digital signature verification.
-
-\*
-
-\* The domain_parameter field of the \`elliptic_curve\` is required
-
-\* only for a custom curve. For named curves this field is ignored
-
-\* and can be set to NULL.
-
-\*
-
-\* \@param public_key Pointer to the unblinded public key (Q) struct
-
-\* \@param input_message Input message to be signed for verification
-
-\* \@param signature Pointer to the signature to be verified
-
-\* \@param elliptic_curve Pointer to the elliptic curve to be used
-
-\* \@param verification_result Result of verification (Pass/Fail)
-
-\* \@return crypto_status_t Result of the ECDSA verification operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_ecdsa\_verify** (const
-**ecc\_public\_key\_t** \*public_key,\
-** crypto\_const\_uint8\_buf\_t **input_message,\
-** ecc\_signature\_t** \*signature,\
-** ecc\_curve\_t** \*elliptic_curve,\
-** verification\_status\_t **\*verification_result);
-
-ECDH Keygen
-
-/\*\*
-
-\* Performs the key generation for ECDH key agreement.
-
-\*
-
-\* Computes private key (d) and public key (Q) keys for ECDSA
-
-\* operation.
-
-\*
-
-\* The domain_parameter field of the \`elliptic_curve\` is required
-
-\* only for a custom curve. For named curves this field is ignored
-
-\* and can be set to NULL.
-
-\*
-
-\* \@param elliptic_curve Pointer to the elliptic curve to be used
-
-\* \@param private_key Pointer to the blinded private key (d) struct
-
-\* \@param public_key Pointer to the unblinded public key (Q) struct
-
-\* \@return crypto_status_t Result of the ECDH key generation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_ecdh\_keygen**(**ecc\_curve\_t**
-\*elliptic_curve**,**\
-** crypto\_blinded\_key\_t **\*private_key**,**\
-** ecc\_public\_key\_t** \*public_key);
-
-ECDH
-
-/\*\*
-
-\* Performs Elliptic Curve Diffie Hellman shared secret generation.
-
-\*
-
-\* The domain_parameter field of the \`elliptic_curve\` is required
-
-\* only for a custom curve. For named curves this field is ignored
-
-\* and can be set to NULL.
-
-\*
-
-\* \@param private_key Pointer to the blinded private key (d) struct
-
-\* \@param public_key Pointer to the unblinded public key (Q) struct
-
-\* \@param elliptic_curve Pointer to the elliptic curve to be used
-
-\* \@param shared_secret Pointer to generated blinded shared key struct
-
-\* \@return crypto_status_t Result of ECDH shared secret generation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_ecdh**(const **crypto\_blinded\_key\_t
-**\*private_key,\
-const **ecc\_public\_key\_t** \*public_key,\
-**ecc\_curve\_t** \*elliptic_curve,\
-**crypto\_blinded\_key\_t **\*shared_secret);
-
-Ed25519 Key Gen
-
-/\*\*
-
-\* Generates a new Ed25519 key pair.
-
-\*
-
-\* Computes the private exponent (d) and public key (Q) based on
-
-\* Curve25519.
-
-\*
-
-\* No domain_parameter is needed and is automatically set for Ed25519.
-
-\*
-
-\* \@param private_key Pointer to the blinded private key struct
-
-\* \@param public_key Pointer to the unblinded public key struct
-
-\* \@return crypto_status_t Result of the Ed25519 key generation
-
-\*/
-
-**crypto\_status\_t**
-**otcrypto\_ed25519\_keygen**(**crypto\_blinded\_key\_t
-**\*private_key,\
-** crypto\_unblinded\_key\_t** \*public_key);
-
-Ed25519 Signature
-
-/\*\*
-
-\* Generates an Ed25519 digital signature.
-
-\*
-
-\* \@param private_key Pointer to the blinded private key struct
-
-\* \@param input_message Input message to be signed
-
-\* \@param sign_mode Parameter for EdDSA or Hash EdDSA sign mode
-
-\* \@param signature Pointer to the EdDSA signature with (r,s) values
-
-\* \@return crypto_status_t Result of the EdDSA signature generation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_ed25519\_sign**(const
-**crypto\_blinded\_key\_t **\*private_key,\
-** crypto\_const\_uint8\_buf\_t **input_message,\
-** eddsa\_sign\_mode\_t** sign_mode,\
-** ecc\_signature\_t** \*signature);
-
-Ed25519 Verification
-
-/\*\*
-
-\* Verifies an Ed25519 signature.
-
-\*
-
-\* \@param public_key Pointer to the unblinded public key struct
-
-\* \@param input_message Input message to be signed for verification
-
-\* \@param sign_mode Parameter for EdDSA or Hash EdDSA sign mode
-
-\* \@param signature Pointer to the signature to be verified
-
-\* \@param verification_result Returns the result of signature
-
-\* verification (Pass/Fail)
-
-\* \@return crypto_status_t Result of the EdDSA verification operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_ed25519\_verify**(\
-const **crypto\_unblinded\_key\_t **\*public_key,\
-**crypto\_const\_uint8\_buf\_t **input_message,\
-**eddsa\_sign\_mode\_t** sign_mode,\
-** ecc\_signature\_t** \*signature,\
-** verification\_status\_t **\*verification_result);
-
-X25519 Key Gen
-
-/\*\*
-
-\* Generates a new key pair for X25519 key exchange.
-
-\*
-
-\* Computes the private scalar (d) and public key (Q) based on
-
-\* Curve25519.
-
-\*
-
-\* No domain_parameter is needed and is automatically set for X25519.
-
-\*
-
-\* \@param private_key Pointer to the blinded private key struct
-
-\* \@param public_key Pointer to the unblinded public key struct
-
-\* \@return crypto_status_t Result of the X25519 key generation
-
-\*/
-
-**crypto\_status\_t**
-**otcrypto\_x25519\_keygen**(**crypto\_blinded\_key\_t **\*private_key,\
-** crypto\_unblinded\_key\_t** \*public_key);
-
-X25519 Key exchange
-
-/\*\*
-
-\* Performs the X25519 Diffie Hellman shared secret generation.
-
-\*
-
-\* \@param private_key Pointer to blinded private key (u-coordinate)
-
-\* \@param public_key Pointer to the public scalar from the sender
-
-\* \@param shared_secret Pointer to shared secret key (u-coordinate)
-
-\* \@return crypto_status_t Result of the X25519 operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_x25519**(const
-**crypto\_blinded\_key\_t** \*private_key**,**\
-** **const **crypto\_unblinded\_key\_t **\*public_key**,**\
-** crypto\_blinded\_key\_t **\*shared_secret);
-
-Asynchronous APIs
+## Asynchronous APIs
 
 The defines a way to asynchronously run the long running cryptographic
 operations that use OTBN. The OTBN accelerator itself is treated as a
