@@ -625,181 +625,57 @@ A DRBG mechanism takes several parameters as input, depending on its operating m
 
 To learn more about these input parameters and other DRBG details suc as entropy requirements, seed construction, derivation functions and prediction resistance, kindly refer to the [NIST SP800-90A][nist-drbg-spec], [NIST SP800-90B][nist-entropy-spec], [NIST SP800-90C][nist-rng-spec], and [BSI AIS31][bsi-ais31] documents and the links in the [reference](#reference) section.
 
+## API
 
-{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_instantiate }}
-{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_reseed }}
-{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_generate }}
-{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_uninstantiate }}
-{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_manual_instantiate }}
-{{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_drbg_manual_reseed }}
+{{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_instantiate }}
+{{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_reseed }}
+{{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_generate }}
+{{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_uninstantiate }}
+{{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_manual_instantiate }}
+{{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_manual_reseed }}
 
-KDF
+## KDF
 
-OpenTitan Key derivation functions (KDF) provide key-expansion
-capability. Key derivation functions can be used to derive additional
-keys from a cryptographic key that has been established through an
-automated key-establishment scheme or from a pre-shared key.
+OpenTitan Key derivation functions (KDF) provide key-expansion capability.
+Key derivation functions can be used to derive additional keys from a cryptographic key that has been established through an automated key-establishment scheme or from a pre-shared key.
 
-The OpenTitan key derivation function is based on the counter mode and
-uses a pseudorandom function (PRF) as a building block. OpenTitan KDF
-function supports a user-selectable PRF as the engine (i.e. either HMAC
+The OpenTitan key derivation function is based on the counter mode and uses a pseudorandom function (PRF) as a building block.
+OpenTitan KDF functions support a user-selectable PRF as the engine (i.e. either HMAC
 or a KMAC).
 
-To learn more about PRFs, various key derivation mechanisms and security
-considerations, kindly refer to the and the links in the section.
+To learn more about PRFs, various key derivation mechanisms and security considerations, kindly refer to [NIST SP800-108][kdf-spec] and the links in the [reference](#reference) section.
 
-API
+## API
 
-KDF_CTR
+{{#header-snippet sw/device/lib/crypto/include/kdf.h otcrypto_kdf_ctr }}
 
-/\*\*
+## Key Transport
 
-\* Performs the key derivation function in counter mode.
+The following section defines the interface for importing keys to and exporting keys from the crypto library.
 
-\*
+The crypto library typically represents private keys in blinded form, where the exact shape of the blinded key is opaque to the user.
+Public keys are in unblinded form, and the user can easily extract the plain key data.
+However, in some cases, a user might want to import a key generated elsewhere into the cryptolib, or might want to export a private key for use in a different piece of code.
+The crypto library provides four functions for this purpose:
+- Build unblinded key from user-provided key data and mode
+- Build blinded key from user-provided key data and configuration
+- Convert blinded key to unblinded key
+- Convert unblinded key to blinded key
 
-\* The required PRF engine for the KDF function is selected using the
+To import a private key generated elsewhere, for example, the user can call `otcrypto_build_blinded_key`.
+To export a blinded key, the user can convert it to an unblinded key, at which point the plain data is accessible.
 
-\* \`kdf_mode\` parameter.
+### Build Keys
 
-\*
+{{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_build_unblinded_key }}
+{{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_build_blinded_key }}
 
-\* \@param key_derivation_key Pointer to the blinded key derivation key
+### (Un)Blind Keys
 
-\* \@param kdf_mode Required KDF mode, with HMAC or KMAC as a PRF
+{{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_build_unblinded_key }}
+{{#header-snippet sw/device/lib/crypto/include/key_transport.h otcrypto_build_blinded_key }}
 
-\* \@param key_mode Crypto mode for which the derived key is intended
-
-\* \@param required_bit_len Required length of the derived key in bits
-
-\* \@param keying_material Pointer to the blinded keying material
-
-\* \@return crypto_status_t Result of the key derivation operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_kdf\_ctr**(const
-**crypto\_blinded\_key\_t** key_derivation_key,\
-** kdf\_type\_t** kdf_mode,\
-** key\_mode\_t** key_mode,\
-** size\_t** required_bit_len,\
-** crypto\_blinded\_key\_t** keying_material);
-
-Key Import and Export
-
-The following section defines the APIs required to import and export
-keys.
-
-Import key function takes a user key in plain and generates an OpenTitan
-specific unblinded (not-masked) or blinded (masked with 'n'shares) key
-struct. The export function unloads the blinded key to an unblinded key
-from which the user can read the plain key when required.
-
-API
-
-Build unblinded key
-
-/\*\*
-
-\* Builds an unblinded key struct from a user (plain) key.
-
-\*
-
-\* \@param plain_key Pointer to the user defined plain key
-
-\* \@param key_mode Crypto mode for which the key usage is intended
-
-\* \@param unblinded_key Generated unblinded key struct
-
-\* \@return crypto_status_t Result of the build unblinded key operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_build\_unblinded\_key**(\
-**crypto\_const\_uint8\_buf\_t **plain_key,\
-**key\_mode\_t** key_mode,\
-**crypto\_unblinded\_key\_t **unblinded_key);
-
-Build blinded key
-
-/\*\*
-
-\* Builds a blinded key struct from a plain key.
-
-\*
-
-\* This API takes as input a plain key from the user and masks
-
-\* it using an implantation specific masking with 'n'shares and
-
-\* generates a blinded key struct as output.
-
-\*
-
-\* \@param plain_key Pointer to the user defined plain key
-
-\* \@param key_mode Crypto mode for which the key usage is intended
-
-\* \@param blinded_key Generated blinded key struct
-
-\* \@return crypto_status_t Result of the build blinded key operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_build\_blinded\_key**(\
-**crypto\_const\_uint8\_buf\_t** plain_key,\
-**key\_mode\_t** key_mode,\
-**crypto\_blinded\_key\_t **blinded_key);
-
-Blinded key to Unblinded key
-
-/\*\*
-
-\* Exports the blinded key struct to an unblinded key struct.
-
-\*
-
-\* This API takes as input a blinded key masked with 'n'shares,
-
-\* removes the masking and generates an unblinded key struct as
-
-\* output.
-
-\*
-
-\* \@param blinded_key Blinded key struct to be unmasked
-
-\* \@param unblinded_key Generated unblinded key struct
-
-\* \@return crypto_status_t Result of the blinded key export operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_blinded\_to\_unblinded\_key**(\
-const **crypto\_blinded\_key\_t** blinded_key,\
-**crypto\_unblinded\_key\_t** unblinded_key);
-
-Unblinded key to Blinded key
-
-/\*\*
-
-\* Build a blinded key struct from an unblinded key struct.
-
-\*
-
-\* \@param unblinded_key Blinded key struct to be unmasked
-
-\* \@param blinded_key Generated (unmasked) unblinded key struct
-
-\* \@return crypto_status_t Result of unblinded key export operation
-
-\*/
-
-**crypto\_status\_t** **otcrypto\_unblinded\_to\_blinded\_key**(\
-const **crypto\_unblinded\_key** unblinded_key,\
-**crypto\_blinded\_key\_t **blinded_key);
-
-Security Strength
+## Security Strength
 
 Security strength in simple terms denotes the amount of work required to
 break a cryptographic algorithm. Security strength of an algorithm with
