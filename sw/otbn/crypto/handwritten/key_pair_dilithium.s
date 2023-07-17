@@ -380,17 +380,17 @@ rej_eta_sample_loop_inner:
             /* t0 = t0 - (205*t0 >> 10)*5; */
             /* 205 * t0 */
             bn.addi w12, bn0, 205
-            bn.mulmv.l.8S w13, w12, w9, 0, nored
+            bn.mulv.l.8S w13, w12, w9, 0
             /* (205 * t0 >> 10) */
             bn.rshi w13, bn0, w13 >> 10
             /* (205*t0 >> 10)*5 */
             bn.addi w12, bn0, 5
-            bn.mulmv.l.8S w13, w12, w13, 0, nored
+            bn.mulv.l.8S w13, w12, w13, 0
             /* t0 - (205 * t0 >> 10) * 5 */
-            bn.submv.8S w9, w9, w13 nored
+            bn.subv.8S w9, w9, w13
             /* 2 - (t0 - (205 * t0 >> 10) * 5) */
             bn.addi w13, bn0, 2
-            bn.submv.8S w9, w13, w9 nored
+            bn.subv.8S w9, w13, w9
 
             /* WDR to GPR */
             addi t2, zero, 9
@@ -415,17 +415,17 @@ rej_eta_sample_loop_inner_1:
             /* t1 = t1 - (205*t1 >> 10)*5; */
             /* 205 * t1 */
             bn.addi w12, w31, 205
-            bn.mulmv.l.8S w13, w12, w10, 0, nored
+            bn.mulv.l.8S w13, w12, w10, 0
             /* (205 * t1 >> 10) */
             bn.rshi w13, bn0, w13 >> 10
             /* (205*t1 >> 10)*5 */
             bn.addi w12, bn0, 5
-            bn.mulmv.8S w13, w12, w13, 0, nored
+            bn.mulv.8S w13, w12, w13
             /* t1 - (205 * t1 >> 10) * 5 */
-            bn.submv.8S w10, w10, w13 nored
+            bn.subv.8S w10, w10, w13
             /* 2 - (t1 - (205 * t1 >> 10) * 5) */
             bn.addi w13, bn0, 2
-            bn.submv.8S w10, w13, w10 nored
+            bn.subv.8S w10, w13, w10
 
             addi t2, zero, 10
             bn.sid t2, STACK_WDR2GPR(fp)
@@ -601,7 +601,7 @@ polyeta_pack_dilithium:
         /* w2 <= coeffs[i:i+8] */
         bn.lid t2, 0(a1)
         /* w2 <= eta - w2 */
-        bn.submv.8S w2, w1, w2 nored
+        bn.subv.8S w2, w1, w2
         /* coeffs[i:i+8] <= w2 */
         bn.sid t2, 0(a1)
         addi a1, a1, 32
@@ -816,7 +816,7 @@ polyt0_pack_dilithium:
         /* w2 <= coeffs[i:i+8] */
         bn.lid t2, 0(a1)
         /* w2 <= (1 << (D-1)) - coeffs */
-        bn.submv.8S w2, w1, w2 nored
+        bn.subv.8S w2, w1, w2
         /* coeffs[i:i+8] <= w2 */
         bn.sid t2, 0(a1)
         addi a1, a1, 32

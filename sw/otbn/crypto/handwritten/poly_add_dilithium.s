@@ -29,7 +29,7 @@ poly_add_dilithium:
         bn.lid x6, 0(x10++)
         bn.lid x5, 0(x11++)
         
-        bn.addmv.8S w2, w2, w3
+        bn.addvm.8S w2, w2, w3
         
         bn.sid x6, 0(x12++)
 

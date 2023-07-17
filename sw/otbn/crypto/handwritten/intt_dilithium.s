@@ -117,30 +117,30 @@ intt_dilithium:
         bn.lid x30, 224(x11)
 
         /* Butterflies */
-        bn.submv.8S w30, w2, w3
-        bn.addmv.8S w2, w2, w3
-        bn.mulmv.8S w3, w30, w18, 0
-        bn.submv.8S w30, w4, w5
-        bn.addmv.8S w4, w4, w5
-        bn.mulmv.8S w5, w30, w19, 0
-        bn.submv.8S w30, w6, w7
-        bn.addmv.8S w6, w6, w7
-        bn.mulmv.8S w7, w30, w20, 0
-        bn.submv.8S w30, w8, w9
-        bn.addmv.8S w8, w8, w9
-        bn.mulmv.8S w9, w30, w21, 0
-        bn.submv.8S w30, w10, w11
-        bn.addmv.8S w10, w10, w11
-        bn.mulmv.8S w11, w30, w22, 0
-        bn.submv.8S w30, w12, w13
-        bn.addmv.8S w12, w12, w13
-        bn.mulmv.8S w13, w30, w23, 0
-        bn.submv.8S w30, w14, w15
-        bn.addmv.8S w14, w14, w15
-        bn.mulmv.8S w15, w30, w24, 0
-        bn.submv.8S w30, w16, w17
-        bn.addmv.8S w16, w16, w17
-        bn.mulmv.8S w17, w30, w25, 0
+        bn.subvm.8S w30, w2, w3
+        bn.addvm.8S w2, w2, w3
+        bn.mulvm.8S w3, w30, w18
+        bn.subvm.8S w30, w4, w5
+        bn.addvm.8S w4, w4, w5
+        bn.mulvm.8S w5, w30, w19
+        bn.subvm.8S w30, w6, w7
+        bn.addvm.8S w6, w6, w7
+        bn.mulvm.8S w7, w30, w20
+        bn.subvm.8S w30, w8, w9
+        bn.addvm.8S w8, w8, w9
+        bn.mulvm.8S w9, w30, w21
+        bn.subvm.8S w30, w10, w11
+        bn.addvm.8S w10, w10, w11
+        bn.mulvm.8S w11, w30, w22
+        bn.subvm.8S w30, w12, w13
+        bn.addvm.8S w12, w12, w13
+        bn.mulvm.8S w13, w30, w23
+        bn.subvm.8S w30, w14, w15
+        bn.addvm.8S w14, w14, w15
+        bn.mulvm.8S w15, w30, w24
+        bn.subvm.8S w30, w16, w17
+        bn.addvm.8S w16, w16, w17
+        bn.mulvm.8S w17, w30, w25
 
         /* Reverse Layer 7, stride 2 */
 
@@ -151,30 +151,30 @@ intt_dilithium:
         bn.lid x26, 352(x11)
 
         /* Butterflies */
-        bn.submv.8S w30, w2, w4
-        bn.addmv.8S w2, w2, w4
-        bn.mulmv.8S w4, w30, w18, 0
-        bn.submv.8S w30, w3, w5
-        bn.addmv.8S w3, w3, w5
-        bn.mulmv.8S w5, w30, w18, 0
-        bn.submv.8S w30, w6, w8
-        bn.addmv.8S w6, w6, w8
-        bn.mulmv.8S w8, w30, w19, 0
-        bn.submv.8S w30, w7, w9
-        bn.addmv.8S w7, w7, w9
-        bn.mulmv.8S w9, w30, w19, 0
-        bn.submv.8S w30, w10, w12
-        bn.addmv.8S w10, w10, w12
-        bn.mulmv.8S w12, w30, w20, 0
-        bn.submv.8S w30, w11, w13
-        bn.addmv.8S w11, w11, w13
-        bn.mulmv.8S w13, w30, w20, 0
-        bn.submv.8S w30, w14, w16
-        bn.addmv.8S w14, w14, w16
-        bn.mulmv.8S w16, w30, w21, 0
-        bn.submv.8S w30, w15, w17
-        bn.addmv.8S w15, w15, w17
-        bn.mulmv.8S w17, w30, w21, 0
+        bn.subvm.8S w30, w2, w4
+        bn.addvm.8S w2, w2, w4
+        bn.mulvm.8S w4, w30, w18
+        bn.subvm.8S w30, w3, w5
+        bn.addvm.8S w3, w3, w5
+        bn.mulvm.8S w5, w30, w18
+        bn.subvm.8S w30, w6, w8
+        bn.addvm.8S w6, w6, w8
+        bn.mulvm.8S w8, w30, w19
+        bn.subvm.8S w30, w7, w9
+        bn.addvm.8S w7, w7, w9
+        bn.mulvm.8S w9, w30, w19
+        bn.subvm.8S w30, w10, w12
+        bn.addvm.8S w10, w10, w12
+        bn.mulvm.8S w12, w30, w20
+        bn.subvm.8S w30, w11, w13
+        bn.addvm.8S w11, w11, w13
+        bn.mulvm.8S w13, w30, w20
+        bn.subvm.8S w30, w14, w16
+        bn.addvm.8S w14, w14, w16
+        bn.mulvm.8S w16, w30, w21
+        bn.subvm.8S w30, w15, w17
+        bn.addvm.8S w15, w15, w17
+        bn.mulvm.8S w17, w30, w21
 
         /* Reverse Layer 6, stride 4 */
 
@@ -183,30 +183,30 @@ intt_dilithium:
         bn.lid x24, 416(x11)
 
         /* Butterflies */
-        bn.submv.8S w30, w2, w6
-        bn.addmv.8S w2, w2, w6
-        bn.mulmv.8S w6, w30, w18, 0
-        bn.submv.8S w30, w3, w7
-        bn.addmv.8S w3, w3, w7
-        bn.mulmv.8S w7, w30, w18, 0
-        bn.submv.8S w30, w4, w8
-        bn.addmv.8S w4, w4, w8
-        bn.mulmv.8S w8, w30, w18, 0
-        bn.submv.8S w30, w5, w9
-        bn.addmv.8S w5, w5, w9
-        bn.mulmv.8S w9, w30, w18, 0
-        bn.submv.8S w30, w10, w14
-        bn.addmv.8S w10, w10, w14
-        bn.mulmv.8S w14, w30, w19, 0
-        bn.submv.8S w30, w11, w15
-        bn.addmv.8S w11, w11, w15
-        bn.mulmv.8S w15, w30, w19, 0
-        bn.submv.8S w30, w12, w16
-        bn.addmv.8S w12, w12, w16
-        bn.mulmv.8S w16, w30, w19, 0
-        bn.submv.8S w30, w13, w17
-        bn.addmv.8S w13, w13, w17
-        bn.mulmv.8S w17, w30, w19, 0
+        bn.subvm.8S w30, w2, w6
+        bn.addvm.8S w2, w2, w6
+        bn.mulvm.8S w6, w30, w18
+        bn.subvm.8S w30, w3, w7
+        bn.addvm.8S w3, w3, w7
+        bn.mulvm.8S w7, w30, w18
+        bn.subvm.8S w30, w4, w8
+        bn.addvm.8S w4, w4, w8
+        bn.mulvm.8S w8, w30, w18
+        bn.subvm.8S w30, w5, w9
+        bn.addvm.8S w5, w5, w9
+        bn.mulvm.8S w9, w30, w18
+        bn.subvm.8S w30, w10, w14
+        bn.addvm.8S w10, w10, w14
+        bn.mulvm.8S w14, w30, w19
+        bn.subvm.8S w30, w11, w15
+        bn.addvm.8S w11, w11, w15
+        bn.mulvm.8S w15, w30, w19
+        bn.subvm.8S w30, w12, w16
+        bn.addvm.8S w12, w12, w16
+        bn.mulvm.8S w16, w30, w19
+        bn.subvm.8S w30, w13, w17
+        bn.addvm.8S w13, w13, w17
+        bn.mulvm.8S w17, w30, w19
 
         /* Transpose */
         /* bn.trans8 w2, w2 */
@@ -251,30 +251,30 @@ intt_dilithium:
         bn.lid x23, 448(x11)
         
         /* Butterflies */
-        bn.submv.8S   w30, w2, w3
-        bn.addmv.8S   w2, w2, w3
-        bn.mulmv.l.8S w3, w30, w18, 0
-        bn.submv.8S   w30, w4, w5
-        bn.addmv.8S   w4, w4, w5
-        bn.mulmv.l.8S w5, w30, w18, 1
-        bn.submv.8S   w30, w6, w7
-        bn.addmv.8S   w6, w6, w7
-        bn.mulmv.l.8S w7, w30, w18, 2
-        bn.submv.8S   w30, w8, w9
-        bn.addmv.8S   w8, w8, w9
-        bn.mulmv.l.8S w9, w30, w18, 3
-        bn.submv.8S   w30, w10, w11
-        bn.addmv.8S   w10, w10, w11
-        bn.mulmv.l.8S w11, w30, w18, 4
-        bn.submv.8S   w30, w12, w13
-        bn.addmv.8S   w12, w12, w13
-        bn.mulmv.l.8S w13, w30, w18, 5
-        bn.submv.8S   w30, w14, w15
-        bn.addmv.8S   w14, w14, w15
-        bn.mulmv.l.8S w15, w30, w18, 6
-        bn.submv.8S   w30, w16, w17
-        bn.addmv.8S   w16, w16, w17
-        bn.mulmv.l.8S w17, w30, w18, 7
+        bn.subvm.8S   w30, w2, w3
+        bn.addvm.8S   w2, w2, w3
+        bn.mulvm.l.8S w3, w30, w18, 0
+        bn.subvm.8S   w30, w4, w5
+        bn.addvm.8S   w4, w4, w5
+        bn.mulvm.l.8S w5, w30, w18, 1
+        bn.subvm.8S   w30, w6, w7
+        bn.addvm.8S   w6, w6, w7
+        bn.mulvm.l.8S w7, w30, w18, 2
+        bn.subvm.8S   w30, w8, w9
+        bn.addvm.8S   w8, w8, w9
+        bn.mulvm.l.8S w9, w30, w18, 3
+        bn.subvm.8S   w30, w10, w11
+        bn.addvm.8S   w10, w10, w11
+        bn.mulvm.l.8S w11, w30, w18, 4
+        bn.subvm.8S   w30, w12, w13
+        bn.addvm.8S   w12, w12, w13
+        bn.mulvm.l.8S w13, w30, w18, 5
+        bn.subvm.8S   w30, w14, w15
+        bn.addvm.8S   w14, w14, w15
+        bn.mulvm.l.8S w15, w30, w18, 6
+        bn.subvm.8S   w30, w16, w17
+        bn.addvm.8S   w16, w16, w17
+        bn.mulvm.l.8S w17, w30, w18, 7
 
         bn.sid x4, 0(x10)
         bn.sid x5, 32(x10)
@@ -323,118 +323,118 @@ intt_dilithium:
         bn.lid x22, 960(x10)
 
         /* Reverse Layer 4, stride 16 */
-        bn.submv.8S   w30, w2, w3
-        bn.addmv.8S   w2, w2, w3
-        bn.mulmv.l.8S w3, w30, w18, 0
-        bn.submv.8S   w30, w4, w5
-        bn.addmv.8S   w4, w4, w5
-        bn.mulmv.l.8S w5, w30, w18, 1
-        bn.submv.8S   w30, w6, w7
-        bn.addmv.8S   w6, w6, w7
-        bn.mulmv.l.8S w7, w30, w18, 2
-        bn.submv.8S   w30, w8, w9
-        bn.addmv.8S   w8, w8, w9
-        bn.mulmv.l.8S w9, w30, w18, 3
-        bn.submv.8S   w30, w10, w11
-        bn.addmv.8S   w10, w10, w11
-        bn.mulmv.l.8S w11, w30, w18, 4
-        bn.submv.8S   w30, w12, w13
-        bn.addmv.8S   w12, w12, w13
-        bn.mulmv.l.8S w13, w30, w18, 5
-        bn.submv.8S   w30, w14, w15
-        bn.addmv.8S   w14, w14, w15
-        bn.mulmv.l.8S w15, w30, w18, 6
-        bn.submv.8S   w30, w16, w17
-        bn.addmv.8S   w16, w16, w17
-        bn.mulmv.l.8S w17, w30, w18, 7
+        bn.subvm.8S   w30, w2, w3
+        bn.addvm.8S   w2, w2, w3
+        bn.mulvm.l.8S w3, w30, w18, 0
+        bn.subvm.8S   w30, w4, w5
+        bn.addvm.8S   w4, w4, w5
+        bn.mulvm.l.8S w5, w30, w18, 1
+        bn.subvm.8S   w30, w6, w7
+        bn.addvm.8S   w6, w6, w7
+        bn.mulvm.l.8S w7, w30, w18, 2
+        bn.subvm.8S   w30, w8, w9
+        bn.addvm.8S   w8, w8, w9
+        bn.mulvm.l.8S w9, w30, w18, 3
+        bn.subvm.8S   w30, w10, w11
+        bn.addvm.8S   w10, w10, w11
+        bn.mulvm.l.8S w11, w30, w18, 4
+        bn.subvm.8S   w30, w12, w13
+        bn.addvm.8S   w12, w12, w13
+        bn.mulvm.l.8S w13, w30, w18, 5
+        bn.subvm.8S   w30, w14, w15
+        bn.addvm.8S   w14, w14, w15
+        bn.mulvm.l.8S w15, w30, w18, 6
+        bn.subvm.8S   w30, w16, w17
+        bn.addvm.8S   w16, w16, w17
+        bn.mulvm.l.8S w17, w30, w18, 7
 
         /* Layer 3 */
-        bn.submv.8S   w30, w2, w4
-        bn.addmv.8S   w2, w2, w4
-        bn.mulmv.l.8S w4, w30, w19, 0
-        bn.submv.8S   w30, w3, w5
-        bn.addmv.8S   w3, w3, w5
-        bn.mulmv.l.8S w5, w30, w19, 0
-        bn.submv.8S   w30, w6, w8
-        bn.addmv.8S   w6, w6, w8
-        bn.mulmv.l.8S w8, w30, w19, 1
-        bn.submv.8S   w30, w7, w9
-        bn.addmv.8S   w7, w7, w9
-        bn.mulmv.l.8S w9, w30, w19, 1
-        bn.submv.8S   w30, w10, w12
-        bn.addmv.8S   w10, w10, w12
-        bn.mulmv.l.8S w12, w30, w19, 2
-        bn.submv.8S   w30, w11, w13
-        bn.addmv.8S   w11, w11, w13
-        bn.mulmv.l.8S w13, w30, w19, 2
-        bn.submv.8S   w30, w14, w16
-        bn.addmv.8S   w14, w14, w16
-        bn.mulmv.l.8S w16, w30, w19, 3
-        bn.submv.8S   w30, w15, w17
-        bn.addmv.8S   w15, w15, w17
-        bn.mulmv.l.8S w17, w30, w19, 3
+        bn.subvm.8S   w30, w2, w4
+        bn.addvm.8S   w2, w2, w4
+        bn.mulvm.l.8S w4, w30, w19, 0
+        bn.subvm.8S   w30, w3, w5
+        bn.addvm.8S   w3, w3, w5
+        bn.mulvm.l.8S w5, w30, w19, 0
+        bn.subvm.8S   w30, w6, w8
+        bn.addvm.8S   w6, w6, w8
+        bn.mulvm.l.8S w8, w30, w19, 1
+        bn.subvm.8S   w30, w7, w9
+        bn.addvm.8S   w7, w7, w9
+        bn.mulvm.l.8S w9, w30, w19, 1
+        bn.subvm.8S   w30, w10, w12
+        bn.addvm.8S   w10, w10, w12
+        bn.mulvm.l.8S w12, w30, w19, 2
+        bn.subvm.8S   w30, w11, w13
+        bn.addvm.8S   w11, w11, w13
+        bn.mulvm.l.8S w13, w30, w19, 2
+        bn.subvm.8S   w30, w14, w16
+        bn.addvm.8S   w14, w14, w16
+        bn.mulvm.l.8S w16, w30, w19, 3
+        bn.subvm.8S   w30, w15, w17
+        bn.addvm.8S   w15, w15, w17
+        bn.mulvm.l.8S w17, w30, w19, 3
 
         /* Layer 2 */
-        bn.submv.8S   w30, w2, w6
-        bn.addmv.8S   w2, w2, w6
-        bn.mulmv.l.8S w6, w30, w19, 4
-        bn.submv.8S   w30, w3, w7
-        bn.addmv.8S   w3, w3, w7
-        bn.mulmv.l.8S w7, w30, w19, 4
-        bn.submv.8S   w30, w4, w8
-        bn.addmv.8S   w4, w4, w8
-        bn.mulmv.l.8S w8, w30, w19, 4
-        bn.submv.8S   w30, w5, w9
-        bn.addmv.8S   w5, w5, w9
-        bn.mulmv.l.8S w9, w30, w19, 4
-        bn.submv.8S   w30, w10, w14
-        bn.addmv.8S   w10, w10, w14
-        bn.mulmv.l.8S w14, w30, w19, 5
-        bn.submv.8S   w30, w11, w15
-        bn.addmv.8S   w11, w11, w15
-        bn.mulmv.l.8S w15, w30, w19, 5
-        bn.submv.8S   w30, w12, w16
-        bn.addmv.8S   w12, w12, w16
-        bn.mulmv.l.8S w16, w30, w19, 5
-        bn.submv.8S   w30, w13, w17
-        bn.addmv.8S   w13, w13, w17
-        bn.mulmv.l.8S w17, w30, w19, 5
+        bn.subvm.8S   w30, w2, w6
+        bn.addvm.8S   w2, w2, w6
+        bn.mulvm.l.8S w6, w30, w19, 4
+        bn.subvm.8S   w30, w3, w7
+        bn.addvm.8S   w3, w3, w7
+        bn.mulvm.l.8S w7, w30, w19, 4
+        bn.subvm.8S   w30, w4, w8
+        bn.addvm.8S   w4, w4, w8
+        bn.mulvm.l.8S w8, w30, w19, 4
+        bn.subvm.8S   w30, w5, w9
+        bn.addvm.8S   w5, w5, w9
+        bn.mulvm.l.8S w9, w30, w19, 4
+        bn.subvm.8S   w30, w10, w14
+        bn.addvm.8S   w10, w10, w14
+        bn.mulvm.l.8S w14, w30, w19, 5
+        bn.subvm.8S   w30, w11, w15
+        bn.addvm.8S   w11, w11, w15
+        bn.mulvm.l.8S w15, w30, w19, 5
+        bn.subvm.8S   w30, w12, w16
+        bn.addvm.8S   w12, w12, w16
+        bn.mulvm.l.8S w16, w30, w19, 5
+        bn.subvm.8S   w30, w13, w17
+        bn.addvm.8S   w13, w13, w17
+        bn.mulvm.l.8S w17, w30, w19, 5
 
         /* Layer 1 */
-        bn.submv.8S   w30, w2, w10
-        bn.addmv.8S   w2, w2, w10
-        bn.mulmv.l.8S w10, w30, w19, 6
-        bn.submv.8S   w30, w3, w11
-        bn.addmv.8S   w3, w3, w11
-        bn.mulmv.l.8S w11, w30, w19, 6
-        bn.submv.8S   w30, w4, w12
-        bn.addmv.8S   w4, w4, w12
-        bn.mulmv.l.8S w12, w30, w19, 6
-        bn.submv.8S   w30, w5, w13
-        bn.addmv.8S   w5, w5, w13
-        bn.mulmv.l.8S w13, w30, w19, 6
-        bn.submv.8S   w30, w6, w14
-        bn.addmv.8S   w6, w6, w14
-        bn.mulmv.l.8S w14, w30, w19, 6
-        bn.submv.8S   w30, w7, w15
-        bn.addmv.8S   w7, w7, w15
-        bn.mulmv.l.8S w15, w30, w19, 6
-        bn.submv.8S   w30, w8, w16
-        bn.addmv.8S   w8, w8, w16
-        bn.mulmv.l.8S w16, w30, w19, 6
-        bn.submv.8S   w30, w9, w17
-        bn.addmv.8S   w9, w9, w17
-        bn.mulmv.l.8S w17, w30, w19, 6
+        bn.subvm.8S   w30, w2, w10
+        bn.addvm.8S   w2, w2, w10
+        bn.mulvm.l.8S w10, w30, w19, 6
+        bn.subvm.8S   w30, w3, w11
+        bn.addvm.8S   w3, w3, w11
+        bn.mulvm.l.8S w11, w30, w19, 6
+        bn.subvm.8S   w30, w4, w12
+        bn.addvm.8S   w4, w4, w12
+        bn.mulvm.l.8S w12, w30, w19, 6
+        bn.subvm.8S   w30, w5, w13
+        bn.addvm.8S   w5, w5, w13
+        bn.mulvm.l.8S w13, w30, w19, 6
+        bn.subvm.8S   w30, w6, w14
+        bn.addvm.8S   w6, w6, w14
+        bn.mulvm.l.8S w14, w30, w19, 6
+        bn.subvm.8S   w30, w7, w15
+        bn.addvm.8S   w7, w7, w15
+        bn.mulvm.l.8S w15, w30, w19, 6
+        bn.subvm.8S   w30, w8, w16
+        bn.addvm.8S   w8, w8, w16
+        bn.mulvm.l.8S w16, w30, w19, 6
+        bn.subvm.8S   w30, w9, w17
+        bn.addvm.8S   w9, w9, w17
+        bn.mulvm.l.8S w17, w30, w19, 6
 
         /* Multiply n^{-1} */
-        bn.mulmv.l.8S w2, w2, w19, 7
-        bn.mulmv.l.8S w3, w3, w19, 7
-        bn.mulmv.l.8S w4, w4, w19, 7
-        bn.mulmv.l.8S w5, w5, w19, 7
-        bn.mulmv.l.8S w6, w6, w19, 7
-        bn.mulmv.l.8S w7, w7, w19, 7
-        bn.mulmv.l.8S w8, w8, w19, 7
-        bn.mulmv.l.8S w9, w9, w19, 7
+        bn.mulvm.l.8S w2, w2, w19, 7
+        bn.mulvm.l.8S w3, w3, w19, 7
+        bn.mulvm.l.8S w4, w4, w19, 7
+        bn.mulvm.l.8S w5, w5, w19, 7
+        bn.mulvm.l.8S w6, w6, w19, 7
+        bn.mulvm.l.8S w7, w7, w19, 7
+        bn.mulvm.l.8S w8, w8, w19, 7
+        bn.mulvm.l.8S w9, w9, w19, 7
 
         /* Store output data */
         bn.sid x4,  0(x10)

@@ -14,7 +14,7 @@ submv:
     bn.lid  x23, 0(x10)
     bn.lid  x24, 0(x11)
 
-    bn.submv.8S w25, w23, w24
+    bn.subvm.8S w25, w23, w24
 
     /* Write result
          dmem[x10] <= w25 */

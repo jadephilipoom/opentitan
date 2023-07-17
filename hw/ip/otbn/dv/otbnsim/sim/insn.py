@@ -17,9 +17,9 @@ sys.path.append('../../util')
 import otbn_sim_py_shared as shared
 from dilithiumpy.shake_wrapper import Shake
 
-DEBUG_MEM = False
-DEBUG_BRANCH = False
-DEBUG_ARITH = False
+DEBUG_MEM = True
+DEBUG_BRANCH = True
+DEBUG_ARITH = True
 DEBUG_KMAC = False
 DEBUG_FLOW = True
 
@@ -696,50 +696,64 @@ class BNADDI(OTBNInsn):
 
 
 class BNADDM(OTBNInsn):
-    insn = insn_for_mnemonic('bn.addm', 6)
+    insn = insn_for_mnemonic('bn.addm', 3)
 
     def __init__(self, raw: int, op_vals: Dict[str, int]):
         super().__init__(raw, op_vals)
         self.wrd = op_vals['wrd']
         self.wrs1 = op_vals['wrs1']
         self.wrs2 = op_vals['wrs2']
-        self.vec = op_vals['vec']
-        self.type = op_vals['type']
-        self.nored = op_vals['nored']
 
     def execute(self, state: OTBNState) -> None:
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
         mod_val = state.wsrs.MOD.read_unsigned()
 
-        if not self.vec:
-            result = a + b
+        result = a + b
 
-            if result >= mod_val and not self.nored:
-                result -= mod_val
-        else:
-            size = 32 if self.type == 0 else 16
-            mod_val = extract_sub_word(mod_val, size, 0)
-            result = 0
-
-            for i in range(256 // size - 1, -1, -1):
-                ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
-                bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
-                resulti = ai + bi
-                if resulti >= mod_val and not self.nored:
-                    resulti -= mod_val
-                elif resulti < 0 and not self.nored:
-                    resulti += mod_val
-                if DEBUG_ARITH:
-                    eprint(f"addmv {ai} + {bi} = {ai + bi} = {resulti}")
-                result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))
+        if result >= mod_val and not self.nored:
+            result -= mod_val
 
         result = result & ((1 << 256) - 1)
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
 
 
-class BNMULMV(OTBNInsn):
-    insn = insn_for_mnemonic('bn.mulmv', 6)
+class BNADDV(OTBNInsn):
+    insn = insn_for_mnemonic('bn.addv', 4)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.type = op_vals['type']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        mod_val = state.wsrs.MOD.read_unsigned()
+        red = True if self.type > 1 else False
+        size = 32 if (self.type % 2 == 0) else 16
+        mod_val = extract_sub_word(mod_val, size, 0)
+        result = 0
+
+        for i in range(256 // size - 1, -1, -1):
+            ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
+            bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
+            resulti = ai + bi
+            if resulti >= mod_val and red:
+                resulti -= mod_val
+            elif resulti < 0 and red:
+                resulti += mod_val
+            if DEBUG_ARITH:
+                eprint(f"addvm {ai} + {bi} = {ai + bi} = {resulti}")
+            result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
+
+class BNMULV(OTBNInsn):
+    insn = insn_for_mnemonic('bn.mulv', 5)
 
     def __init__(self, raw: int, op_vals: Dict[str, int]):
         super().__init__(raw, op_vals)
@@ -748,11 +762,15 @@ class BNMULMV(OTBNInsn):
         self.wrs2 = op_vals['wrs2']
         self.type = op_vals['type']
         self.lane = op_vals['lane']
-        self.nored = op_vals['nored']
 
     def execute(self, state: OTBNState) -> None:
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        eprint(self.type)
+        # the lower 4 types are without reduction
+        red = True if self.type > 3 else False
+        # see instruction scheme for details
+        lane_mode = True if self.type in [2, 3, 6, 7] else False
         size = None
         if (self.type % 2) == 0:
             size = 32
@@ -762,19 +780,19 @@ class BNMULMV(OTBNInsn):
         result = 0
 
         # Extract the lane
-        if self.type >= 2:
+        if lane_mode:
             bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, self.lane))
 
         for i in range(256 // size - 1, -1, -1):
             ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
-            if self.type < 2:
+            if not lane_mode:
                 bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
 
             resulti = (ai * bi)  # TODO: match to hw implementation
             if DEBUG_ARITH:
                 eprint(f"mulmv {ai} * {bi} = {resulti} = {resulti % mod_val}")
 
-            if not self.nored:  # TODO: add mask incase of nored
+            if red:  # TODO: add mask incase of nored
                 resulti = resulti % mod_val
 
             result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))
@@ -988,47 +1006,60 @@ class BNSUBI(OTBNInsn):
 
 
 class BNSUBM(OTBNInsn):
-    insn = insn_for_mnemonic('bn.subm', 6)
+    insn = insn_for_mnemonic('bn.subm', 3)
 
     def __init__(self, raw: int, op_vals: Dict[str, int]):
         super().__init__(raw, op_vals)
         self.wrd = op_vals['wrd']
         self.wrs1 = op_vals['wrs1']
         self.wrs2 = op_vals['wrs2']
-        self.vec = op_vals['vec']
-        self.type = op_vals['type']
-        self.nored = op_vals['nored']
 
     def execute(self, state: OTBNState) -> None:
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
         mod_val = state.wsrs.MOD.read_unsigned()
 
-        if not self.vec:
-            result = a - b
-            if result < 0 and not self.nored:
-                result += mod_val
-        else:
-            size = 32 if self.type == 0 else 16
-            mod_val = extract_sub_word(mod_val, size, 0)
-            result = 0
-            mod_val = extract_sub_word(mod_val, size, 0)
-            for i in range(256 // size - 1, -1, -1):
-                ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
-                bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
-                resulti = ai - bi
-                if DEBUG_ARITH:
-                    eprint(f"submv {ai} - {bi} = {resulti}")
-
-                if resulti < 0 and not self.nored:
-                    resulti += mod_val
-                elif resulti >= mod_val and not self.nored:
-                    resulti -= mod_val
-                result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))
+        result = a - b
+        if result < 0:
+            result += mod_val
 
         result = result & ((1 << 256) - 1)
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
 
+
+class BNSUBV(OTBNInsn):
+    insn = insn_for_mnemonic('bn.subv', 4)
+
+    def __init__(self, raw: int, op_vals: Dict[str, int]):
+        super().__init__(raw, op_vals)
+        self.wrd = op_vals['wrd']
+        self.wrs1 = op_vals['wrs1']
+        self.wrs2 = op_vals['wrs2']
+        self.type = op_vals['type']
+
+    def execute(self, state: OTBNState) -> None:
+        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
+        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
+        mod_val = state.wsrs.MOD.read_unsigned()
+        red = True if self.type > 1 else False
+        size = 32 if (self.type % 2 == 0) else 16
+        mod_val = extract_sub_word(mod_val, size, 0)
+        result = 0
+
+        for i in range(256 // size - 1, -1, -1):
+            ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
+            bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
+            resulti = ai - bi
+            if resulti < 0 and red:
+                resulti += mod_val
+            elif resulti >= mod_val and red:
+                resulti -= mod_val
+            if DEBUG_ARITH:
+                eprint(f"subvm {ai} - {bi} = {ai - bi} = {resulti}")
+            result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))
+
+        result = result & ((1 << 256) - 1)
+        state.wdrs.get_reg(self.wrd).write_unsigned(result)
 
 class BNAND(OTBNInsn):
     insn = insn_for_mnemonic('bn.and', 6)
@@ -1642,10 +1673,10 @@ INSN_CLASSES = [
     ECALL,
     LOOP, LOOPI,
 
-    BNADD, BNADDC, BNADDI, BNADDM,
-    BNMULMV,
+    BNADD, BNADDC, BNADDI, BNADDM, BNADDV,
+    BNMULV,
     BNMULQACC, BNMULQACCWO, BNMULQACCSO,
-    BNSUB, BNSUBB, BNSUBI, BNSUBM,
+    BNSUB, BNSUBB, BNSUBI, BNSUBM, BNSUBV,
     BNAND, BNOR, BNNOT, BNXOR,
     BNANDV, BNORV, BNXORV,
     BNRSHI,

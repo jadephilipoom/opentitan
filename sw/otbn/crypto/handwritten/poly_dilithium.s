@@ -400,7 +400,7 @@ _loop_poly_chknorm_dilithium:
     bn.lid t1, 0(a0)
     bn.orv.8S   w2, bn0, w1 a >> 31 /* a->coeffs[i] >> 31 */
     bn.andv.8S  w2, w2, w1 a << 1 /* t & 2*a->coeffs[i] */
-    bn.submv.8S w2, w1, w2 nored /* a->coeffs[i] - (t & 2*a->coeffs[i]) */
+    bn.subv.8S w2, w1, w2 /* a->coeffs[i] - (t & 2*a->coeffs[i]) */
     bn.sid      t2, STACK_WDR2GPR(fp)
     
     addi t4, fp, STACK_WDR2GPR
@@ -1074,7 +1074,7 @@ polyeta_unpack_dilithium:
         /* w2 <= coeffs[i:i+8] */
         bn.lid t2, 0(a0)
         /* w2 <= eta - w2 */
-        bn.submv.8S w2, w1, w2 nored
+        bn.subv.8S w2, w1, w2
         /* coeffs[i:i+8] <= w2 */
         bn.sid t2, 0(a0++)
 
@@ -1423,7 +1423,7 @@ polyt0_unpack_dilithium:
         /* w2 <= coeffs[i:i+8] */
         bn.lid t2, 0(a0)
         /* w2 <= (1 << (D-1)) - coeffs */
-        bn.submv.8S w2, w1, w2 nored
+        bn.subv.8S w2, w1, w2
         /* coeffs[i:i+8] <= w2 */
         bn.sid t2, 0(a0++)
     ret
@@ -1614,7 +1614,7 @@ poly_uniform_gamma1_dilithium:
         /* w2 <= coeffs[i:i+8] */
         bn.lid t2, 0(a0)
         /* w2 <= eta - w2 */
-        bn.submv.8S w2, w1, w2 nored
+        bn.subv.8S w2, w1, w2
         /* coeffs[i:i+8] <= w2 */
         bn.sid t2, 0(a0++)
 
@@ -1772,7 +1772,7 @@ polyz_pack_dilithium:
     bn.lid t1, 0(t2)
     LOOPI 32, 3
         bn.lid t0, 0(a1)
-        bn.submv.8S w0, w1, w0 nored
+        bn.subv.8S w0, w1, w0
         bn.sid t0, 0(a1++)
     addi a1, a1, -1024
 

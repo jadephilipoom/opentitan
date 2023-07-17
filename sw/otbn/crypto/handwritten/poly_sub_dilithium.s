@@ -28,7 +28,7 @@ poly_sub_dilithium:
         bn.lid x4, 0(x10)
         bn.lid x5, 0(x11)
         
-        bn.submv.8S w2, w2, w3
+        bn.subvm.8S w2, w2, w3
         
         bn.sid x4, 0(x12)
 

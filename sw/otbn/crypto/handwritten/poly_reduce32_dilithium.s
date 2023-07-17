@@ -41,13 +41,13 @@ poly_reduce32_dilithium:
         bn.lid x7, 0(x10)
         
         /* t = a + (1 << 22) */
-        bn.addmv.8S w5, w2, w4 nored
+        bn.addv.8S w5, w2, w4
         /* t = (a + (1 << 22)) >> 23 */
         bn.orv.8S   w5, w3, w5 a >> 23
         /* t = t * q */
-        bn.mulmv.l.8S  w5, w5, w6, 0, nored
+        bn.mulv.l.8S  w5, w5, w6, 0
         /* a - t */
-        bn.submv.8S w2, w2, w5 nored
+        bn.subv.8S w2, w2, w5
 
         bn.sid x7, 0(x11)
 

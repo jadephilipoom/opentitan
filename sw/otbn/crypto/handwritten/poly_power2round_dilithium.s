@@ -38,13 +38,13 @@ poly_power2round_dilithium:
         
         /* Compute */
         /* (a + (1 << (D-1)) - 1) */
-        bn.addmv.8S w6, w4, w5 nored
+        bn.addv.8S w6, w4, w5
         /* a1 = (a + (1 << (D-1)) - 1) >> D */
         bn.orv.8S w6, w31, w6 >> D
         /* a0 = (a1 << D) */
         bn.orv.8S w7, w31, w6 << D
         /* a0 = (a1 << D) */
-        bn.submv.8S w7, w5, w7 nored
+        bn.subv.8S w7, w5, w7
 
         /* Store */
         bn.sid x6, 0(x12++)

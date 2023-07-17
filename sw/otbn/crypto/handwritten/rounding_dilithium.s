@@ -121,36 +121,36 @@ decompose_dilithium:
     li t3, 3
     bn.lid t3, 0(t0)
     /* a + 127 */
-    bn.addmv.8S w2, w0, w3 nored
+    bn.addv.8S w2, w0, w3
     /* (a + 127) >> 7 */
     bn.orv.8S w2, bn0, w2 >> 7
     la t0, decompose_const
     li t4, 4
     bn.lid t4, 0(t0)
-    bn.mulmv.8S w2, w2, w4, 0, nored
+    bn.mulv.8S w2, w2, w4
     la t0, reduce32_const
     bn.lid t4, 0(t0)
     bn.orv.8S w4, bn0, w4 << 23
-    bn.addmv.8S w2, w2, w4 nored
+    bn.addv.8S w2, w2, w4
     bn.orv.8S w2, bn0, w2 >> 24
     la t0, decompose_43_const
     bn.lid t4, 0(t0)
-    bn.submv.8S w3, w4, w2 nored
+    bn.subv.8S w3, w4, w2
     bn.andv.8S w3, w2, w3 a >> 31 /* (((Q-1)/2 - *a0) >> 31) & Q */ 
     bn.xorv.8S w2, w2, w3
     /* a0 */
     la t0, gamma2_vec_const
     bn.lid t4, 0(t0)
-    bn.mulmv.8S w4, w4, w2, 0, nored/* *a */
+    bn.mulv.8S w4, w4, w2 /* *a */
     bn.orv.8S w4, bn0, w4 << 1 /* *2 */
-    bn.submv.8S w1, w0, w4 nored/* a - a1*2*GAMMA2 */
+    bn.subv.8S w1, w0, w4 /* a - a1*2*GAMMA2 */
     la t0, qm1half_const
     bn.lid t4, 0(t0)
-    bn.submv.8S w4, w4, w1 nored/* ((Q-1)/2 - *a0) */
+    bn.subv.8S w4, w4, w1 /* ((Q-1)/2 - *a0) */
     la t0, modulus
     li t3, 3
     bn.lid t3, 0(t0)
     /* TODO: double check the shift type */
     bn.andv.8S w4, w3, w4 a >> 31 /* (((Q-1)/2 - *a0) >> 31) & Q */ 
-    bn.submv.8S w1, w1, w4 nored
+    bn.subv.8S w1, w1, w4
     ret

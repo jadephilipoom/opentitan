@@ -29,7 +29,7 @@ poly_pointwise_dilithium:
         bn.lid x4, 0(x10)
         bn.lid x5, 0(x11)
         
-        bn.mulmv.8S w2, w2, w3, 0
+        bn.mulvm.8S w2, w2, w3, 0
         
         bn.sid x4, 0(x12)
 
@@ -69,11 +69,11 @@ poly_pointwise_acc_dilithium:
         bn.lid x4, 0(x10)
         bn.lid x5, 0(x11)
         
-        bn.mulmv.8S w2, w2, w3, 0
+        bn.mulvm.8S w2, w2, w3
         
         /* Accumulate onto output polynomial */
         bn.lid x5, 0(x12)
-        bn.addmv.8S w2, w2, w3
+        bn.addvm.8S w2, w2, w3
         
         bn.sid x4, 0(x12)
 

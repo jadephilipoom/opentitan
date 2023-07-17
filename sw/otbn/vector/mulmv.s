@@ -16,8 +16,8 @@ mulmv:
     bn.lid  x23, 0(x10)
     bn.lid  x24, 0(x11)
 
-    bn.mulmv.8S   w25, w23, w24, 0
-    bn.mulmv.l.8S w26, w23, w24, 6
+    bn.mulvm.8S   w25, w23, w24
+    bn.mulvm.l.8S w26, w23, w24, 6
 
     /* Write result
          dmem[x10] <= w25

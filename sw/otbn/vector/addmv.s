@@ -13,7 +13,7 @@ addmv:
          w24 <= dmem[x11] = y[255:0] */
     bn.lid  x23, 0(x10)
     bn.lid  x24, 0(x11)
-    bn.addmv.8S w25, w23, w24
+    bn.addvm.8S w25, w23, w24
 
     /* Write result
          dmem[x10] <= w25 */
