@@ -105,7 +105,7 @@ class OTBNSim:
         if fetch_next:
             self._next_insn = self._fetch(self.state.pc)
         if self.stats is not None and not self.state.wiping():
-            self.stats.record_stall()
+            self.stats.record_stall(self.state)
         if verbose:
             self._print_trace(self.state.pc, '(stall)', changes)
 

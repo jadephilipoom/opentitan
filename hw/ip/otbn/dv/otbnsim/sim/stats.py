@@ -25,6 +25,7 @@ class ExecutionStats:
         self.insn_histo = Counter()  # type: typing.Counter[str]
         self.func_calls = []  # type: List[Dict[str, int]]
         self.loops = []  # type: List[Dict[str, int]]
+        self.func_cycles = {}
 
         # Histogram indexed by the length of the (extended) basic block.
         self.basic_block_histo = Counter()  # type: typing.Counter[int]
@@ -37,9 +38,14 @@ class ExecutionStats:
         '''Get the number of executed instructions.'''
         return sum(self.insn_histo.values())
 
-    def record_stall(self) -> None:
+    def record_stall(self, state_bc: OTBNState) -> None:
         '''Record a single stall cycle.'''
         self.stall_count += 1
+
+        if state_bc.pc in self.func_cycles:
+            self.func_cycles[state_bc.pc] += 1
+        else:
+            self.func_cycles[state_bc.pc] = 1
 
     def _insn_at_addr(self, addr: int) -> Optional[OTBNInsn]:
         '''Get the instruction at a given address.'''
@@ -64,6 +70,12 @@ class ExecutionStats:
 
         # Instruction histogram
         self.insn_histo[insn.insn.mnemonic] += 1
+
+        # Record cycle for this function
+        if pc in self.func_cycles:
+            self.func_cycles[pc] += 1
+        else:
+            self.func_cycles[pc] = 1
 
         # Function calls
         # - Direct function calls: jal x1, <offset>
@@ -174,10 +186,12 @@ class ExecutionStatAnalyzer:
         self._stats = stats
         self._addr_symbol_map = _get_addr_symbol_map(self._elf_file)
 
-    def _describe_imem_addr(self, address: int) -> str:
+    def _describe_imem_addr(self, address: int, name_only: bool = False) -> str:
         symbol_name = None
         if address in self._addr_symbol_map:
             symbol_name = self._addr_symbol_map[address]
+            if name_only:
+                return symbol_name
         else:
             # |func_addr| is the largest possible |sym_addr| which is at most
             # |address|.
@@ -186,6 +200,8 @@ class ExecutionStatAnalyzer:
                 if sym_addr <= address and sym_addr > func_addr:
                     func_addr = sym_addr
             func_name = self._addr_symbol_map[func_addr]
+            if name_only:
+                return func_name
             symbol_name = func_name + f"+{address - func_addr:#x}"
 
         file_line = None
@@ -214,6 +230,10 @@ class ExecutionStatAnalyzer:
         out += "Instruction frequencies\n"
         out += "-----------------------\n"
         out += self._dump_insn_histo()
+        out += "\n\n"
+        out += "Function cycle counts\n"
+        out += "-----------------------\n"
+        out += self._dump_func_cycles()
         out += "\n\n"
         out += "Basic block statistics\n"
         out += "----------------------\n"
@@ -375,3 +395,21 @@ class ExecutionStatAnalyzer:
             out += f"avg: {loop_iterations_avg:.02f}\n"
 
         return out
+
+    def _dump_func_cycles(self) -> str:
+        out = ''
+        accumulated = dict()
+        for func_addr, cycles in self._stats.func_cycles.items():
+            _func_addr = func_addr
+            while self._describe_imem_addr(_func_addr, name_only=True).startswith("_"):
+                _func_addr -= 1
+            func_name = self._describe_imem_addr(_func_addr, name_only=True)
+            if func_name in accumulated:
+                accumulated[func_name] += cycles
+            else:
+                accumulated[func_name] = cycles
+
+        for func_name, cycles in {k: v for k, v in sorted(accumulated.items(), key=lambda item: item[1])}.items():
+            out += f"{func_name}: {cycles}\n"
+        assert sum(accumulated.values()) == (sum(self._stats.insn_histo.values()) + self._stats.stall_count)
+        return tabulate([[k, v] for k, v in sorted(accumulated.items(), key=lambda item: item[1], reverse=True)], headers=['function', 'cycles']) + "\n"
