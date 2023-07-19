@@ -17,11 +17,11 @@ sys.path.append('../../util')
 import otbn_sim_py_shared as shared
 from dilithiumpy.shake_wrapper import Shake
 
-DEBUG_MEM = True
-DEBUG_BRANCH = True
-DEBUG_ARITH = True
+DEBUG_MEM = False
+DEBUG_BRANCH = False
+DEBUG_ARITH = False
 DEBUG_KMAC = False
-DEBUG_FLOW = True
+DEBUG_FLOW = False
 
 
 def eprint(text):
@@ -766,7 +766,7 @@ class BNMULV(OTBNInsn):
     def execute(self, state: OTBNState) -> None:
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
-        eprint(self.type)
+
         # the lower 4 types are without reduction
         red = True if self.type > 3 else False
         # see instruction scheme for details
@@ -1538,7 +1538,6 @@ class BNTRANS(OTBNInsn):
             if DEBUG_ARITH:
                 eprint(f"clear: {format(result, '064x')}")
             # extract new word
-            eprint(f"in: {format(state.wdrs.get_reg(self.wrs).read_unsigned(), '064x')}")
             new = extract_sub_word(state.wdrs.get_reg(self.wrs).read_unsigned(), size, i)
             new <<= (size * self.lane)
             result |= new

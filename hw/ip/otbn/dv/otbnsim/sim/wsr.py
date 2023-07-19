@@ -418,6 +418,8 @@ class KmacBlock:
         '''Appends new message data to an ongoing hashing operation.'''
         if not self.is_absorbing():
             raise ValueError(f'KMAC: Cannot write in {self._status} status.')
+        # import sys
+        # print(f"absorb Kmac: {msg.hex()}", file=sys.stderr)
         self._state.update(msg)
 
     def _start_keccak_core(self) -> None:
@@ -481,6 +483,8 @@ class KmacBlock:
             raise ValueError(f'KMAC: Read request exceeds Keccak rate.')
         self._read_offset += num_bytes
         ret = self._state.read(num_bytes)
+        # import sys
+        # print(f"read Kmac: {ret.hex()}", file=sys.stderr)
         return ret
 
 class KeccakMsgWSR(WSR):
