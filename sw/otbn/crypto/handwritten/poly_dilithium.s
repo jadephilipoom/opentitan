@@ -102,7 +102,7 @@ MACRO*/     and  val, mask, val /* Mask the bytes from Shake */ /*MACRO
 MACRO*/     slt tmp, val, Q   /* (tmp = 1) <= val <? Q */ /*MACRO
 MACRO*/     beq  tmp, zero, label /*MACRO
 MACRO*/     sw   val, 0(out_ptr) /*MACRO
-MACRO*/     beq  out_ptr, addr_boundary, end_rej_sample_loop /*MACRO
+MACRO*/     beq  out_ptr, addr_boundary, _end_rej_sample_loop /*MACRO
 MACRO*/     addi out_ptr, out_ptr, 4
 
 /**
@@ -573,9 +573,9 @@ _loop_inner_skip_load_poly_challenge:
 poly_uniform:
     /* 32 byte align the sp */
     andi a5, sp, 31
-    beq a5, zero, aligned
+    beq a5, zero, _aligned
     sub sp, sp, a5
-aligned:
+_aligned:
     /* save fp to stack */
     addi sp, sp, -32
     sw fp, 0(sp)
@@ -623,7 +623,7 @@ aligned:
     /* Load mask */
     li t2, 0x7FFFFF
 
-rej_sample_loop:
+_rej_sample_loop:
     /* First squeeze */
     .equ w8, shake_reg
     bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
@@ -636,8 +636,8 @@ _rej_sample_loop_p1:
         bn.sid s0, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
-        rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store1)
-skip_store1:
+        rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store1)
+_skip_store1:
     addi t4, t4, -1
     bne t4, zero, _rej_sample_loop_p1
     /* Process remaining 2 bytes */
@@ -655,8 +655,8 @@ skip_store1:
     /* Shift it to be byte 3 */
     slli t3, t3, 16
     or t1, t3, t1
-    rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store2)
-skip_store2:
+    rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store2)
+_skip_store2:
 
     /* Process floor(31/3)*3 = 30 bytes */
     /* Init loop counter because we cannot early exit hw loops */
@@ -666,8 +666,8 @@ _rej_sample_loop_p2:
         bn.sid s0, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
-        rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store3)
-skip_store3:
+        rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store3)
+_skip_store3:
     addi t4, t4, -1
     bne t4, zero, _rej_sample_loop_p2
 
@@ -687,8 +687,8 @@ skip_store3:
     /* Shift to be bytes 2+3 */
     slli t3, t3, 8
     or t1, t1, t3 
-    rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store4)
-skip_store4:
+    rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store4)
+_skip_store4:
 
     /* Process floor(30/3)*3 = 30 bytes */
     /* Init loop counter because we cannot early exit hw loops */
@@ -698,14 +698,14 @@ _rej_sample_loop_p3:
         bn.sid s0, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
-        rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store5)
-skip_store5:
+        rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store5)
+_skip_store5:
     addi t4, t4, -1
     bne t4, zero, _rej_sample_loop_p3
 
     /* No remainder! Start all over again. */
-    beq zero, zero, rej_sample_loop
-end_rej_sample_loop:
+    beq zero, zero, _rej_sample_loop
+_end_rej_sample_loop:
     /* Finish the SHAKE-256 operation. */
     addi      t0, zero, KECCAK_DONE_CMD
     csrrw     zero, KECCAK_CMD_REG, t0

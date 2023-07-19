@@ -68,7 +68,7 @@ MACRO*/     and  val, mask, val /* Mask the bytes from Shake */ /*MACRO
 MACRO*/     slt tmp, val, Q   /* (tmp = 1) <= val <? Q */ /*MACRO
 MACRO*/     beq  tmp, zero, label /*MACRO
 MACRO*/     sw   val, 0(out_ptr) /*MACRO
-MACRO*/     beq  out_ptr, addr_boundary, end_rej_sample_loop /*MACRO
+MACRO*/     beq  out_ptr, addr_boundary, _end_rej_sample_loop /*MACRO
 MACRO*/     addi out_ptr, out_ptr, 4
 
 /**
@@ -133,9 +133,9 @@ no_full_wdr:
 poly_uniform:
     /* 32 byte align the sp */
     andi s11, sp, 31
-    beq s11, zero, aligned
+    beq s11, zero, _aligned
     sub sp, sp, s11
-aligned:
+_aligned:
     /* save fp to stack */
     addi sp, sp, -32
     sw fp, 0(sp)
@@ -183,7 +183,7 @@ aligned:
     /* Load mask */
     li t2, 0x7FFFFF
 
-rej_sample_loop:
+_rej_sample_loop:
     /* First squeeze */
     .equ w8, shake_reg
     bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
@@ -196,8 +196,8 @@ _rej_sample_loop_p1:
         bn.sid s0, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
-        rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store1)
-skip_store1:
+        rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store1)
+_skip_store1:
     addi t4, t4, -1
     bne t4, zero, _rej_sample_loop_p1
     /* Process remaining 2 bytes */
@@ -215,8 +215,8 @@ skip_store1:
     /* Shift it to be byte 3 */
     slli t3, t3, 16
     or t1, t3, t1
-    rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store2)
-skip_store2:
+    rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store2)
+_skip_store2:
 
     /* Process floor(31/3)*3 = 30 bytes */
     /* Init loop counter because we cannot early exit hw loops */
@@ -226,8 +226,8 @@ _rej_sample_loop_p2:
         bn.sid s0, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
-        rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store3)
-skip_store3:
+        rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store3)
+_skip_store3:
     addi t4, t4, -1
     bne t4, zero, _rej_sample_loop_p2
 
@@ -247,8 +247,8 @@ skip_store3:
     /* Shift to be bytes 2+3 */
     slli t3, t3, 8
     or t1, t1, t3 
-    rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store4)
-skip_store4:
+    rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store4)
+_skip_store4:
 
     /* Process floor(30/3)*3 = 30 bytes */
     /* Init loop counter because we cannot early exit hw loops */
@@ -258,14 +258,14 @@ _rej_sample_loop_p3:
         bn.sid s0, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
-        rej_sample_check(t1, t2, a2, a1, t3, t0, skip_store5)
-skip_store5:
+        rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store5)
+_skip_store5:
     addi t4, t4, -1
     bne t4, zero, _rej_sample_loop_p3
 
     /* No remainder! Start all over again. */
-    beq zero, zero, rej_sample_loop
-end_rej_sample_loop:
+    beq zero, zero, _rej_sample_loop
+_end_rej_sample_loop:
     /* Finish the SHAKE-256 operation. */
     addi      t0, zero, KECCAK_DONE_CMD
     csrrw     zero, KECCAK_CMD_REG, t0
@@ -345,7 +345,7 @@ _aligned_poly_uniform_eta:
     /* t0 = 1024, stop address*/
     addi t0, a1, 1024
     addi t5, zero, 15
-rej_eta_sample_loop:
+_rej_eta_sample_loop:
         /* First squeeze */
         .equ w8, shake_reg
         bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
@@ -354,7 +354,7 @@ rej_eta_sample_loop:
         addi t4, zero, 32
         bn.addi w14, bn0, 0xFF
         bn.addi w15, bn0, 15
-rej_eta_sample_loop_inner:
+_rej_eta_sample_loop_inner:
             /* Get state into working copy */
             bn.add w9, shake_reg, bn0
             /* shift out the used byte */
@@ -375,7 +375,7 @@ rej_eta_sample_loop_inner:
             srli     t2, t2, 3
             andi     t2, t2, 1
 
-            bne t2, zero, rej_eta_sample_loop_inner_1
+            bne t2, zero, _rej_eta_sample_loop_inner_1
 
             /* t0 = t0 - (205*t0 >> 10)*5; */
             /* 205 * t0 */
@@ -401,7 +401,7 @@ rej_eta_sample_loop_inner:
             beq a1, t0, end_rej_eta_sample_loop
 
             /* if(t1 < 15 && ctr < len) { */
-rej_eta_sample_loop_inner_1:
+_rej_eta_sample_loop_inner_1:
             bn.addi w11, bn0, 15
             bn.cmp w10, w11
              /* Get the FG0.Z flag into a register.
@@ -410,7 +410,7 @@ rej_eta_sample_loop_inner_1:
             srli     t2, t2, 3
             andi     t2, t2, 1
 
-            bne t2, zero, rej_eta_sample_loop_inner_none
+            bne t2, zero, _rej_eta_sample_loop_inner_none
 
             /* t1 = t1 - (205*t1 >> 10)*5; */
             /* 205 * t1 */
@@ -434,13 +434,13 @@ rej_eta_sample_loop_inner_1:
             addi a1, a1, 4
             beq a1, t0, end_rej_eta_sample_loop
 
-rej_eta_sample_loop_inner_none:
+_rej_eta_sample_loop_inner_none:
 
             addi t4, t4, -1
-            bne zero, t4, rej_eta_sample_loop_inner
+            bne zero, t4, _rej_eta_sample_loop_inner
 
         /* Start all over again. */
-        beq zero, zero, rej_eta_sample_loop
+        beq zero, zero, _rej_eta_sample_loop
 end_rej_eta_sample_loop:
     /* Finish the SHAKE-256 operation. */
     addi      t0, zero, KECCAK_DONE_CMD
