@@ -1,66 +1,62 @@
 // Copyright lowRISC contributors.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
-//
-// Derived from code in the SPHINCS+ reference implementation (CC0 license):
-// https://github.com/sphincs/sphincsplus/blob/ed15dd78658f63288c7492c00260d86154b84637/ref/params/params-sphincs-shake-128s.h
-// https://github.com/sphincs/sphincsplus/blob/ed15dd78658f63288c7492c00260d86154b84637/ref/shake_offsets.h
+
 #ifndef OPENTITAN_SW_DEVICE_SILICON_CREATOR_LIB_SIGVERIFY_SPHINCSPLUS_PARAMS_H_
 #define OPENTITAN_SW_DEVICE_SILICON_CREATOR_LIB_SIGVERIFY_SPHINCSPLUS_PARAMS_H_
 
+#include "sw/device/silicon_creator/lib/sigverify/sphincsplus/params/benchmark_params.h"
+
 /**
- * This file represents the SPHINCS+ parameter set shake-128s, meaning:
- * - The hash function is SHAKE-256
- * - >= 128 bits of security for up to 2^64 signatures
- * - The parameter set is optimized to be small "s" rather than fast "f"
- *   - The "fast" variant is faster for signing but actually slower for
- *     verification, so "s" is a better fit given we don't care about signing
- *     speed.
+ * This file inserts parameters from benchmark_params.h.
  *
- * For more details on parameterization, see the SPHINCS+ paper:
- * https://sphincs.org/data/sphincs+-paper.pdf
+ * The OpenTitan implementation refers to constants using a different format
+ * than the SPHINCS+ reference implementation. For benchmarking purposes, this
+ * version expects the exact same format as the reference implementation in
+ * benchmark_params.h and instantiates all the OpenTitan constants using those
+ * values.
  */
 
 enum {
   /**
    * Hash output length in bytes.
    */
-  kSpxN = 16,
+  kSpxN = SPX_N,
   /**
    * Height of the hypertree.
    */
-  kSpxFullHeight = 63,
+  kSpxFullHeight = SPX_FULL_HEIGHT,
   /**
    * Number of subtree layers.
    */
-  kSpxD = 7,
+  kSpxD = SPX_D,
   /**
    * FORS tree dimension (height).
    */
-  kSpxForsHeight = 12,
+  kSpxForsHeight = SPX_FORS_HEIGHT,
   /**
    * FORS tree dimension (number of trees).
    */
-  kSpxForsTrees = 14,
+  kSpxForsTrees = SPX_FORS_TREES,
   /**
    * Winternitz parameter.
    */
-  kSpxWotsW = 16,
+  kSpxWotsW = SPX_WOTS_W,
   /**
    * Number of bytes in a hypertree address (for clarity).
    */
-  kSpxAddrBytes = 32,
+  kSpxAddrBytes = SPX_ADDR_BYTES,
   /**
    * Bit-length of the Winternitz parameter.
    */
-  kSpxWotsLogW = 4,
+  kSpxWotsLogW = SPX_WOTS_LOGW,
   /**
    * Parameter `len1` for WOTS signatures.
    *
    * See section 3.1 of the SPHINCS+ NIST submission:
    *   https://sphincs.org/data/sphincs+-r3.1-specification.pdf
    */
-  kSpxWotsLen1 = (8 * kSpxN) / kSpxWotsLogW,
+  kSpxWotsLen1 = SPX_WOTS_LEN1,
   /**
    * Parameter `len2` for WOTS signatures.
    *
@@ -86,50 +82,49 @@ enum {
    * See section 3.1 of the SPHINCS+ NIST submission:
    *   https://sphincs.org/data/sphincs+-r3.1-specification.pdf
    */
-  kSpxWotsLen2 = 3,
+  kSpxWotsLen2 = SPX_WOTS_LEN2,
   /**
    * Number of chains to compute for a WOTS signature.
    */
-  kSpxWotsLen = kSpxWotsLen1 + kSpxWotsLen2,
+  kSpxWotsLen = SPX_WOTS_LEN,
   /**
    * WOTS signature length in bytes.
    *
    * The signature is composed of `kSpxWotsLen` blocks of `kSpxN` bytes each.
    */
-  kSpxWotsBytes = kSpxWotsLen * kSpxN,
+  kSpxWotsBytes = SPX_WOTS_BYTES,
   /**
    * WOTS public key length in bytes.
    */
-  kSpxWotsPkBytes = kSpxWotsBytes,
+  kSpxWotsPkBytes = SPX_WOTS_PK_BYTES,
   /**
    * Subtree size.
    */
-  kSpxTreeHeight = kSpxFullHeight / kSpxD,
+  kSpxTreeHeight = SPX_TREE_HEIGHT,
   /**
    * FORS message length.
    */
-  kSpxForsMsgBytes = ((kSpxForsHeight * kSpxForsTrees) + 7) / 8,
+  kSpxForsMsgBytes = SPX_FORS_MSG_BYTES,
   /**
    * FORS signature length.
    */
-  kSpxForsBytes = (kSpxForsHeight + 1) * kSpxForsTrees * kSpxN,
+  kSpxForsBytes = SPX_FORS_BYTES,
   /**
    * FORS public key length.
    */
-  kSpxForsPkBytes = kSpxN,
+  kSpxForsPkBytes = SPX_FORS_PK_BYTES,
   /**
    * SPHINCS+ signature.
    */
-  kSpxBytes =
-      kSpxN + kSpxForsBytes + kSpxD * kSpxWotsBytes + kSpxFullHeight * kSpxN,
+  kSpxBytes = SPX_BYTES,
   /**
    * SPHINCS+ public key length.
    */
-  kSpxPkBytes = 2 * kSpxN,
+  kSpxPkBytes = SPX_PK_BYTES,
   /**
    * SPHINCS+ secret key length.
    */
-  kSpxSkBytes = 2 * kSpxN + kSpxPkBytes,
+  kSpxSkBytes = SPX_SK_BYTES,
   /**
    * Hash output length (n) in words.
    */
@@ -154,49 +149,45 @@ enum {
 
 /**
  * These constants are byte offsets within the hypertree address structure.
- *
- * It is customized for the hypertree address format that is used when SHAKE is
- * the underlying SPHINCS+ hash function. These values should not change if
- * parameters other than the hash function are altered.
  */
 enum {
   /**
    * Byte used to specify the Merkle tree layer.
    */
-  kSpxOffsetLayer = 3,
+  kSpxOffsetLayer = SPX_OFFSET_LAYER,
   /**
    * Starting byte of the tree field (8 bytes).
    */
-  kSpxOffsetTree = 8,
+  kSpxOffsetTree = SPX_OFFSET_TREE,
   /**
    * Byte used to specify the hash type (reason).
    */
-  kSpxOffsetType = 19,
+  kSpxOffsetType = SPX_OFFSET_TYPE,
   /**
    * High byte of the key pair.
    */
-  kSpxOffsetKpAddr2 = 22,
+  kSpxOffsetKpAddr2 = SPX_OFFSET_KP_ADDR2,
   /**
    * Low byte of the key pair.
    */
-  kSpxOffsetKpAddr1 = 23,
+  kSpxOffsetKpAddr1 = SPX_OFFSET_KP_ADDR1,
   /**
    * Byte for the chain address (i.e. which Winternitz chain).
    */
-  kSpxOffsetChainAddr = 27,
+  kSpxOffsetChainAddr = SPX_OFFSET_CHAIN_ADDR,
   /**
    * Byte for the hash address (i.e. where in the Winternitz chain).
    */
-  kSpxOffsetHashAddr = 31,
+  kSpxOffsetHashAddr = SPX_OFFSET_HASH_ADDR,
   /**
    * Byte for the height of this node in the FORS or Merkle tree.
    */
-  kSpxOffsetTreeHeight = 27,
+  kSpxOffsetTreeHeight = SPX_OFFSET_TREE_HGT,
   /**
    * Starting byte for the tree index field (4 bytes) in the FORS or Merkle
    * tree.
    */
-  kSpxOffsetTreeIndex = 28,
+  kSpxOffsetTreeIndex = SPX_OFFSET_TREE_INDEX,
 };
 
 #endif  // OPENTITAN_SW_DEVICE_SILICON_CREATOR_LIB_SIGVERIFY_SPHINCSPLUS_PARAMS_H_

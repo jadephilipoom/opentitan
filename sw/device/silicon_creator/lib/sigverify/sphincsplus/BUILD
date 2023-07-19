@@ -25,6 +25,11 @@ cc_test(
 )
 
 cc_library(
+    name = "shake_offsets",
+    hdrs = ["shake_offsets.h"],
+)
+
+cc_library(
     name = "context",
     hdrs = ["context.h"],
 )
@@ -57,6 +62,9 @@ cc_library(
 cc_library(
     name = "params",
     hdrs = ["params.h"],
+    deps = [
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus/params:benchmark_params",
+    ],
 )
 
 cc_library(
