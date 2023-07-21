@@ -26,19 +26,19 @@ extern "C" {
  */
 typedef enum hash_mode {
   // SHA2-256 mode.
-  kHashModeSha256 = 0x6dc2,
+  kHashModeSha256 = 0x783,
   // SHA2-384 mode.
-  kHashModeSha384 = 0xdafb,
+  kHashModeSha384 = 0xd16,
   // SHA2-512 mode.
-  kHashModeSha512 = 0xb626,
+  kHashModeSha512 = 0x2e9,
   // SHA3-224 mode.
-  kHashModeSha3_224 = 0xf51d,
+  kHashModeSha3_224 = 0x13d,
   // SHA3-256 mode.
-  kHashModeSha3_256 = 0x196e,
+  kHashModeSha3_256 = 0xc99,
   // SHA3-384 mode.
-  kHashModeSha3_384 = 0x14f5,
+  kHashModeSha3_384 = 0xb58,
   // SHA3-512 mode.
-  kHashModeSha3_512 = 0x62cd,
+  kHashModeSha3_512 = 0x963,
 } hash_mode_t;
 
 /**
@@ -46,16 +46,24 @@ typedef enum hash_mode {
  *
  * Values are hardened.
  */
-typedef enum xof_mode {
+typedef enum xof_shake_mode {
   // Shake128 mode.
-  kXofModeSha3Shake128 = 0x2bb4,
+  kXofModeSha3Shake128 = 0x9bd,
   // Shake256 mode.
-  kXofModeSha3Shake256 = 0x4778,
+  kXofModeSha3Shake256 = 0x758,
+} xof_shake_mode_t;
+
+/**
+ * Enum to define the supported extendable-output functions.
+ *
+ * Values are hardened.
+ */
+typedef enum xof_cshake_mode {
   // cShake128 mode.
-  kXofModeSha3Cshake128 = 0x8f45,
+  kXofModeSha3Cshake128 = 0xbd3,
   // cShake256 mode.
-  kXofModeSha3Cshake256 = 0x8c9e,
-} xof_mode_t;
+  kXofModeSha3Cshake256 = 0x0fa,
+} xof_cshake_mode_t;
 
 /**
  * Generic hash context.
@@ -64,7 +72,9 @@ typedef enum xof_mode {
  * with #otcrypto_hash_init.
  */
 typedef struct hash_context {
+  // Required hash mode.
   hash_mode_t mode;
+  // Context for the hash operation.
   uint32_t data[52];
 } hash_context_t;
 
@@ -72,10 +82,10 @@ typedef struct hash_context {
  * Performs the required hash function on the input data.
  *
  * The caller should allocate space for the `digest` buffer, (expected
- * length depends on `hash_mode`, refer table-1), and set the length
- * of expected output in the `len` field of `digest`. If the user-set
- * length and the output length does not match, an error message will
- * be returned.
+ * length depends on `hash_mode`, refer table above), and set the
+ * length of expected output in the `len` field of `digest`. If the
+ * user-set length and the output length does not match, an error
+ * message will be returned.
  *
  * This function hashes the `input_message` using the `hash_mode_t`
  * hash function and returns a `digest`.
@@ -90,7 +100,27 @@ crypto_status_t otcrypto_hash(crypto_const_uint8_buf_t input_message,
                               crypto_uint8_buf_t *digest);
 
 /**
- * Performs the required extendable output function on the input data.
+ * Performs the SHAKE extendable output function on the input data.
+ *
+ * The caller should allocate space for the `digest` buffer,
+ * (expected length same as `required_output_len`), and set the length
+ * of expected output in the `len` field of `digest`. If the user-set
+ * length and the output length does not match, an error message will
+ * be returned.
+ *
+ * @param input_message Input message for extendable output function.
+ * @param shake_mode Required SHAKE mode.
+ * @param required_output_len Required output length, in bytes.
+ * @param[out] digest Output from the extendable output function.
+ * @return Result of the SHAKE xof operation.
+ */
+crypto_status_t otcrypto_xof_shake(crypto_const_uint8_buf_t input_message,
+                                   xof_shake_mode_t shake_mode,
+                                   size_t required_output_len,
+                                   crypto_uint8_buf_t *digest);
+
+/**
+ * Performs the CSHAKE extendable output function on the input data.
  *
  * The `function_name_string` is used by NIST to define functions
  * based on cSHAKE. When no function other than cSHAKE is desired; it
@@ -107,19 +137,19 @@ crypto_status_t otcrypto_hash(crypto_const_uint8_buf_t input_message,
  * be returned.
  *
  * @param input_message Input message for extendable output function.
- * @param hash_mode Required extendable output function.
+ * @param cshake_mode Required CSHAKE mode.
  * @param function_name_string NIST Function name string.
  * @param customization_string Customization string for cSHAKE.
  * @param required_output_len Required output length, in bytes.
  * @param[out] digest Output from the extendable output function.
- * @return Result of the xof operation.
+ * @return Result of the CSHAKE xof operation.
  */
-crypto_status_t otcrypto_xof(crypto_const_uint8_buf_t input_message,
-                             xof_mode_t xof_mode,
-                             crypto_const_uint8_buf_t function_name_string,
-                             crypto_const_uint8_buf_t customization_string,
-                             size_t required_output_len,
-                             crypto_uint8_buf_t *digest);
+crypto_status_t otcrypto_xof_cshake(crypto_const_uint8_buf_t input_message,
+                                    xof_mode_t xof_mode,
+                                    crypto_const_uint8_buf_t function_name_string,
+                                    crypto_const_uint8_buf_t customization_string,
+                                    size_t required_output_len,
+                                    crypto_uint8_buf_t *digest);
 
 /**
  * Performs the INIT operation for a cryptographic hash function.
