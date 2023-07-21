@@ -5,7 +5,7 @@ Status: **RFC Approved by TC: 2022-05-13**
 ## Objective
 
 This document is intended for users of the OpenTitan crypto library.
-It defines C interfaces (APIs) and data structures to perform the required cryptographic operations such as encryption, signature generation etc., and lists implementation specific details that are opaque to a user.
+It defines C interfaces (APIs) and data structures to support the OpenTitan defined cryptographic operations and lists implementation specific details that are opaque to a user.
 
 The cryptographic API is defined for the following crypto modes:
 - Symmetric ciphers (AES)
@@ -16,7 +16,7 @@ The cryptographic API is defined for the following crypto modes:
 - Random number generation (DRBG)
 - Key derivation (KDF)
 
-Some of these crypto modes can operate on streaming data and several modes support asynchronous (non-blocking) modes of operation.
+Some of the crypto modes can operate on streaming data and several modes support asynchronous (non-blocking) modes of operation.
 These are discussed in the later part of this specification.
 
 ## Symbols and Abbreviations
@@ -58,10 +58,10 @@ The following abbreviations are used in this specification:
 - **SHA**: Secure Hash Algorithm
 - **XOF**: eXtendable-Output Function
 
-## Final list of crypto algorithms and modes
+## OpenTitan Supported crypto algorithms and modes
 
-The [cryptographic use case table][use-case-table] was used to capture the required cryptographic support in OpenTitan.
-Based on the inputs from the cryptographic use case table, a list of crypto algorithms (and modes) for which an API needs to be exposed are identified and listed.
+Cryptographic support required for OpenTitan was captured through the [cryptographic use case table][use-case-table], from the stakeholders.
+Based on the feedback, a list of crypto algorithms and modes for which an API will be defined are identified and is listed below.
 
 **Symmetric crypto**
 -   AES-ECB
@@ -94,9 +94,6 @@ Based on the inputs from the cryptographic use case table, a list of crypto algo
 -   KMAC128
 -   KMAC256
 
-**DRBG**
--   CTR-DRBG
-
 **Streaming mode**
 -   HASH (SHA2 modes only)
 -   HMAC (HMAC-SHA256 only)
@@ -119,20 +116,22 @@ Based on the inputs from the cryptographic use case table, a list of crypto algo
 -   X25519 Key exchange
 
 **Asynchronous Interfaces**
--   RSA Keygen
--   RSA Signature, Verification
--   ECDSA Keygen
--   ECDSA (Signature, Verification)
--   ECDH Keygen
--   ECDH Key exchange
--   Ed25519 Keygen
--   Ed25519 (Signature, Verification)
--   X25519 Keygen
--   X25519 Key exchange
+-   RSA (Keygen, Signature, Verification)
+-   ECDSA (Keygen, Signature, Verification)
+-   ECDH (Keygen, Key exchange)
+-   Ed25519 (Keygen, Signature, Verification)
+-   X25519 (Keygen, Key exchange)
+
+**DRBG**
+-   CTR-DRBG
 
 **KDF**
 - HMAC-KDF (CTR mode)
 - KMAC-KDF (CTR mode)
+
+**Key Transport**
+- Build keys
+- Blinding and unblinding keys
 
 ## Structs and Enums
 
@@ -154,6 +153,9 @@ Doxygen documentation for non-algorithm-specific data structures is [here](https
 {{#header-snippet sw/device/lib/crypto/include/datatypes.h ecc_key_mode }}
 {{#header-snippet sw/device/lib/crypto/include/datatypes.h kdf_key_mode }}
 {{#header-snippet sw/device/lib/crypto/include/datatypes.h key_mode }}
+{{#header-snippet sw/device/lib/crypto/include/datatypes.h crypto_key_security_level }}
+{{#header-snippet sw/device/lib/crypto/include/datatypes.h crypto_lib_version }}
+{{#header-snippet sw/device/lib/crypto/include/datatypes.h crypto_key_config }}
 {{#header-snippet sw/device/lib/crypto/include/aes.h aead_gcm_tag_len }}
 {{#header-snippet sw/device/lib/crypto/include/datatypes.h crypto_unblinded_key }}
 {{#header-snippet sw/device/lib/crypto/include/datatypes.h crypto_uint8_buf }}
@@ -162,7 +164,8 @@ Doxygen documentation for non-algorithm-specific data structures is [here](https
 {{#header-snippet sw/device/lib/crypto/include/aes.h aes_operation }}
 {{#header-snippet sw/device/lib/crypto/include/aes.h aes_padding }}
 {{#header-snippet sw/device/lib/crypto/include/hash.h hash_mode }}
-{{#header-snippet sw/device/lib/crypto/include/hash.h xof_mode }}
+{{#header-snippet sw/device/lib/crypto/include/hash.h xof_shake_mode }}
+{{#header-snippet sw/device/lib/crypto/include/hash.h xof_cshake_mode }}
 {{#header-snippet sw/device/lib/crypto/include/mac.h kmac_mode }}
 {{#header-snippet sw/device/lib/crypto/include/rsa.h rsa_padding }}
 {{#header-snippet sw/device/lib/crypto/include/rsa.h rsa_hash }}
@@ -188,26 +191,23 @@ The following data structures are considered implementation specific.
 
 ## Streaming and Asynchronous modes of operation
 
-OpenTitan may implement additional API interfaces for several cryptographic modes based on the specific use-cases from applications such as ability to perform cryptographic operations on partial input data, capability to stop and resume cryptographic operations etc.
-These API modes are detailed below.
+OpenTitan supports additional API interfaces for several cryptographic modes to perform cryptographic operations on partial input data and to provide the capability to stop and resume cryptographic operations. 
+These supported API modes are detailed below.
 
 ### One shot and Streaming mode
 
-Based on the input data availability, several cryptographic modes discussed in this specification implement two types of APIs: One-shot APIs and streaming mode APIs.
+Based on the input data availability, several cryptographic modes implement two types of APIs: One-shot APIs and streaming mode APIs.
 
 A one-shot API is used when the entire data to be operated is available upfront.
-The entire data (pointer) is passed to the one-shot API as an input and the result is immediately available after the operation.
+The entire data is passed to the one-shot API as an input and the result is immediately available after the operation.
 
 Streaming APIs are to support use-cases where the entire data to be transformed isn't available at the start of the operation and also in use-cases with limited memory availability.
 Such streaming APIs operate iteratively over bytes of data, in blocks, as they are fed.
-Partial inputs are buffered in the context until a full block is available to
-process.
-The partial result from the block is stored in a context parameter and is used again in the subsequent rounds, until the final round.
+Partial inputs are buffered in the context until a full block is available to process.
+The partial result from the block is stored in a context parameter and is used again in the subsequent rounds, until the final round. 
 Only in the final round is the result of the cryptographic operation available.
 
-Cryptographic modes such as HASH and HMAC support streaming APIs along with the default one-shot APIs.
-
-**Crypto modes that support streaming modes:**
+**Crypto modes that support streaming APIs:**
 1.  HASH (SHA2 modes only)
 2.  HMAC (HMAC-SHA256 only)
 
@@ -236,8 +236,6 @@ A few noteworthy aspects of this setup:
 - Only one asynchronous operation may be in progress at any given time.
 - The caller is responsible for properly managing asynchronous calls, including ensuring that the entity receiving the `finalize` results is the same as the one who called `start`.
 
-Cryptographic modes such as RSA and ECC that take a longer time support asynchronous APIs along with the default synchronous APIs.
-
 **Crypto modes that support asynchronous modes:**
 1.  RSA Keygen
 2.  RSA Signature
@@ -256,19 +254,13 @@ Cryptographic modes such as RSA and ECC that take a longer time support asynchro
 ## AES
 
 Advanced Encryption Standard (AES) is the symmetric block cipher for encryption and decryption.
-AES operates with a data block length of 128 bits and with cipher keys of length 128, 192 or 256 bits.
 
 OpenTitan's [AES block][aes] unit is a cryptographic accelerator, implemented in hardware, to perform encryption and decryption on 16-byte blocks of data.
-OpenTitan AES IP supports five (5) confidentiality modes of operation, with a key length of 128 bits, 192 bits and 256 bits.
+OpenTitan AES IP supports five cipher modes with a key length of 128 bits, 192 bits and 256 bits.
 
-OpenTitan AES supported confidentiality modes:
-1.  Electronic Codebook (ECB)
-2.  Cipher Block Chaining (CBC)
-3.  Cipher Feedback (CFB)
-4.  Output Feedback (OFB)
-5.  Counter (CTR)
+### Supported Modes
 
-APIs are defined to support five block cipher (confidentiality) modes of operation: AES-\[ECB, CBC, CFB, OFB and CTR\] and AES-\[GCM, KWP\] for authenticated encryption.
+APIs are defined to support the following modes: Five confidentiality modes of operation: AES-\[ECB, CBC, CFB, OFB and CTR\] and two authenticated encryption modes AES-\[GCM, KWP\].
 Padding schemes are defined in the **aes\_padding\_t** structure from [this section](#structs-and-enums).
 
 Kindly refer to the links in the [reference](#reference) section for more information on AES and the block cipher modes of operation.
@@ -323,6 +315,8 @@ Kindly refer to the [block cipher key-wrapping specification][kwp-spec] and the 
 
 AES KWP mode comprises two related functions, authenticated encryption and authenticated decryption.
 
+#### KWP - Authenticated Encryption and Decryption
+
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_kwp_encrypt }}
 {{#header-snippet sw/device/lib/crypto/include/aes.h otcrypto_aes_kwp_decrypt }}
 
@@ -333,6 +327,8 @@ Hash algorithms are used to verify the integrity of the message, i.e. any change
 
 OpenTitan's [KMAC block][kmac] supports the fixed digest length SHA3\[224, 256, 384, 512\] cryptographic hash functions, and the extendable-output functions of variable digest length SHAKE\[128, 256\] and cSHAKE\[128, 256\].
 SHA-2 functions are supported by [OTBN][otbn] and SHA-256 is supported by the [HMAC block][hmac]
+
+### Supported Modes
 
 APIs are defined to support the following modes: SHA2\[256, 384, 512\], SHA3\[224, 256, 384, 512\], SHAKE\[128, 256\] and cSHAKE\[128,256\].
 
@@ -364,11 +360,11 @@ The supported hash modes are SHA256, SHA384, SHA512, SHA3-224, SHA3-256, SHA3-38
 
 ### HASH-XOF
 
-Two separate APIs (SHAKE, CSHAKE) are defined below for the SHA3 based Extendable-Output Functions (XOF).
+Two separate APIs (SHAKE, CSHAKE) are defined for the Extendable-Output Functions (XOF) based on SHA3.
 The supported XOF modes for SHAKE are SHAKE128 and  SHAKE256; and for CSHAKE are cSHAKE128 and cSHAKE256.
 
-<!-- TODO: fix header to have shake/cshake! -->
-{{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_xof }}
+{{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_xof_shake }}
+{{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_xof_cshake }}
 
 ### Streaming Hash API
 
@@ -378,7 +374,7 @@ The streaming mode is supported **only for SHA2** hash modes (SHA256, SHA384, SH
 
 It is implemented using the INIT/UPDATE/FINAL structure:
 - **INIT** initializes the context parameter.
-- **UPDATE** is called repeatedly with message bytes to be hashed.
+- **UPDATE** is called repeatedly with message bytes to be hashed. The intermediate digest is stored in the context.
 - **FINAL** computes the final digest, copies the result to the output buffer, and clears context.
 
 {{#header-snippet sw/device/lib/crypto/include/hash.h otcrypto_hash_init }}
@@ -395,7 +391,9 @@ OpenTitan supports two kinds of MACS:
 OpenTitan's [HMAC block][hmac] supports HMAC-SHA256 mode of operation with a key length of 256 bits.
 The [KMAC block][kmac] supports KMAC128 and KMAC 256, with a key length of \[128, 192, 256, 384, 512\] bits.
 
-APIs are defined in the following section for HMAC-SHA256 and KMAC256.
+### Supported Modes
+
+APIs are defined to support the following modes: MAC key generation, HMAC-SHA256, KMAC128 and KMAC256.
 Key sizes supported are 256 bits for HMAC and \[128, 192, 256, 384, 512\] bits for KMAC.
 
 The HMAC API supports both one-shot and streaming modes of operation.
@@ -421,7 +419,7 @@ The streaming mode is supported **only for HMAC-SHA256**.
 
 It is implemented using the INIT/UPDATE/FINAL structure:
 - **INIT** initializes the context parameter.
-- **UPDATE** is called repeatedly with message bytes.
+- **UPDATE** is called repeatedly with message bytes. The intermediate digest is stored in the context.
 - **FINAL** computes the final tag, copies the result to the output buffer, and clears context.
 
 {{#header-snippet sw/device/lib/crypto/include/mac.h otcrypto_hmac_init }}
@@ -447,30 +445,32 @@ The RSA *private key* is denoted by the pair (n, d), where
 
 ### RSA Supported Modes
 
-OpenTitan uses the [OpenTitan Big Number Accelerator][otbn], an asymmetric cryptographic accelerator, to speed up the underlying RSA operations.
+OpenTitan uses the [OpenTitan Big Number Accelerator][otbn], to speed up the underlying RSA operations.
 
-APIs are defined in the to support RSA Key generation and RSA digital signature generation and a verification for the key lengths of \[1024, 2048, 3072, 4096\] bits.
+APIs are defined to support the following modes: RSA Key generation, RSA digital signature generation and verification for the key lengths of \[2048, 3072, 4096\] bits.
 Two PKCS signature schemes are supported: (RSASSA-PSS, RSASSA-PKCS1-v1_5).
 Supported padding schemes are defined in the **rsa\_padding\_t** structure in [this section](#structs-and-enums).
 
-The API for RSA supports [asynchronous](#synchronous-and-asynchronous-mode) operation.
+The RSA schemes offer support for [asynchronous](#synchronous-and-asynchronous-mode) mode of operation through dedicated [APIs](#rsa-asynchronous-api).
 
 Kindly refer to the links in the [reference](#reference) section for more information on RSA.
 
 ### Hash Function for RSA Signatures
 
-An approved hash function is used during the generation digital signatures.
+An approved hash function is used during the generation of digital signatures.
 The length in bits of the hash function output block must meet or exceed the security strength associated with the bit length of the modulus n in order to uphold RSA's security guarantees.
 
 It is recommended that the security strength of the modulus and the security strength of the hash function be the same unless an agreement has been made between participating entities to use a stronger hash function.
 
-### Synchronous (Blocking Mode) API
+Supported hashing modes are defined in the **rsa\_hash\_t** structure in [this section](#structs-and-enums).
+
+### RSA Synchronous (Blocking Mode) API
 
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_keygen }}
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_sign }}
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_verify }}
 
-### Asynchronous API
+### RSA Asynchronous API
 
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_keygen_async_start }}
 {{#header-snippet sw/device/lib/crypto/include/rsa.h otcrypto_rsa_keygen_async_finalize }}
@@ -490,7 +490,7 @@ The private key is sensitive, known only to the user and is used to sign message
 
 ### ECC Key Pair
 
-An ECC *private key* is denoted by `d` where `d` is a positive integer between `{1,...n−1}`.
+An ECC *private key* is denoted by `d`, where `d` is a positive integer between `{1,...n−1}`.
 Here, `n` is the order of the curve subgroup, part of the domain parameters for a given curve.
 It is the same for all private keys on the curve, and is not secret.
 
@@ -500,23 +500,23 @@ An ECC *public key* is denoted by `Q`, and `Q = dG`, where:
 
 ### Supported Modes
 
-OpenTitan uses the [OpenTitan Big Number Accelerator][otbn], an asymmetric cryptographic accelerator, to speed up the underlying ECC operations.
+OpenTitan uses the [OpenTitan Big Number Accelerator][otbn], to speed up the underlying ECC operations.
 Elliptic curves of the short Weierstrass form, Montgomery form, and twisted Edward form are supported.
 - For short Weierstrass form three predefined named curves are supported (NIST P-256, NIST P-384 and brainpool 256) along with support for user-defined generic curves.
 - For the Montgomery form, only X25519 is supported.
 - For twisted Edwards form only Ed25519 is supported.
 
-APIs are defined in the following section to support key generation, key agreement and signature schemes for Weierstrass curves and X25519/Ed25519.
+APIs are defined for key generation, key agreement and signature schemes for Weierstrass curves and X25519/Ed25519.
 
-The API for all ECC schemes supports [asynchronous](#synchronous-and-asynchronous-mode) operation.
+The ECC schemes offer support for [asynchronous](#synchronous-and-asynchronous-mode) mode of operation through dedicated [APIs](#ecc-asynchronous-api).
 
 Kindly refer to the links in the [reference](#reference) section for more information on ECC construction and curve types, NIST and brainpool named curves, key generation and agreement, ECDSA and EdDSA.
 
-### Synchronous (Blocking Mode) API
+### ECC Synchronous (Blocking Mode) API
 
 #### ECDSA
 
-For ECDSA, the cryptography library provides keypair generation, signing, and signature verification.
+For ECDSA, the cryptography library supports keypair generation, signing, and signature verification.
 
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdsa_keygen }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdsa_sign }}
@@ -525,7 +525,7 @@ For ECDSA, the cryptography library provides keypair generation, signing, and si
 
 #### ECDH
 
-For ECDH (elliptic-curve Diffie-Hellman) key exchange, the cryptography library provides keypair generation and shared-key generation.
+For ECDH (elliptic-curve Diffie-Hellman) key exchange, the cryptography library supports keypair generation and shared-key generation.
 Each party should generate a key pair, exchange public keys, and then generate the shared key using their own private key and the other party's public key.
 
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ecdh_keygen }}
@@ -533,8 +533,8 @@ Each party should generate a key pair, exchange public keys, and then generate t
 
 #### Ed25519
 
-For Ed25519 (a curve-specialized version of EdDSA, the Edwards curve digital signature algorithm), we support keypair generation, signature generation, and signature verification.
-There is no need to specify curve parameters for Ed25519, since it operates on a specific curve already.
+For Ed25519 (a curve-specialized version of EdDSA, the Edwards curve digital signature algorithm), the cryptography library supports keypair generation, signature generation, and signature verification.
+There is **no need to specify curve parameters for Ed25519**, since it operates on a specific curve already.
 
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ed25519_keygen }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_ed25519_sign }}
@@ -542,13 +542,13 @@ There is no need to specify curve parameters for Ed25519, since it operates on a
 
 #### X25519
 
-For x25519 key exchange, the cryptography library provides keypair generation and shared-key generation.
+For x25519 key exchange, the cryptography library supports keypair generation and shared-key generation.
 Each party should generate a key pair, exchange public keys, and then generate the shared key using their own private key and the other party's public key.
 
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_x25519_keygen }}
 {{#header-snippet sw/device/lib/crypto/include/ecc.h otcrypto_x25519 }}
 
-### Asynchronous API
+### ECC Asynchronous API
 
 #### ECDSA
 
@@ -584,17 +584,17 @@ Each party should generate a key pair, exchange public keys, and then generate t
 
 ## DRBG
 
-Random bit generators (RBG) are used to generate cryptographically secure random bits.
-They can be nondeterministic (NRBG) or deterministic (DRBG).
-
+Random bit generators (RBG) are used to generate cryptographically secure random bits.They can be nondeterministic (NRBG) or deterministic (DRBG).
 The DRBG module generates (deterministic) pseudo-random bits from an input seed (entropy) value, using an underlying algorithm such as HASH, HMAC or AES.
 These random bits are then used directly or after processing, by the application in need of random values.
 
-OpenTitan's random bit generator, [CSRNG][csrng] (Cryptographically Secure Random Number Generator) uses a block cipher based DRBG mechanism (AES_CTR_DRBG) as specified in [NIST SP800-90A][drbg-spec].
+OpenTitan's random bit generator, [CSRNG][csrng] (Cryptographically Secure Random Number Generator) uses a block cipher based DRBG mechanism (AES_CTR_DRBG) as specified in [NIST SP800-90A][nist-drbg-spec].
 OpenTitan's RNG targets compliance with both [BSI AIS31 recommendations for Common Criteria][bsi-ais31], as well as [NIST SP800-90A][nist-drbg-spec] and [NIST SP800-90C (second draft)][nist-rng-spec].
 The CSRNG operates at a 256-bit security strength.
 
-Based on the requirements from the [use-case table][use-case-table], we support the DRBG operations Instantiate, Reseed, Generate, Uninstantiate, Manual Instantiate, and Manual Reseed.
+### Supported Modes
+
+APIs are defined to support the DRBG Instantiate, Reseed, Generate, Uninstantiate, Manual Instantiate, and Manual Reseed functions.
 
 The Instantiate and Reseed operations fetch new entropy from OpenTitan's [ENTROPY_SRC][entropy-src].
 The Manual Instantiate and Manual Reseed operations, however, get their entropy from the user as an input parameter.
@@ -620,9 +620,9 @@ A DRBG mechanism takes several parameters as input, depending on its operating m
 - personalization string
 - additional input
 
-To learn more about these input parameters and other DRBG details suc as entropy requirements, seed construction, derivation functions and prediction resistance, kindly refer to the [NIST SP800-90A][nist-drbg-spec], [NIST SP800-90B][nist-entropy-spec], [NIST SP800-90C][nist-rng-spec], and [BSI AIS31][bsi-ais31] documents and the links in the [reference](#reference) section.
+To learn more about these input parameters and other DRBG details such as entropy requirements, seed construction, derivation functions and prediction resistance, kindly refer to the [NIST SP800-90A][nist-drbg-spec], [NIST SP800-90B][nist-entropy-spec], [NIST SP800-90C][nist-rng-spec], and [BSI AIS31][bsi-ais31] documents and the links in the [reference](#reference) section.
 
-### API
+### DRBG API
 
 {{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_instantiate }}
 {{#header-snippet sw/device/lib/crypto/include/drbg.h otcrypto_drbg_reseed }}
@@ -639,9 +639,10 @@ To learn more about these input parameters and other DRBG details suc as entropy
 OpenTitan Key derivation functions (KDF) provide key-expansion capability.
 Key derivation functions can be used to derive additional keys from a cryptographic key that has been established through an automated key-establishment scheme or from a pre-shared key.
 
+### Supported Modes
+
 The OpenTitan key derivation function is based on the counter mode and uses a pseudorandom function (PRF) as a building block.
-OpenTitan KDF functions support a user-selectable PRF as the engine (i.e. either HMAC
-or a KMAC).
+OpenTitan KDF functions support a user-selectable PRF as the engine (i.e. either HMAC or a KMAC).
 
 To learn more about PRFs, various key derivation mechanisms and security considerations, kindly refer to [NIST SP800-108][kdf-spec] and the links in the [reference](#reference) section.
 
@@ -656,6 +657,9 @@ The following section defines the interface for importing keys to and exporting 
 The crypto library typically represents private keys in blinded form, where the exact shape of the blinded key is opaque to the user.
 Public keys are in unblinded form, and the user can easily extract the plain key data.
 However, in some cases, a user might want to import a key generated elsewhere into the cryptolib, or might want to export a private key for use in a different piece of code.
+
+### Supported Modes
+
 The crypto library provides four functions for this purpose:
 - Build unblinded key from user-provided key data and mode
 - Build blinded key from user-provided key data and configuration
@@ -682,7 +686,7 @@ break a cryptographic algorithm. Security strength of an algorithm with
 key length 'k'is expressed in "bits" where n-bit security means that the
 attacker would have to perform 2^n^ operations to break the algorithm.
 
-The table below summarizes the security strength for all the .
+The table below summarizes the security strength for the supported [cryptographic algorithms](#openTitan-supported-crypto-algorithms-and-modes).
 
 | **Family**     | **Algorithm**  | **Security Strength (bits)**     | **Comments**                                          |
 |----------------|----------------|----------------------------------|-------------------------------------------------------|
