@@ -1,5 +1,16 @@
 .text
 
+/* Macros */
+.macro push reg
+    addi sp, sp, -4      /* Decrement stack pointer by 4 bytes */
+    sw \reg, 0(sp)      /* Store register value at the top of the stack */
+.endm
+
+.macro pop reg
+    lw \reg, 0(sp)      /* Load value from the top of the stack into register */
+    addi sp, sp, 4     /* Increment stack pointer by 4 bytes */
+.endm
+
 /**
  * Constant Time Dilithium NTT
  *
@@ -19,6 +30,12 @@
  */
 .globl ntt_dilithium
 ntt_dilithium:
+
+    /* Save callee-saved registers */
+    .irp reg,s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11
+        push \reg
+    .endr
+
     /* Set up constants for input/state */
     li x4, 2
     li x5, 3
@@ -457,5 +474,9 @@ ntt_dilithium:
         addi x11, x11, 480
         addi x10, x10, 512
         addi x12, x12, 512
+
+    .irp reg,s11,s10,s9,s8,s7,s6,s5,s4,s3,s2,s1,s0
+        pop \reg
+    .endr
 
     ret

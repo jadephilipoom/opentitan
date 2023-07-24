@@ -96,14 +96,50 @@
     addi sp, sp, 4     /* Increment stack pointer by 4 bytes */
 .endm
 
-/* TODO: inline this */
-#define rej_sample_check(val, mask, Q, out_ptr, tmp, addr_boundary, label)/*MACRO
-MACRO*/     and  val, mask, val /* Mask the bytes from Shake */ /*MACRO
-MACRO*/     slt tmp, val, Q   /* (tmp = 1) <= val <? Q */ /*MACRO
-MACRO*/     beq  tmp, zero, label /*MACRO
-MACRO*/     sw   val, 0(out_ptr) /*MACRO
-MACRO*/     beq  out_ptr, addr_boundary, _end_rej_sample_loop /*MACRO
-MACRO*/     addi out_ptr, out_ptr, 4
+/**
+ * Send a variable-length message to the Keccak core.
+ *
+ * Expects the Keccak core to have already received a `start` command matching
+ * the desired hash function. After calling this routine, reading from the
+ * KECCAK_DIGEST special register will return the hash digest.
+ *
+ * @param[in]   a1: len, byte-length of the message
+ * @param[in]   a0: dptr_msg, pointer to message in DMEM
+ * @param[in]   w31: all-zero
+ * @param[in] dmem[dptr_msg..dptr_msg+len]: msg, hash function input
+ *
+ * clobbered registers: t0, a1, w0
+ * clobbered flag groups: None
+ */
+keccak_send_message:
+  /* Compute the number of full 256-bit message chunks.
+       t0 <= x11 >> 5 = floor(len / 32) */
+  srli     t0, x11, 5
+
+  /* Write all full 256-bit sections of the test message. */
+  beq t0, zero, no_full_wdr
+  loop     t0, 2
+    /* w0 <= dmem[x10..x10+32] = msg[32*i..32*i-1]
+       x10 <= x10 + 32 */
+    bn.lid   x0, 0(x10++)
+    /* Write to the KECCAK_MSG wide special register (index 8).
+         KECCAK_MSG <= w0 */
+    bn.wsrw  0x8, w0
+no_full_wdr:
+  /* Compute the remaining message length.
+       t0 <= x10 & 31 = len mod 32 */
+  andi     t0, x11, 31
+
+  /* If the remaining length is zero, return early. */
+  beq      t0, x0, _keccak_send_message_end
+
+  /* Partial write: set KECCAK_WRITE_LEN special register before sending. */
+  csrrw    x0, KECCAK_WRITE_LEN_REG, t0
+  bn.lid   x0, 0(x10)
+  bn.wsrw  0x8, w0
+
+  _keccak_send_message_end:
+  ret
 
 /**
  * polyt1_unpack_dilithium
@@ -636,7 +672,14 @@ _rej_sample_loop_p1:
         bn.sid s0, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
-        rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store1)
+
+        and  t1, t2, t1 /* Mask the bytes from Shake */
+        slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
+        beq  t3, zero, _skip_store1 
+        sw   t1, 0(a1)
+        beq  a1, t0, _end_rej_sample_loop
+        addi a1, a1, 4
+
 _skip_store1:
     addi t4, t4, -1
     bne t4, zero, _rej_sample_loop_p1
@@ -655,7 +698,13 @@ _skip_store1:
     /* Shift it to be byte 3 */
     slli t3, t3, 16
     or t1, t3, t1
-    rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store2)
+
+    and  t1, t2, t1 /* Mask the bytes from Shake */
+    slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
+    beq  t3, zero, _skip_store2 
+    sw   t1, 0(a1)
+    beq  a1, t0, _end_rej_sample_loop
+    addi a1, a1, 4
 _skip_store2:
 
     /* Process floor(31/3)*3 = 30 bytes */
@@ -666,7 +715,13 @@ _rej_sample_loop_p2:
         bn.sid s0, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
-        rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store3)
+
+        and  t1, t2, t1 /* Mask the bytes from Shake */
+        slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
+        beq  t3, zero, _skip_store3 
+        sw   t1, 0(a1)
+        beq  a1, t0, _end_rej_sample_loop
+        addi a1, a1, 4
 _skip_store3:
     addi t4, t4, -1
     bne t4, zero, _rej_sample_loop_p2
@@ -687,7 +742,13 @@ _skip_store3:
     /* Shift to be bytes 2+3 */
     slli t3, t3, 8
     or t1, t1, t3 
-    rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store4)
+
+    and  t1, t2, t1 /* Mask the bytes from Shake */
+    slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
+    beq  t3, zero, _skip_store4
+    sw   t1, 0(a1)
+    beq  a1, t0, _end_rej_sample_loop
+    addi a1, a1, 4
 _skip_store4:
 
     /* Process floor(30/3)*3 = 30 bytes */
@@ -698,7 +759,13 @@ _rej_sample_loop_p3:
         bn.sid s0, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
-        rej_sample_check(t1, t2, a2, a1, t3, t0, _skip_store5)
+
+        and  t1, t2, t1 /* Mask the bytes from Shake */
+        slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
+        beq  t3, zero, _skip_store5 
+        sw   t1, 0(a1)
+        beq  a1, t0, _end_rej_sample_loop
+        addi a1, a1, 4
 _skip_store5:
     addi t4, t4, -1
     bne t4, zero, _rej_sample_loop_p3
@@ -717,6 +784,182 @@ _end_rej_sample_loop:
     addi sp, sp, 32
     /* Correct alignment offset (unalign) */
     add sp, sp, a5
+
+    ret
+
+/**
+ * poly_uniform_eta
+ *
+ * Returns: -
+ *
+ * Flags: TODO
+ *
+ * @param[in]     a0: pointer to rho
+ * @param[in]     a2: nonce
+ * @param[in]     a1: dmem pointer to polynomial
+ *
+ * clobbered registers: w8, w9, w10, w11, w12, w13
+ */
+.global poly_uniform_eta
+poly_uniform_eta:
+/* 32 byte align the sp */
+    andi s11, sp, 31
+    beq s11, zero, _aligned_poly_uniform_eta
+    sub sp, sp, s11
+_aligned_poly_uniform_eta:
+    /* save fp to stack */
+    addi sp, sp, -32
+    sw fp, 0(sp)
+
+    addi fp, sp, 0
+    
+    /* Adjust sp to accomodate local variables */
+    addi sp, sp, -64
+
+    /* Reserve space for tmp buffer to hold a WDR */
+    #define STACK_WDR2GPR -32
+
+    /* Reserve space for the nonce */
+    #define STACK_NONCE -64
+
+    /* Store nonce to memory */
+    sw a2, STACK_NONCE(fp)
+
+    /* Load a3 <- Q */
+    addi a3, zero, 128
+    slli a3, a3, 16
+    addi a4, zero, 32
+    slli a4, a4, 8
+    sub a3, a3, a4
+    addi a3, a3, 1
+    
+    /* Initialize a SHAKE256 operation. */
+    addi      t0, zero, SHAKE256_START_CMD
+    csrrw     zero, KECCAK_CMD_REG, t0
+
+    /* Send the message to the Keccak core. */
+    addi a4, a1, 0 /* save output pointer */
+    addi a1, zero, 64 /* set message length */
+    jal  x1, keccak_send_message /* a0 already contains the input buffer */
+    addi a1, zero, 2 /* set message length */
+    addi a0, fp, STACK_NONCE
+    jal  x1, keccak_send_message
+
+    addi a1, a4, 0 /* move output pointer back to a1 */
+    
+    addi s0, zero, 8 
+
+    /* t0 = 1024, stop address*/
+    addi t0, a1, 1024
+    addi t5, zero, 15
+_rej_eta_sample_loop:
+        /* First squeeze */
+        .equ w8, shake_reg
+        bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
+        
+        /* Loop counter, we have 32B to read from shake */
+        addi t4, zero, 32
+        bn.addi w14, bn0, 0xFF
+        bn.addi w15, bn0, 15
+_rej_eta_sample_loop_inner:
+            /* Get state into working copy */
+            bn.add w9, shake_reg, bn0
+            /* shift out the used byte */
+            bn.or  shake_reg, bn0, shake_reg >> 8
+            
+            /* Mask out all other bytes */
+            bn.and  w9, w9, w14
+            /* Prepare "t1" */
+            bn.rshi w10, bn0, w9 >> 4
+            /* Prepare "t0" */
+            bn.and  w9, w9, w15
+
+            /* Instead of < 15, != 15 can also be checked */
+            bn.cmp w9, w15
+             /* Get the FG0.Z flag into a register.
+                t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+            csrrs    t2, 0x7c0, zero
+            srli     t2, t2, 3
+            andi     t2, t2, 1
+
+            bne t2, zero, _rej_eta_sample_loop_inner_1
+
+            /* t0 = t0 - (205*t0 >> 10)*5; */
+            /* 205 * t0 */
+            bn.addi w12, bn0, 205
+            bn.mulv.l.8S w13, w12, w9, 0
+            /* (205 * t0 >> 10) */
+            bn.rshi w13, bn0, w13 >> 10
+            /* (205*t0 >> 10)*5 */
+            bn.addi w12, bn0, 5
+            bn.mulv.l.8S w13, w12, w13, 0
+            /* t0 - (205 * t0 >> 10) * 5 */
+            bn.subv.8S w9, w9, w13
+            /* 2 - (t0 - (205 * t0 >> 10) * 5) */
+            bn.addi w13, bn0, 2
+            bn.subv.8S w9, w13, w9
+
+            /* WDR to GPR */
+            addi t2, zero, 9
+            bn.sid t2, STACK_WDR2GPR(fp)
+            lw     t2, STACK_WDR2GPR(fp)
+            sw     t2, 0(a1)
+            addi a1, a1, 4
+            beq a1, t0, end_rej_eta_sample_loop
+
+            /* if(t1 < 15 && ctr < len) { */
+_rej_eta_sample_loop_inner_1:
+            bn.addi w11, bn0, 15
+            bn.cmp w10, w11
+             /* Get the FG0.Z flag into a register.
+                t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+            csrrs    t2, 0x7c0, zero
+            srli     t2, t2, 3
+            andi     t2, t2, 1
+
+            bne t2, zero, _rej_eta_sample_loop_inner_none
+
+            /* t1 = t1 - (205*t1 >> 10)*5; */
+            /* 205 * t1 */
+            bn.addi w12, w31, 205
+            bn.mulv.l.8S w13, w12, w10, 0
+            /* (205 * t1 >> 10) */
+            bn.rshi w13, bn0, w13 >> 10
+            /* (205*t1 >> 10)*5 */
+            bn.addi w12, bn0, 5
+            bn.mulv.8S w13, w12, w13
+            /* t1 - (205 * t1 >> 10) * 5 */
+            bn.subv.8S w10, w10, w13
+            /* 2 - (t1 - (205 * t1 >> 10) * 5) */
+            bn.addi w13, bn0, 2
+            bn.subv.8S w10, w13, w10
+
+            addi t2, zero, 10
+            bn.sid t2, STACK_WDR2GPR(fp)
+            lw     t2, STACK_WDR2GPR(fp)
+            sw     t2, 0(a1)
+            addi a1, a1, 4
+            beq a1, t0, end_rej_eta_sample_loop
+
+_rej_eta_sample_loop_inner_none:
+
+            addi t4, t4, -1
+            bne zero, t4, _rej_eta_sample_loop_inner
+
+        /* Start all over again. */
+        beq zero, zero, _rej_eta_sample_loop
+end_rej_eta_sample_loop:
+    /* Finish the SHAKE-256 operation. */
+    addi      t0, zero, KECCAK_DONE_CMD
+    csrrw     zero, KECCAK_CMD_REG, t0
+
+    /* sp <- fp */
+    addi sp, fp, 0
+    /* Pop ebp */
+    lw fp, 0(sp)
+    addi sp, sp, 32
+    /* Correct alignment offset (unalign) */
+    add sp, sp, s11
 
     ret
 
@@ -809,6 +1052,591 @@ _inner_loop_end_poly_use_hint_dilithium:
     /* Pop ebp */
     lw fp, 0(sp)
     addi sp, sp, 32
+    ret
+
+/**
+ * polyt1_pack_dilithium
+ *
+ * Bit-pack polynomial t1 with coefficients fitting in 10 bits. Input
+ * coefficients are assumed to be standard representatives.
+ * 
+ * Returns: -
+ *
+ * Flags: TODO
+ *
+ * @param[in]     a0: pointer to output byte array with at least
+                      POLYT1_PACKEDBYTES bytes
+ * @param[in]     a1: pointer to input polynomial
+ *
+ * clobbered registers: a0-a1, t0-t2
+ */
+.global polyt1_pack_dilithium
+polyt1_pack_dilithium:
+    /* Collect bytes in a2 */
+    LOOPI 16, 63
+        xor t2, t2, t2
+        /* coefficient 1 */
+        lw t0, 0(a1)
+        or t2, t2, t0 /* 10 */
+        /* coefficient 2 */
+        lw t0, 4(a1)
+        slli t1, t0, 10
+        or t2, t2, t1 /* 20 */
+        /* coefficient 3 */
+        lw t0, 8(a1)
+        slli t1, t0, 20
+        or t2, t2, t1 /* 30 */
+        /* coefficient 4 - 2 bits */
+        lw t0, 12(a1)
+        slli t1, t0, 30
+        or t2, t2, t1 /* 32 */
+        /* Store 32 bits */
+        sw t2, 0(a0)
+        /* coefficient 4 - 8 bits */
+        srli t0, t0, 2
+        or t2, zero, t0 /* 8 */
+
+        /* coefficient 5 */
+        lw t0, 16(a1)
+        slli t1, t0, 8
+        or t2, t2, t1 /* 18 */
+        /* coefficient 6 */
+        lw t0, 20(a1)
+        slli t1, t0, 18
+        or t2, t2, t1 /* 28 */
+        /* coefficient 7 - 4 bits */
+        lw t0, 24(a1)
+        slli t1, t0, 28
+        or t2, t2, t1
+        /* Store 32 bits */
+        sw t2, 4(a0)
+        /* coefficient 7 - 6 bits */
+        srli t0, t0, 4
+        or t2, zero, t0 /* 6 */
+
+        /* coefficient 8 */
+        lw t0, 28(a1)
+        slli t1, t0, 6
+        or t2, t2, t1 /* 16 */
+        /* coefficient 9 */
+        lw t0, 32(a1)
+        slli t1, t0, 16
+        or t2, t2, t1 /* 26 */
+        /* coefficient 10 - 6 bits */
+        lw t0, 36(a1)
+        slli t1, t0, 26
+        or t2, t2, t1
+        /* Store 32 bits */
+        sw t2, 8(a0)
+        /* coefficient 10 - 4 bits */
+        srli t0, t0, 6
+        or t2, zero, t0 /* 4 */
+
+        /* coefficient 11 */
+        lw t0, 40(a1)
+        slli t1, t0, 4
+        or t2, t2, t1 /* 14 */
+        /* coefficient 12 */
+        lw t0, 44(a1)
+        slli t1, t0, 14
+        or t2, t2, t1 /* 24 */
+        /* coefficient 13 - 8 bits */
+        lw t0, 48(a1)
+        slli t1, t0, 24
+        or t2, t2, t1
+        /* Store 32 bits */
+        sw t2, 12(a0)
+        /* coefficient 13 - 2 bits */
+        srli t0, t0, 8
+        or t2, zero, t0 /* 2 */
+
+        /* coefficient 14 */
+        lw t0, 52(a1)
+        slli t1, t0, 2
+        or t2, t2, t1 /* 12 */
+        /* coefficient 15 */
+        lw t0, 56(a1)
+        slli t1, t0, 12
+        or t2, t2, t1 /* 22 */
+        /* coefficient 16 */
+        lw t0, 60(a1)
+        slli t0, t0, 22
+        or t2, t2, t0 /* 32 */
+        sw t2, 16(a0)
+
+        addi a1, a1, 64
+        addi a0, a0, 20
+
+    ret
+
+/**
+ * polyeta_pack_dilithium
+ *
+ * Bit-pack polynomial with coefficients in [-ETA,ETA].
+ * 
+ * Returns: -
+ *
+ * Flags: TODO
+ *
+ * @param[in]     a0: pointer to output byte array with at least
+                      POLYETA_PACKEDBYTES bytes
+ * @param[in]     a1: pointer to input polynomial
+ *
+ * clobbered registers: a0-a1, t0-t3, w1, w2
+ */
+.global polyeta_pack_dilithium
+polyeta_pack_dilithium:
+    /* Compute ETA - coeff */
+    /* Setup WDRs */
+    addi t1, zero, 1
+    addi t2, zero, 2
+
+    /* Load precomputed eta */
+    la t0, eta
+    bn.lid t1, 0(t0)
+
+    LOOPI 32, 4
+        /* w2 <= coeffs[i:i+8] */
+        bn.lid t2, 0(a1)
+        /* w2 <= eta - w2 */
+        bn.subv.8S w2, w1, w2
+        /* coeffs[i:i+8] <= w2 */
+        bn.sid t2, 0(a1)
+        addi a1, a1, 32
+
+    /* reset pointer */
+    addi a1, a1, -1024
+
+    /* Collect bytes in t3 */
+    LOOPI 8, 105
+        xor t3, t3, t3
+        /* oooooooooooooooooooooooooooooooo */
+        /* coefficient 0 */
+        lw t0, 0(a1)
+        or t3, t3, t0 /* 0 */
+        /* ***ooooooooooooooooooooooooooooo| */
+        /* coefficient 1 */
+        lw t0, 4(a1)
+        slli t1, t0, 3
+        or t3, t3, t1 /* 3 */
+        /* ******oooooooooooooooooooooooooo| */
+        /* coefficient 2 */
+        lw t0, 8(a1)
+        slli t1, t0, 6
+        or t3, t3, t1 /* 6 */
+        /* *********ooooooooooooooooooooooo| */
+        /* coefficient 3 */
+        lw t0, 12(a1)
+        slli t1, t0, 9
+        or t3, t3, t1 /* 9 */
+        /* ************oooooooooooooooooooo| */
+        /* coefficient 4 */
+        lw t0, 16(a1)
+        slli t1, t0, 12
+        or t3, t3, t1 /* 12 */
+        /* ***************ooooooooooooooooo| */
+        /* coefficient 5 */
+        lw t0, 20(a1)
+        slli t1, t0, 15
+        or t3, t3, t1 /* 15 */
+        /* ******************oooooooooooooo| */
+        /* coefficient 6 */
+        lw t0, 24(a1)
+        slli t1, t0, 18
+        or t3, t3, t1 /* 18 */
+        /* *********************ooooooooooo| */
+        /* coefficient 7 */
+        lw t0, 28(a1)
+        slli t1, t0, 21
+        or t3, t3, t1 /* 21 */
+        /* ************************oooooooo| */
+        /* coefficient 8 */
+        lw t0, 32(a1)
+        slli t1, t0, 24
+        or t3, t3, t1 /* 24 */
+        /* ***************************ooooo| */
+        /* coefficient 9 */
+        lw t0, 36(a1)
+        slli t1, t0, 27
+        or t3, t3, t1 /* 27 */
+        /* ******************************oo| */
+        /* coefficient 10 */
+        lw t0, 40(a1)
+        slli t1, t0, 30
+        or t3, t3, t1 /* 30 */
+        /* ********************************|x */
+        sw t3, 0(a0)
+        srli t0, t0, 2
+        or t3, zero, t0
+        /* *ooooooooooooooooooooooooooooooo */
+        /* coefficient 11 */
+        lw t0, 44(a1)
+        slli t1, t0, 1
+        or t3, t3, t1 /* 1 */
+        /* ****oooooooooooooooooooooooooooo| */
+        /* coefficient 12 */
+        lw t0, 48(a1)
+        slli t1, t0, 4
+        or t3, t3, t1 /* 4 */
+        /* *******ooooooooooooooooooooooooo| */
+        /* coefficient 13 */
+        lw t0, 52(a1)
+        slli t1, t0, 7
+        or t3, t3, t1 /* 7 */
+        /* **********oooooooooooooooooooooo| */
+        /* coefficient 14 */
+        lw t0, 56(a1)
+        slli t1, t0, 10
+        or t3, t3, t1 /* 10 */
+        /* *************ooooooooooooooooooo| */
+        /* coefficient 15 */
+        lw t0, 60(a1)
+        slli t1, t0, 13
+        or t3, t3, t1 /* 13 */
+        /* ****************oooooooooooooooo| */
+        /* coefficient 16 */
+        lw t0, 64(a1)
+        slli t1, t0, 16
+        or t3, t3, t1 /* 16 */
+        /* *******************ooooooooooooo| */
+        /* coefficient 17 */
+        lw t0, 68(a1)
+        slli t1, t0, 19
+        or t3, t3, t1 /* 19 */
+        /* **********************oooooooooo| */
+        /* coefficient 18 */
+        lw t0, 72(a1)
+        slli t1, t0, 22
+        or t3, t3, t1 /* 22 */
+        /* *************************ooooooo| */
+        /* coefficient 19 */
+        lw t0, 76(a1)
+        slli t1, t0, 25
+        or t3, t3, t1 /* 25 */
+        /* ****************************oooo| */
+        /* coefficient 20 */
+        lw t0, 80(a1)
+        slli t1, t0, 28
+        or t3, t3, t1 /* 28 */
+        /* *******************************o| */
+        /* coefficient 21 */
+        lw t0, 84(a1)
+        slli t1, t0, 31
+        or t3, t3, t1 /* 31 */
+        /* ********************************|xx */
+        sw t3, 4(a0)
+        srli t0, t0, 1
+        or t3, zero, t0
+        /* **oooooooooooooooooooooooooooooo */
+        /* coefficient 22 */
+        lw t0, 88(a1)
+        slli t1, t0, 2
+        or t3, t3, t1 /* 2 */
+        /* *****ooooooooooooooooooooooooooo| */
+        /* coefficient 23 */
+        lw t0, 92(a1)
+        slli t1, t0, 5
+        or t3, t3, t1 /* 5 */
+        /* ********oooooooooooooooooooooooo| */
+        /* coefficient 24 */
+        lw t0, 96(a1)
+        slli t1, t0, 8
+        or t3, t3, t1 /* 8 */
+        /* ***********ooooooooooooooooooooo| */
+        /* coefficient 25 */
+        lw t0, 100(a1)
+        slli t1, t0, 11
+        or t3, t3, t1 /* 11 */
+        /* **************oooooooooooooooooo| */
+        /* coefficient 26 */
+        lw t0, 104(a1)
+        slli t1, t0, 14
+        or t3, t3, t1 /* 14 */
+        /* *****************ooooooooooooooo| */
+        /* coefficient 27 */
+        lw t0, 108(a1)
+        slli t1, t0, 17
+        or t3, t3, t1 /* 17 */
+        /* ********************oooooooooooo| */
+        /* coefficient 28 */
+        lw t0, 112(a1)
+        slli t1, t0, 20
+        or t3, t3, t1 /* 20 */
+        /* ***********************ooooooooo| */
+        /* coefficient 29 */
+        lw t0, 116(a1)
+        slli t1, t0, 23
+        or t3, t3, t1 /* 23 */
+        /* **************************oooooo| */
+        /* coefficient 30 */
+        lw t0, 120(a1)
+        slli t1, t0, 26
+        or t3, t3, t1 /* 26 */
+        /* *****************************ooo| */
+        /* coefficient 31 */
+        lw t0, 124(a1)
+        slli t1, t0, 29
+        or t3, t3, t1 /* 29 */
+        /* ********************************| */
+        sw t3, 8(a0)
+
+        addi a1, a1, 128
+        addi a0, a0, 12
+
+    ret
+
+/**
+ * polyt0_pack_dilithium
+ *
+ * Bit-pack polynomial t0 with coefficients in ]-2^{D-1}, 2^{D-1}].
+ * 
+ * Returns: -
+ *
+ * Flags: TODO
+ *
+ * @param[in]     a0: pointer to output byte array with at least
+                      POLYETA_PACKEDBYTES bytes
+ * @param[in]     a1: pointer to input polynomial
+ *
+ * clobbered registers: a0-a1, t0-t3, w1, w2
+ */
+.global polyt0_pack_dilithium
+polyt0_pack_dilithium:
+    /* Compute (1 << (D-1)) - coeff */
+    /* Setup WDRs */
+    addi t1, zero, 1
+    addi t2, zero, 2
+    /* Load precomputed (1 << (D-1)) */
+    la t0, polyt0_pack_const
+    bn.lid t1, 0(t0)
+    /* This loop overwrites the original t0 */
+    LOOPI 32, 4
+        /* w2 <= coeffs[i:i+8] */
+        bn.lid t2, 0(a1)
+        /* w2 <= (1 << (D-1)) - coeffs */
+        bn.subv.8S w2, w1, w2
+        /* coeffs[i:i+8] <= w2 */
+        bn.sid t2, 0(a1)
+        addi a1, a1, 32
+
+    /* reset pointer */
+    addi a1, a1, -1024
+
+    LOOPI 8, 135
+        xor t3, t3, t3
+        /* oooooooooooooooooooooooooooooooo */
+        /* coefficient 0 */
+        lw t0, 0(a1)
+        or t3, t3, t0 /* 0 */
+        /* *************ooooooooooooooooooo| */
+        /* coefficient 1 */
+        lw t0, 4(a1)
+        slli t1, t0, 13
+        or t3, t3, t1 /* 13 */
+        /* **************************oooooo| */
+        /* coefficient 2 */
+        lw t0, 8(a1)
+        slli t1, t0, 26
+        or t3, t3, t1 /* 26 */
+        /* ********************************|xxxxxxx */
+        sw t3, 0(a0)
+        srli t0, t0, 6
+        or t3, zero, t0
+        /* *******ooooooooooooooooooooooooo */
+        /* coefficient 3 */
+        lw t0, 12(a1)
+        slli t1, t0, 7
+        or t3, t3, t1 /* 7 */
+        /* ********************oooooooooooo| */
+        /* coefficient 4 */
+        lw t0, 16(a1)
+        slli t1, t0, 20
+        or t3, t3, t1 /* 20 */
+        /* ********************************|x */
+        sw t3, 4(a0)
+        srli t0, t0, 12
+        or t3, zero, t0
+        /* *ooooooooooooooooooooooooooooooo */
+        /* coefficient 5 */
+        lw t0, 20(a1)
+        slli t1, t0, 1
+        or t3, t3, t1 /* 1 */
+        /* **************oooooooooooooooooo| */
+        /* coefficient 6 */
+        lw t0, 24(a1)
+        slli t1, t0, 14
+        or t3, t3, t1 /* 14 */
+        /* ***************************ooooo| */
+        /* coefficient 7 */
+        lw t0, 28(a1)
+        slli t1, t0, 27
+        or t3, t3, t1 /* 27 */
+        /* ********************************|xxxxxxxx */
+        sw t3, 8(a0)
+        srli t0, t0, 5
+        or t3, zero, t0
+        /* ********oooooooooooooooooooooooo */
+        /* coefficient 8 */
+        lw t0, 32(a1)
+        slli t1, t0, 8
+        or t3, t3, t1 /* 8 */
+        /* *********************ooooooooooo| */
+        /* coefficient 9 */
+        lw t0, 36(a1)
+        slli t1, t0, 21
+        or t3, t3, t1 /* 21 */
+        /* ********************************|xx */
+        sw t3, 12(a0)
+        srli t0, t0, 11
+        or t3, zero, t0
+        /* **oooooooooooooooooooooooooooooo */
+        /* coefficient 10 */
+        lw t0, 40(a1)
+        slli t1, t0, 2
+        or t3, t3, t1 /* 2 */
+        /* ***************ooooooooooooooooo| */
+        /* coefficient 11 */
+        lw t0, 44(a1)
+        slli t1, t0, 15
+        or t3, t3, t1 /* 15 */
+        /* ****************************oooo| */
+        /* coefficient 12 */
+        lw t0, 48(a1)
+        slli t1, t0, 28
+        or t3, t3, t1 /* 28 */
+        /* ********************************|xxxxxxxxx */
+        sw t3, 16(a0)
+        srli t0, t0, 4
+        or t3, zero, t0
+        /* *********ooooooooooooooooooooooo */
+        /* coefficient 13 */
+        lw t0, 52(a1)
+        slli t1, t0, 9
+        or t3, t3, t1 /* 9 */
+        /* **********************oooooooooo| */
+        /* coefficient 14 */
+        lw t0, 56(a1)
+        slli t1, t0, 22
+        or t3, t3, t1 /* 22 */
+        /* ********************************|xxx */
+        sw t3, 20(a0)
+        srli t0, t0, 10
+        or t3, zero, t0
+        /* ***ooooooooooooooooooooooooooooo */
+        /* coefficient 15 */
+        lw t0, 60(a1)
+        slli t1, t0, 3
+        or t3, t3, t1 /* 3 */
+        /* ****************oooooooooooooooo| */
+        /* coefficient 16 */
+        lw t0, 64(a1)
+        slli t1, t0, 16
+        or t3, t3, t1 /* 16 */
+        /* *****************************ooo| */
+        /* coefficient 17 */
+        lw t0, 68(a1)
+        slli t1, t0, 29
+        or t3, t3, t1 /* 29 */
+        /* ********************************|xxxxxxxxxx */
+        sw t3, 24(a0)
+        srli t0, t0, 3
+        or t3, zero, t0
+        /* **********oooooooooooooooooooooo */
+        /* coefficient 18 */
+        lw t0, 72(a1)
+        slli t1, t0, 10
+        or t3, t3, t1 /* 10 */
+        /* ***********************ooooooooo| */
+        /* coefficient 19 */
+        lw t0, 76(a1)
+        slli t1, t0, 23
+        or t3, t3, t1 /* 23 */
+        /* ********************************|xxxx */
+        sw t3, 28(a0)
+        srli t0, t0, 9
+        or t3, zero, t0
+        /* ****oooooooooooooooooooooooooooo */
+        /* coefficient 20 */
+        lw t0, 80(a1)
+        slli t1, t0, 4
+        or t3, t3, t1 /* 4 */
+        /* *****************ooooooooooooooo| */
+        /* coefficient 21 */
+        lw t0, 84(a1)
+        slli t1, t0, 17
+        or t3, t3, t1 /* 17 */
+        /* ******************************oo| */
+        /* coefficient 22 */
+        lw t0, 88(a1)
+        slli t1, t0, 30
+        or t3, t3, t1 /* 30 */
+        /* ********************************|xxxxxxxxxxx */
+        sw t3, 32(a0)
+        srli t0, t0, 2
+        or t3, zero, t0
+        /* ***********ooooooooooooooooooooo */
+        /* coefficient 23 */
+        lw t0, 92(a1)
+        slli t1, t0, 11
+        or t3, t3, t1 /* 11 */
+        /* ************************oooooooo| */
+        /* coefficient 24 */
+        lw t0, 96(a1)
+        slli t1, t0, 24
+        or t3, t3, t1 /* 24 */
+        /* ********************************|xxxxx */
+        sw t3, 36(a0)
+        srli t0, t0, 8
+        or t3, zero, t0
+        /* *****ooooooooooooooooooooooooooo */
+        /* coefficient 25 */
+        lw t0, 100(a1)
+        slli t1, t0, 5
+        or t3, t3, t1 /* 5 */
+        /* ******************oooooooooooooo| */
+        /* coefficient 26 */
+        lw t0, 104(a1)
+        slli t1, t0, 18
+        or t3, t3, t1 /* 18 */
+        /* *******************************o| */
+        /* coefficient 27 */
+        lw t0, 108(a1)
+        slli t1, t0, 31
+        or t3, t3, t1 /* 31 */
+        /* ********************************|xxxxxxxxxxxx */
+        sw t3, 40(a0)
+        srli t0, t0, 1
+        or t3, zero, t0
+        /* ************oooooooooooooooooooo */
+        /* coefficient 28 */
+        lw t0, 112(a1)
+        slli t1, t0, 12
+        or t3, t3, t1 /* 12 */
+        /* *************************ooooooo| */
+        /* coefficient 29 */
+        lw t0, 116(a1)
+        slli t1, t0, 25
+        or t3, t3, t1 /* 25 */
+        /* ********************************|xxxxxx */
+        sw t3, 44(a0)
+        srli t0, t0, 7
+        or t3, zero, t0
+        /* ******oooooooooooooooooooooooooo */
+        /* coefficient 30 */
+        lw t0, 120(a1)
+        slli t1, t0, 6
+        or t3, t3, t1 /* 6 */
+        /* *******************ooooooooooooo| */
+        /* coefficient 31 */
+        lw t0, 124(a1)
+        slli t1, t0, 19
+        or t3, t3, t1 /* 19 */
+        /* ********************************| */
+        sw t3, 48(a0)
+
+        addi a1, a1, 128
+        addi a0, a0, 52
+    
     ret
 
 /**
@@ -1441,6 +2269,7 @@ polyt0_unpack_dilithium:
  * @param[in]     a0: pointer to output polynomial
  * @param[in]     a1: byte array with seed of length CRHBYTES
  * @param[in]     a2: nonce
+ * @param[in]     a3: pointer to gamma1_vec_const
  *
  * clobbered registers: TODO
  */
@@ -1608,8 +2437,7 @@ poly_uniform_gamma1_dilithium:
     li t2, 2
 
     /* Load precomputed eta */
-    la t0, gamma1_vec_const
-    bn.lid t1, 0(t0)
+    bn.lid t1, 0(a3)
     LOOPI 32, 3
         /* w2 <= coeffs[i:i+8] */
         bn.lid t2, 0(a0)
@@ -1768,8 +2596,8 @@ _loop_end_poly_make_hint_dilithium:
 polyz_pack_dilithium:
     li t0, 0
     li t1, 1
-    la t2, gamma1_vec_const
-    bn.lid t1, 0(t2)
+    /* la t2, gamma1_vec_const */
+    bn.lid t1, 0(a2)
     LOOPI 32, 3
         bn.lid t0, 0(a1)
         bn.subv.8S w0, w1, w0

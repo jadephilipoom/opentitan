@@ -1,4 +1,14 @@
 .text
+/* Macros */
+.macro push reg
+    addi sp, sp, -4      /* Decrement stack pointer by 4 bytes */
+    sw \reg, 0(sp)      /* Store register value at the top of the stack */
+.endm
+
+.macro pop reg
+    lw \reg, 0(sp)      /* Load value from the top of the stack into register */
+    addi sp, sp, 4     /* Increment stack pointer by 4 bytes */
+.endm
 
 /**
  * Constant Time Dilithium inverse NTT
@@ -20,33 +30,39 @@
  */
 .globl intt_dilithium
 intt_dilithium:
+
+    /* Save callee-saved registers */
+    .irp reg,s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11
+        push \reg
+    .endr
+
     /* Set up constants for input/state */
-    li x4, 2 /* x2 */
-    li x5, 3 /* x3 */
-    li x6, 4 /* x4 */
-    li x7, 5 /* x5 */
-    li x8, 6 /* x6 */
-    li x9, 7 /* x7 */
-    li x13, 8 /* x8 */
-    li x14, 9 /* x9 */
-    li x15, 10 /* x10 */
-    li x16, 11 /* x11 */
-    li x17, 12 /* x12 */
-    li x18, 13 /* x13 */
-    li x19, 14 /* x14 */
-    li x20, 15 /* x15 */
-    li x21, 16 /* x16 */
-    li x22, 17 /* x17 */
+    li x4, 2 
+    li x5, 3 
+    li x6, 4 
+    li x7, 5 
+    li x8, 6 
+    li x9, 7 
+    li x13, 8 
+    li x14, 9 
+    li x15, 10
+    li x16, 11
+    li x17, 12
+    li x18, 13
+    li x19, 14
+    li x20, 15
+    li x21, 16
+    li x22, 17
 
     /* Set up constants for input/twiddle factors */
-    li x23, 18 /* x18 */
-    li x24, 19 /* x19 */
-    li x25, 20 /* x20 */
-    li x26, 21 /* x21 */
-    li x31, 22 /* x22 */
-    li x28, 23 /* x23 */
-    li x29, 24 /* x24 */
-    li x30, 25 /* x25 */
+    li x23, 18
+    li x24, 19
+    li x25, 20
+    li x26, 21
+    li x31, 22
+    li x28, 23
+    li x29, 24
+    li x30, 25
 
     LOOPI 2, 209
         /* Load input data */
@@ -456,5 +472,9 @@ intt_dilithium:
         
         addi x10, x10, 32
 
+    .irp reg,s11,s10,s9,s8,s7,s6,s5,s4,s3,s2,s1,s0
+        pop \reg
+    .endr
+    /* Restore input pointer */
     addi x10, x10, -64
     ret

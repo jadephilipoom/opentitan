@@ -651,3 +651,63 @@ polyt0_pack_const:
     .word 0x1000
     .word 0x1000
     .word 0x1000
+.global decompose_const
+decompose_const:
+    .word 0x00002c0b
+    .word 0x00002c0b
+    .word 0x00002c0b
+    .word 0x00002c0b
+    .word 0x00002c0b
+    .word 0x00002c0b
+    .word 0x00002c0b
+    .word 0x00002c0b
+.global gamma1_vec_const
+gamma1_vec_const:
+    .word 0x00020000
+    .word 0x00020000
+    .word 0x00020000
+    .word 0x00020000
+    .word 0x00020000
+    .word 0x00020000
+    .word 0x00020000
+    .word 0x00020000
+.global gamma2_vec_const
+gamma2_vec_const:
+    .word 0x00017400
+    .word 0x00017400
+    .word 0x00017400
+    .word 0x00017400
+    .word 0x00017400
+    .word 0x00017400
+    .word 0x00017400
+    .word 0x00017400
+.global qm1half_const
+qm1half_const:
+    .word 0x003ff000
+    .word 0x003ff000
+    .word 0x003ff000
+    .word 0x003ff000
+    .word 0x003ff000
+    .word 0x003ff000
+    .word 0x003ff000
+    .word 0x003ff000
+.global decompose_127_const
+decompose_127_const:
+    .word 0x0000007f
+    .word 0x0000007f
+    .word 0x0000007f
+    .word 0x0000007f
+    .word 0x0000007f
+    .word 0x0000007f
+    .word 0x0000007f
+    .word 0x0000007f
+.global decompose_43_const
+decompose_43_const:
+    .word 0x0000002b
+    .word 0x0000002b
+    .word 0x0000002b
+    .word 0x0000002b
+    .word 0x0000002b
+    .word 0x0000002b
+    .word 0x0000002b
+    .word 0x0000002b

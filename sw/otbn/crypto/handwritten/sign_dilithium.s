@@ -330,27 +330,51 @@ sign_dilithium:
   addi a2, a0, 0 /* inplace */
   la a1, twiddles_fwd
 
+  .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+     push \reg
+  .endr
+
   LOOPI 4, 2
       jal x1, ntt_dilithium
       addi a1, a1, -1024
+
+  .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+      pop \reg
+  .endr
 
   /* NTT(s2) */
   li a0, STACK_S2
   add a0, fp, a0
   addi a2, a0, 0 /* inplace */
 
+  .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+     push \reg
+  .endr
+
   LOOPI 4, 2
     jal x1, ntt_dilithium
     addi a1, a1, -1024
+
+  .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+      pop \reg
+  .endr
 
   /* NTT(t0) */
   li a0, STACK_T0
   add a0, fp, a0
   addi a2, a0, 0 /* inplace */
 
+  .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+     push \reg
+  .endr
+
   LOOPI 4, 2
       jal x1, ntt_dilithium
       addi a1, a1, -1024
+
+  .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+      pop \reg
+  .endr
 
   li s11, 0 /* nonce */
 _rej_sign_dilithium:
@@ -363,13 +387,12 @@ _rej_sign_dilithium:
 
   /* Compute nonce */
   addi a2, s11, 0
-
+  la a3, gamma1_vec_const
   LOOPI L, 2
       jal x1, poly_uniform_gamma1_dilithium
       addi a2, a2, 1 /* a2 should be preserved after execution */
   
     addi s11, s11, L
-    push s11
     /* NTT(s2) */
     li a0, STACK_Y
     add a0, fp, a0 /* in */
@@ -377,10 +400,17 @@ _rej_sign_dilithium:
     add a2, fp, a2 /* out */
     la a1, twiddles_fwd
 
+  .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+     push \reg
+  .endr
+
     LOOPI 4, 2
         jal x1, ntt_dilithium
         addi a1, a1, -1024
-    pop s11
+
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+      pop \reg
+    .endr
     /* Matrix-vector multiplication */
     /* Load source pointers */
     li a0, STACK_Z
@@ -410,6 +440,10 @@ _rej_sign_dilithium:
     add a0, fp, a0
     la a1, twiddles_inv
    
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
+
     LOOPI 4, 3
         jal x1, intt_dilithium
         /* Reset the twiddle pointer */
@@ -417,6 +451,10 @@ _rej_sign_dilithium:
         /* Go to next input polynomial */
         addi a0, a0, 1024
     
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
+
     /* Decompose */
     li a2, STACK_W1 /* input */
     add a2, fp, a2
@@ -472,13 +510,17 @@ _rej_sign_dilithium:
     jal x1, poly_challenge
 
     /* NTT(cp) */
-    push s11
     li a0, STACK_CP
     add a0, fp, a0 /* in */
     addi a2, a0, 0 /* out inplace */
     la a1, twiddles_fwd
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
     jal x1, ntt_dilithium /* only one iteration */
-    pop s11
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
     /* polyvecl_pointwise_poly_montgomery(&z, &cp, &s1); */
     li a0, STACK_CP
     add a0, fp, a0
@@ -491,18 +533,25 @@ _rej_sign_dilithium:
         addi a0, a0, -1024
 
     /* Inverse NTT on z */
-    push s11
     li a0, STACK_Z
     add a0, fp, a0
     la a1, twiddles_inv
    
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
+
     LOOPI 4, 3
         jal x1, intt_dilithium
         /* Reset the twiddle pointer */
         addi a1, a1, -960
         /* Go to next input polynomial */
         addi a0, a0, 1024
-    pop s11
+    
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
+
     /* polyvecl_add(&z, &z, &y); */
     li a0, STACK_Z
     add a0, fp, a0
@@ -555,12 +604,20 @@ _rej_sign_dilithium:
     add a0, fp, a0
     la a1, twiddles_inv
    
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
+
     LOOPI 4, 3
         jal x1, intt_dilithium
         /* Reset the twiddle pointer */
         addi a1, a1, -960
         /* Go to next input polynomial */
         addi a0, a0, 1024
+
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
 
     /* polyvecl_add(&w0, &w0, &h); */
     li a0, STACK_W0
@@ -613,12 +670,20 @@ _rej_sign_dilithium:
     add a0, fp, a0
     la a1, twiddles_inv
 
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
+
     LOOPI 4, 3
         jal x1, intt_dilithium
         /* Reset the twiddle pointer */
         addi a1, a1, -960
         /* Go to next input polynomial */
         addi a0, a0, 1024
+
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
 
     /* polyvecl_reduce(&h); */
     li a0, STACK_H
@@ -628,7 +693,6 @@ _rej_sign_dilithium:
         jal x1, poly_reduce32_dilithium
         nop /* TODO: remove */
 
-    /* !!! TODO: MOVE CHKNORM BEFORE THE ADDITION, ONLY A TEST!!! */
     /* chknorm */
     li a1, GAMMA2
     li s0, STACK_H
@@ -654,9 +718,6 @@ _rej_sign_dilithium:
     LOOPI L, 2
         jal x1, poly_add_dilithium
         nop /* TODO: remove */ 
-
-    
-
 
     /* make hint */
     
@@ -698,6 +759,7 @@ _rej_sign_dilithium:
     /* z */
     li a1, STACK_Z
     add a1, fp, a1
+    la a2, gamma1_vec_const
     LOOPI L, 2
         jal x1, polyz_pack_dilithium
         nop

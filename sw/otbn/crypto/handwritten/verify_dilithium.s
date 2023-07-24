@@ -329,7 +329,6 @@ verify_dilithium:
     jal x1, poly_challenge
 
     /* expand matrix */
-    /* ! specific to dilithium2 */
     /* initialize the nonce */
     addi a2, zero, 0
 
@@ -352,17 +351,32 @@ verify_dilithium:
     addi a2, a0, 0 /* inplace */
     la a1, twiddles_fwd
 
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
+
     LOOPI 4, 2
         jal x1, ntt_dilithium
         addi a1, a1, -1024
+
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
 
     /* NTT(c) */
     li a0, STACK_CP
     add a0, fp, a0
     addi a2, a0, 0 /* inplace */
     la a1, twiddles_fwd
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
+
     jal x1, ntt_dilithium
 
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
     /* shiftl(t1) */
 
     li a0, STACK_T1
@@ -382,9 +396,17 @@ verify_dilithium:
     addi a2, a0, 0 /* inplace */
     la a1, twiddles_fwd
 
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
+
     LOOPI 4, 2
         jal x1, ntt_dilithium
         addi a1, a1, -1024
+
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
 
     /* Matrix-vector multiplication */
     /* Load source pointers */
@@ -437,12 +459,20 @@ verify_dilithium:
     add a0, fp, a0
     la a1, twiddles_inv
    
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
+
     LOOPI 4, 3
         jal x1, intt_dilithium
         /* Reset the twiddle pointer */
         addi a1, a1, -960
         /* Go to next input polynomial */
         addi a0, a0, 1024
+
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
 
     /* Use hint */
     li a0, STACK_W1

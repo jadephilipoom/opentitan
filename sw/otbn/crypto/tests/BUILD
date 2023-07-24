@@ -692,7 +692,8 @@ otbn_sim_test(
         "//sw/otbn/crypto/handwritten:poly_add_dilithium",
         "//sw/otbn/crypto/handwritten:poly_caddq_dilithium",
         "//sw/otbn/crypto/handwritten:poly_power2round_dilithium",
-
+        "//sw/otbn/crypto/handwritten:poly_dilithium",
+        "//sw/otbn/crypto/handwritten:rounding_dilithium",
     ],
 )
 
