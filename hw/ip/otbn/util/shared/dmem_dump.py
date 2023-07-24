@@ -6,7 +6,7 @@ import re
 import struct
 
 from typing import List
-from shared.mem_layout import get_memory_layout
+from hw.ip.otbn.util.shared.mem_layout import get_memory_layout
 
 _DMEM_RE = re.compile(r'\s*(?P<start>\d+)-(?P<end>\d+)\s*=\s*(?P<value>(:?0x[0-9a-f]+))$')
 

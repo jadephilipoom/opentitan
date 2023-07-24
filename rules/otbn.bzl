@@ -193,11 +193,12 @@ def _otbn_sim_py_test(ctx):
     # print(",".join([elf.short_path for elf in elfs]))
     # Create a simple script that runs the OTBN test wrapper on the .elf file
     # using the provided simulator path.
-    sim_test_wrapper = ctx.executable._sim_test_wrapper
+    sim_test_wrapper = ctx.executable.sim_test_wrapper
     simulator = ctx.executable._simulator
+
     ctx.actions.write(
         output = ctx.outputs.executable,
-        content = "{} {} {}".format(
+        content = "python3 {} {} {}".format(
             sim_test_wrapper.short_path,
             simulator.short_path,
             ",".join(["{}#{}".format(elf.basename.replace('.' + elf.extension, ''), elf.short_path) for elf in elfs]),
@@ -205,9 +206,10 @@ def _otbn_sim_py_test(ctx):
     )
     # Runfiles include sources, the .elf file, the simulator and test wrapper
     # themselves, and all the simulator and test wrapper runfiles.
-    runfiles = ctx.runfiles(files = (ctx.files.srcs + elfs + [ctx.executable._simulator, ctx.executable._sim_test_wrapper]))
+    runfiles = ctx.runfiles(files = (ctx.files.srcs + elfs + [ctx.executable._simulator, ctx.executable.sim_test_wrapper]))
     runfiles = runfiles.merge(ctx.attr._simulator[DefaultInfo].default_runfiles)
-    runfiles = runfiles.merge(ctx.attr._sim_test_wrapper[DefaultInfo].default_runfiles)
+    runfiles = runfiles.merge(ctx.attr.sim_test_wrapper[DefaultInfo].default_runfiles)
+
     return [
         DefaultInfo(runfiles = runfiles),
     ]
@@ -376,10 +378,10 @@ otbn_sim_py_test = rv_rule(
             executable = True,
             cfg = "exec",
         ),
-        "_sim_test_wrapper": attr.label(
-            default = "//hw/ip/otbn/util:otbn_sim_py",
+        "sim_test_wrapper": attr.label(
             executable = True,
             cfg = "exec",
+            allow_files = True
         ),
         "_wrapper": attr.label(
             default = "//util:otbn_build",

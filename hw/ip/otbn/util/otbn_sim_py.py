@@ -5,22 +5,22 @@
 
 '''Run a test on the OTBN simulator.'''
 
-import argparse
 import sys
 import struct
 from enum import IntEnum
 from typing import List, Dict, Tuple
 from io import StringIO
 
-import otbn_sim_py_shared
-from shared.check import CheckResult
-from shared.reg_dump import parse_reg_dump
-from shared.dmem_dump import parse_dmem_dump
+sys.path.append('/home/amin/Documents/opentitan/')
+
+from hw.ip.otbn.util import otbn_sim_py_shared
+from hw.ip.otbn.util.shared.check import CheckResult
+from hw.ip.otbn.util.shared.reg_dump import parse_reg_dump
+from hw.ip.otbn.util.shared.dmem_dump import parse_dmem_dump
 # Import the simulator as python module for injecting dmem
 from hw.ip.otbn.dv.otbnsim.sim.stats import ExecutionStatAnalyzer
 from hw.ip.otbn.dv.otbnsim.sim.standalonesim import StandaloneSim
 from hw.ip.otbn.dv.otbnsim.sim.load_elf import load_elf
-from dilithiumpy import test_dilithium
 
 
 # Names of special registers
@@ -98,7 +98,7 @@ def run_sim(elf: str, additional_data: List[Tuple[int, int, bytes]]) -> Tuple[
 
     sim.state.ext_regs.commit()
 
-    sim.start(True)  # TODO: stats?
+    sim.start(True)
 
     reg_dump = StringIO()
     sim.run(verbose=False, dump_file=reg_dump)
@@ -118,44 +118,3 @@ def run_sim(elf: str, additional_data: List[Tuple[int, int, bytes]]) -> Tuple[
         print(result.report())
 
     return (actual_regs, raw_dmem)
-
-
-def main() -> int:
-    otbn_sim_py_shared.init()
-    parser = argparse.ArgumentParser()
-    parser.add_argument('simulator',
-                        help='Path to the standalone OTBN simulator.')
-    # parser.add_argument('expected',
-    #                     metavar='FILE',
-    #                     type=argparse.FileType('r'),
-    #                     help=(f'File containing expected register values. '
-    #                           f'Registers that are not listed are allowed to '
-    #                           f'have any value, except for {ERR_BITS}. If '
-    #                           f'{ERR_BITS} is not listed, the test will assume '
-    #                           f'there are no errors expected (i.e. {ERR_BITS}'
-    #                           f'= 0).'))
-    parser.add_argument('elf',
-                        help='Path to the .elf files for the OTBN programs'
-                        'prefixed with the name of the test and separated with'
-                        ' "#" sign.')
-    parser.add_argument('-v', '--verbose', action='store_true')
-
-    args = parser.parse_args()
-    print("Start")
-    elfs = [item for item in args.elf.split(',')]
-
-    for e in elfs:
-        name, path = e.split("#")
-        otbn_sim_py_shared.ELF_MAP[name] = path
-
-    print(otbn_sim_py_shared.ELF_MAP)
-    # run dilithium here
-    test = test_dilithium.TestKnownTestValuesDilithium()
-    test.test_dilithium2()
-    print("Done")
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

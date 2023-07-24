@@ -741,11 +741,10 @@ otbn_sim_test(
 )
 
 otbn_sim_py_test(
-    name = "dilithium_test",
+    name = "dilithium_test_old",
     srcs = [
     ],
     deps = [
-        ":ed25519_ext_add_test",
         ":ntt_dilithium_test",
         ":intt_dilithium_test",
         ":poly_pointwise_dilithium_test",
@@ -905,4 +904,16 @@ otbn_consttime_test(
     deps = [
         ":x25519_test",
     ],
+)
+
+otbn_sim_py_test(
+    name = "dilithium",
+    srcs = [
+    ],
+    deps = [
+        ":key_pair_dilithium_test",
+        ":verify_dilithium_test",
+        ":sign_dilithium_test"
+        ],
+    sim_test_wrapper = "dilithiumpy_otbn/run_dilithium.py",
 )

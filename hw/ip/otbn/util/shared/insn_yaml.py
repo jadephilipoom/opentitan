@@ -306,6 +306,30 @@ class InsnsFile:
                                            lambda insn: insn.mnemonic.lower())
 
         masks_exc, ambiguities = self._get_masks()
+        # encs = []
+        # for m, (z, o) in masks_exc.items():
+        #     # print(m, bin(z), bin(o))
+        #     enc = ""
+
+        #     for i in range(31, -1, -1):
+        #         zi = format(z, '032b')[i]
+        #         oi = format(o, '032b')[i]
+        #         if zi == "1" and oi == "1":
+        #             print("Should not happen")
+        #             exit(-1)
+        #         if zi == "1":
+        #             enc += ("0")
+        #         elif oi == "1":
+        #             enc += ("1")
+        #         else:
+        #             enc += (" ")
+
+        #     # print(enc + m.rjust(14))
+        #     encs.append(enc + m.rjust(14))
+        # encs.sort()
+        # for x in encs:
+        #     print(x)
+
         if ambiguities:
             raise ValueError('Ambiguous instruction encodings: ' +
                              ', '.join(ambiguities))

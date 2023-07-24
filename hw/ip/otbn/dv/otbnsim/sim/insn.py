@@ -13,9 +13,6 @@ from .isa import (OTBNInsn, RV32RegReg, RV32RegImm,
                   bit_shift,
                   extract_quarter_word, extract_sub_word)
 from .state import OTBNState
-sys.path.append('../../util')
-import otbn_sim_py_shared as shared
-from dilithiumpy.shake_wrapper import Shake
 
 DEBUG_MEM = False
 DEBUG_BRANCH = False
