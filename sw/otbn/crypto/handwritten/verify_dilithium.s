@@ -251,9 +251,18 @@ verify_dilithium:
     /* Load pointer to h */
     li a0, STACK_H
     add a0, fp, a0
+
+    .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
+        push \reg
+    .endr
+
     jal x1, polyvec_decode_h_dilithium
     /* Raise error */
     bne a0, zero, exit_err
+
+    .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
+        pop \reg
+    .endr
 
     /* chknorm */
     li t0, GAMMA1

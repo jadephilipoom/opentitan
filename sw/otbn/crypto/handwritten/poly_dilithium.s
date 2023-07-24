@@ -159,7 +159,6 @@ no_full_wdr:
 
 .global polyt1_unpack_dilithium
 polyt1_unpack_dilithium:
-    /* Collect bytes in a2 */
     LOOPI 16, 62
         lw t0, 0(a1)
         andi t1, t0, 0x3ff
@@ -256,21 +255,16 @@ polyt1_unpack_dilithium:
  *
  * clobbered registers: a0-a1, t0-t6
  */
-/* TODO: remove s-regs */
 .global polyz_unpack_dilithium
 polyz_unpack_dilithium:
-    /* TODO: vectorize subtraction */
-    /* Collect bytes in a2 */
     li t3, 0x3ffff
     li t4, 0xffff
     li t5, 0xfff
     li t6, 0x3fff
 
-    li s2, GAMMA1
-    LOOPI 16, 90
+    LOOPI 16, 74
         lw t0, 0(a1)
         and t1, t0, t3
-        sub t1, s2, t1
         sw t1, 0(a0) /* coeff 0 */
         srli t0, t0, 18
         /* Bits rest: 14 */
@@ -278,13 +272,11 @@ polyz_unpack_dilithium:
         andi t1, t2, 15
         slli t1, t1, 14
         or t1, t1, t0
-        sub t1, s2, t1
         sw t1, 4(a0)
         srli t0, t2, 4
         /* Bytes processed: 8 */
 
         and t1, t0, t3
-        sub t1, s2, t1
         sw t1, 8(a0) /* coeff 2 */
         srli t0, t0, 18
         /* Bits rest: 10 */
@@ -292,13 +284,11 @@ polyz_unpack_dilithium:
         andi t1, t2, 255
         slli t1, t1, 10
         or t1, t1, t0
-        sub t1, s2, t1
         sw t1, 12(a0)
         srli t0, t2, 8
         /* Bytes processed: 12 */
 
         and t1, t0, t3
-        sub t1, s2, t1
         sw t1, 16(a0) /* coeff 4 */
         srli t0, t0, 18
         /* Bits rest: 6 */
@@ -306,13 +296,11 @@ polyz_unpack_dilithium:
         and t1, t2, t5
         slli t1, t1, 6
         or t1, t1, t0
-        sub t1, s2, t1
         sw t1, 20(a0)
         srli t0, t2, 12
         /* Bytes processed: 16 */
 
         and t1, t0, t3
-        sub t1, s2, t1
         sw t1, 24(a0) /* coeff 6 */
         srli t0, t0, 18
         /* Bits rest: 2 */
@@ -320,7 +308,6 @@ polyz_unpack_dilithium:
         and t1, t2, t4
         slli t1, t1, 2
         or t1, t1, t0
-        sub t1, s2, t1
         sw t1, 28(a0)
         srli t0, t2, 16
         /* Bytes processed: 20 */
@@ -330,13 +317,11 @@ polyz_unpack_dilithium:
         andi t1, t2, 3
         slli t1, t1, 16
         or t1, t1, t0
-        sub t1, s2, t1
         sw t1, 32(a0)
         srli t0, t2, 2
         /* Bytes processed: 24 */
 
         and t1, t0, t3
-        sub t1, s2, t1
         sw t1, 36(a0) /* coeff 9 */
         srli t0, t0, 18
         /* Bits rest: 12 */
@@ -344,13 +329,11 @@ polyz_unpack_dilithium:
         andi t1, t2, 63
         slli t1, t1, 12
         or t1, t1, t0
-        sub t1, s2, t1
         sw t1, 40(a0)
         srli t0, t2, 6
         /* Bytes processed: 28 */
 
         and t1, t0, t3
-        sub t1, s2, t1
         sw t1, 44(a0) /* coeff 11 */
         srli t0, t0, 18
         /* Bits rest: 8 */
@@ -358,13 +341,11 @@ polyz_unpack_dilithium:
         andi t1, t2, 1023
         slli t1, t1, 8
         or t1, t1, t0
-        sub t1, s2, t1
         sw t1, 48(a0)
         srli t0, t2, 10
         /* Bytes processed: 32 */
 
         and t1, t0, t3
-        sub t1, s2, t1
         sw t1, 52(a0) /* coeff 13 */
         srli t0, t0, 18
         /* Bits rest: 4 */
@@ -372,19 +353,31 @@ polyz_unpack_dilithium:
         and t1, t2, t6
         slli t1, t1, 4
         or t1, t1, t0
-        sub t1, s2, t1
         sw t1, 56(a0)
         srli t0, t2, 14
         /* Bytes processed: 36 */
 
         /* Bits rest: 18 */
         and t1, t0, t3
-        sub t1, s2, t1
         sw t1, 60(a0) /* coeff 15 */
         /* Bytes processed: 36 */
 
         addi a1, a1, 36
         addi a0, a0, 64
+    
+    /* reset pointer */
+    addi a0, a0, -1024
+    li t0, 0
+    li t1, 1
+    la t2, gamma1_vec_const
+    bn.lid t1, 0(t2)
+    LOOPI 32, 3
+        /* w0 <= coeffs[i:i+8] */
+        bn.lid t0, 0(a0)
+        /* w0 <= gamma1 - w0 */
+        bn.subv.8S w0, w1, w0
+        /* coeffs[i:i+8] <= w0 */
+        bn.sid t0, 0(a0++)
 
     ret
 
@@ -401,13 +394,13 @@ polyz_unpack_dilithium:
  * @param[in]     a1: norm bound
  * @param[in]     a0: pointer to polynomial
  *
- * clobbered registers: a0-a1, t0-t2
+ * clobbered registers: a0-a1, t0-t5, w1-w2
  */
  .global poly_chknorm_dilithium
 poly_chknorm_dilithium:
     /* save fp to stack */
     addi sp, sp, -32
-    sw fp, 0(sp)
+    sw   fp, 0(sp)
 
     addi fp, sp, 0
     
@@ -418,13 +411,14 @@ poly_chknorm_dilithium:
     #define STACK_WDR2GPR -32
 
     /* Load modulus Q */
-    la t0, modulus
-    lw t1, 0(t0)
+    la   t0, modulus
+    lw   t1, 0(t0)
     addi t1, t1, -1
     srli t1, t1, 3 /* /8 */
+
     /* (Q-1)/8 < B ? */
     slt t2, t1, a1
-    li t0, 1
+    li  t0, 1
     beq t0, t2, _ret1_poly_chknorm_dilithium
 
     /* Set end address */
@@ -433,10 +427,10 @@ poly_chknorm_dilithium:
     li t1, 1
     li t2, 2
 _loop_poly_chknorm_dilithium:
-    bn.lid t1, 0(a0)
+    bn.lid      t1, 0(a0)
     bn.orv.8S   w2, bn0, w1 a >> 31 /* a->coeffs[i] >> 31 */
     bn.andv.8S  w2, w2, w1 a << 1 /* t & 2*a->coeffs[i] */
-    bn.subv.8S w2, w1, w2 /* a->coeffs[i] - (t & 2*a->coeffs[i]) */
+    bn.subv.8S  w2, w1, w2 /* a->coeffs[i] - (t & 2*a->coeffs[i]) */
     bn.sid      t2, STACK_WDR2GPR(fp)
     
     addi t4, fp, STACK_WDR2GPR
@@ -480,7 +474,7 @@ _ret1_poly_chknorm_dilithium:
  * @param[in]     a1: mu byte array containing seed of length SEEDBYTES
  * @param[in]     a0: pointer to output polynomial
  *
- * clobbered registers: a0-a1, t0-t2
+ * clobbered registers: a0-a6, t0-t3, w0-w3
  */
 .global poly_challenge
 poly_challenge:
@@ -542,11 +536,12 @@ poly_challenge:
     li a4, N
     /* a3 = i = N-TAU */
     sub a3, a4, t1
+    li a6, 0
+    li t3, 1
 _loop_poly_challenge:
     /* get address of c->coeffs[i]; */
     slli a5, a3, 2 /* *4 for byte position */
     add  a5, a5, a0 /* c->coeffs + i*4 */
-    li a6, 0
     /* do... */
 _loop_inner_poly_challenge:
     /* shake */
@@ -562,13 +557,12 @@ _loop_inner_skip_load_poly_challenge:
     andi t1, t1, 0xFF
     sltu t2, a3, t1 /* i < b ? */
     /* while(b > i); */
-    li t3, 1
     beq t3, t2, _loop_inner_poly_challenge
 
     /* get address of c->coeffs[b]; */
-    slli t1, t1, 2 /* *4 for byte position */
-    add t1, t1, a0 /* c->coeffs + b*4 */
-    lw t2, 0(t1)
+    slli t1, t1, 2 /* b = b' * 4 for byte position */
+    add t1, t1, a0 /* c->coeffs + b'*4 */
+    lw t2, 0(t1) /* Load c->coeffs[b] */
     sw t2, 0(a5) /* c->coeffs[i] = c->coeffs[b]; */
     bn.and w3, w1, w2 /* signs & 0x1 */
     bn.add w3, w3, w3 /* 2*(signs & 0x1) */
@@ -1774,7 +1768,6 @@ polyeta_unpack_dilithium:
     /* Collect bytes in a2 */
     LOOPI 8, 104
         /* oooooooooooooooooooooooooooooooo */
-        /* xor t2, t2, t2 */ /* TODO if this is needed/present for other pack/unpack */
         lw t0, 0(a1)
         andi t1, t0, 7
         sw t1, 0(a0) /* coeff 0 */
@@ -1920,7 +1913,7 @@ polyeta_unpack_dilithium:
  * @param[in]     a1: pointer to input byte array signature
  * @param[in]     a0: pointer to output polynomial h
  *
- * clobbered registers: a0-a1, t0-t2
+ * clobbered registers: a0-a7, t0-t6
  */
 .global polyvec_decode_h_dilithium
 polyvec_decode_h_dilithium:
@@ -1934,16 +1927,17 @@ polyvec_decode_h_dilithium:
     li t1, 0 /* i = 0 */
     li t4, OMEGA
     li a2, 0xFFFFFFFC
+    li a7, 1
 _loop_decode_h_dilithium:
-    /* Load sig[OMEGA + i] */
+    /* Load sig[OMEGA + i] to t2 */
     addi t2, t1, OMEGA
     add t6, t2, a1 /* (sig + OMEGA + i) */
     and a4, t6, 0x3 /* get lower two bits */
     and t6, t6, a2 /* set lowest two bits to 0 */
-    lw a3, 0(t6) /* aligned load */
+    lw t6, 0(t6) /* aligned load */
     slli a4, a4, 3
-    srl a3, a3, a4 /* extract the respective byte */
-    andi t2, a3, 0xFF
+    srl t6, t6, a4 /* extract the respective byte */
+    andi t2, t6, 0xFF
 
     /* sig[OMEGA + i] < k  */
     slt t3, t2, t0
@@ -1959,16 +1953,15 @@ _loop_decode_h_dilithium:
     add t6, t5, a1 /* (sig + j) */
     andi a4, t6, 0x3 /* get lower two bits */
     and t6, t6, a2 /* set lowest two bits to 0 */
-    lw a3, 0(t6) /* aligned load */
+    lw t6, 0(t6) /* aligned load */
     slli a4, a4, 3
-    srl a3, a3, a4 /* extract the respective byte */
-    andi a6, a3, 0xFF /* a6 = sig[j] */
+    srl t6, t6, a4 /* extract the respective byte */
+    andi a6, t6, 0xFF /* a6 = sig[j] */
 
     slli a4, a6, 2 /* sig[j] * 4 */
     add t6, a0, a4 /* (h[sig[j]]) */
-    li a4, 1
-    /* h->vec[i].coeffs[sig[j]] = 1 */
-    sw a4, 0(t6)
+    /* h->vec[i].coeffs[sig[j]] = a7 = 1 */
+    sw a7, 0(t6)
 
     /* Skip the loop if we are already done here */
     addi t5, t5, 1
@@ -1995,14 +1988,14 @@ _loop_inner_decode_h_dilithium:
 
         slli a4, a3, 2 /* sig[j] * 4 */
         add t6, a0, a4 /* (h[sig[j]]) */
-        li a4, 1 /* TODO: put this somewhere outside the loop */
         /* h->vec[i].coeffs[sig[j]] = 1 */
-        sw a4, 0(t6)
+        sw a7, 0(t6)
 
-
-        /* sig[j - 1] <= sig[j] */
+        /* set sig[j - 1] from sig[j] */
         addi a6, a3, 0
+        /* j++ */
         addi t5, t5, 1
+        /* j != sig[OMEGA + i] */
         bne t5, t2, _loop_inner_decode_h_dilithium
 _loop_inner_skip_decode_h_dilithium:
 
@@ -2023,10 +2016,10 @@ _loop_extra_decode_h_dilithium:
     add t6, t5, a1 /* (sig + j) */
     and a4, t6, 0x3 /* get lower two bits */
     and t6, t6, a2 /* set lowest two bits to 0 */
-    lw a3, 0(t6) /* aligned load */
+    lw t6, 0(t6) /* aligned load */
     slli a4, a4, 3
-    srl a3, a3, a4 /* extract the respective byte */
-    andi a6, a3, 0xFF /* a6 = sig[j] */
+    srl t6, t6, a4 /* extract the respective byte */
+    andi a6, t6, 0xFF /* a6 = sig[j] */
 
     /* if(sig[j]) return 1; */
     bne a6, zero, _ret1_decode_h_dilithium
