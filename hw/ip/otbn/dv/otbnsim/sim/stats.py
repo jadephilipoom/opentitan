@@ -43,9 +43,9 @@ class ExecutionStats:
         self.stall_count += 1
 
         if state_bc.pc in self.func_cycles:
-            self.func_cycles[state_bc.pc] += 1
+            self.func_cycles[state_bc.pc][1] += 1
         else:
-            self.func_cycles[state_bc.pc] = 1
+            self.func_cycles[state_bc.pc] = [0, 1]
 
     def _insn_at_addr(self, addr: int) -> Optional[OTBNInsn]:
         '''Get the instruction at a given address.'''
@@ -73,9 +73,9 @@ class ExecutionStats:
 
         # Record cycle for this function
         if pc in self.func_cycles:
-            self.func_cycles[pc] += 1
+            self.func_cycles[pc][0] += 1
         else:
-            self.func_cycles[pc] = 1
+            self.func_cycles[pc] = [1, 0]
 
         # Function calls
         # - Direct function calls: jal x1, <offset>
@@ -397,7 +397,6 @@ class ExecutionStatAnalyzer:
         return out
 
     def _dump_func_cycles(self) -> str:
-        out = ''
         accumulated = dict()
         for func_addr, cycles in self._stats.func_cycles.items():
             _func_addr = func_addr
@@ -405,11 +404,10 @@ class ExecutionStatAnalyzer:
                 _func_addr -= 1
             func_name = self._describe_imem_addr(_func_addr, name_only=True)
             if func_name in accumulated:
-                accumulated[func_name] += cycles
+                from operator import add
+                accumulated[func_name] = list(map(add, accumulated[func_name], cycles))
             else:
                 accumulated[func_name] = cycles
-
-        for func_name, cycles in {k: v for k, v in sorted(accumulated.items(), key=lambda item: item[1])}.items():
-            out += f"{func_name}: {cycles}\n"
-        assert sum(accumulated.values()) == (sum(self._stats.insn_histo.values()) + self._stats.stall_count)
-        return tabulate([[k, v] for k, v in sorted(accumulated.items(), key=lambda item: item[1], reverse=True)], headers=['function', 'cycles']) + "\n"
+        print(accumulated.values())
+        assert sum(sum(accumulated.values(), [])) == (sum(self._stats.insn_histo.values()) + self._stats.stall_count)
+        return tabulate([[k, v] for k, v in sorted(accumulated.items(), key=lambda item: item[1], reverse=True)], headers=['function', 'cycles [instr, stall]']) + "\n"

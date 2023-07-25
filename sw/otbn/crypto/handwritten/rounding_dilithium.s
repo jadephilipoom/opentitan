@@ -74,16 +74,15 @@
 .equ w31, bn0
 
 /* Index of the Keccak command special register. */
-.equ KECCAK_CMD_REG, 0x7dc
-/* #define KECCAK_CMD_REG 0x7dc*/
+#define KECCAK_CMD_REG 0x7dc
 /* Command to start a SHAKE-128 operation. */
-.equ SHAKE128_START_CMD, 0x1d
+#define SHAKE128_START_CMD 0x1d
 /* Command to start a SHAKE-256 operation. */
-.equ SHAKE256_START_CMD, 0x5d
+#define SHAKE256_START_CMD 0x5d
 /* Command to end an ongoing Keccak operation of any kind. */
-.equ KECCAK_DONE_CMD, 0x16
+#define KECCAK_DONE_CMD 0x16
 /* Index of the Keccak write-length special register. */
-.equ KECCAK_WRITE_LEN_REG, 0x7e0
+#define KECCAK_WRITE_LEN_REG 0x7e0
 
 /* Macros */
 .macro push reg

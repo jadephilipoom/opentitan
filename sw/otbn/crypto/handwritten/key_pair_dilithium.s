@@ -40,16 +40,15 @@
 .equ w31, bn0
 
 /* Index of the Keccak command special register. */
-.equ KECCAK_CMD_REG, 0x7dc
-/* #define KECCAK_CMD_REG 0x7dc*/
+#define KECCAK_CMD_REG 0x7dc
 /* Command to start a SHAKE-128 operation. */
-.equ SHAKE128_START_CMD, 0x1d
+#define SHAKE128_START_CMD 0x1d
 /* Command to start a SHAKE-256 operation. */
-.equ SHAKE256_START_CMD, 0x5d
+#define SHAKE256_START_CMD 0x5d
 /* Command to end an ongoing Keccak operation of any kind. */
-.equ KECCAK_DONE_CMD, 0x16
+#define KECCAK_DONE_CMD 0x16
 /* Index of the Keccak write-length special register. */
-.equ KECCAK_WRITE_LEN_REG, 0x7e0
+#define KECCAK_WRITE_LEN_REG 0x7e0
 
 /* Macros */
 .macro push reg
@@ -83,7 +82,7 @@ keccak_send_message:
   srli     t0, x11, 5
 
   /* Write all full 256-bit sections of the test message. */
-  beq t0, zero, no_full_wdr
+  beq t0, zero, _no_full_wdr
   loop     t0, 2
     /* w0 <= dmem[x10..x10+32] = msg[32*i..32*i-1]
        x10 <= x10 + 32 */
@@ -91,7 +90,7 @@ keccak_send_message:
     /* Write to the KECCAK_MSG wide special register (index 8).
          KECCAK_MSG <= w0 */
     bn.wsrw  0x8, w0
-no_full_wdr:
+_no_full_wdr:
   /* Compute the remaining message length.
        t0 <= x10 & 31 = len mod 32 */
   andi     t0, x11, 31
