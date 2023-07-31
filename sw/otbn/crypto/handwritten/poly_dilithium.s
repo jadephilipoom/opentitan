@@ -1798,7 +1798,7 @@ polyw1_pack_dilithium:
  * @param[in]     a1: byte array with bit-packed polynomial
  * @param[in]     a0: pointer to output polynomial
  *
- * clobbered registers: a0-a1, t0-t2
+ * clobbered registers: a0-a1, t0-t2, w1-w2
  */
 
 .global polyeta_unpack_dilithium
@@ -2086,7 +2086,7 @@ _ret1_decode_h_dilithium:
                       POLYETA_PACKEDBYTES bytes
  * @param[in]     a1: pointer to input polynomial
  *
- * clobbered registers: TODO
+ * clobbered registers: a0-a1, t0-t4, w1-w2
  */
 .global polyt0_unpack_dilithium
 polyt0_unpack_dilithium:
@@ -2302,7 +2302,7 @@ polyt0_unpack_dilithium:
  * @param[in]     a2: nonce
  * @param[in]     a3: pointer to gamma1_vec_const
  *
- * clobbered registers: TODO
+ * clobbered registers: a0, a4, t0-t6, w1-w2, w8
  */
 .global poly_uniform_gamma1_dilithium
 poly_uniform_gamma1_dilithium:
@@ -2353,15 +2353,15 @@ poly_uniform_gamma1_dilithium:
             bn.sid t1, 0(t0++)
 
         /* Load pointer to shake output */
-        addi s3, fp, STACK_BUF
+        addi a4, fp, STACK_BUF
 
         LOOPI 8, 74
-            lw t0, 0(s3)
+            lw t0, 0(a4)
             and t1, t0, t3
             sw t1, 0(a0) /* coeff 0 */
             srli t0, t0, 18
             /* Bits rest: 14 */
-            lw t2, 4(s3)
+            lw t2, 4(a4)
             andi t1, t2, 15
             slli t1, t1, 14
             or t1, t1, t0
@@ -2373,7 +2373,7 @@ poly_uniform_gamma1_dilithium:
             sw t1, 8(a0) /* coeff 2 */
             srli t0, t0, 18
             /* Bits rest: 10 */
-            lw t2, 8(s3)
+            lw t2, 8(a4)
             andi t1, t2, 255
             slli t1, t1, 10
             or t1, t1, t0
@@ -2385,7 +2385,7 @@ poly_uniform_gamma1_dilithium:
             sw t1, 16(a0) /* coeff 4 */
             srli t0, t0, 18
             /* Bits rest: 6 */
-            lw t2, 12(s3)
+            lw t2, 12(a4)
             and t1, t2, t4
             slli t1, t1, 6
             or t1, t1, t0
@@ -2397,7 +2397,7 @@ poly_uniform_gamma1_dilithium:
             sw t1, 24(a0) /* coeff 6 */
             srli t0, t0, 18
             /* Bits rest: 2 */
-            lw t2, 16(s3)
+            lw t2, 16(a4)
             and t1, t2, t5
             slli t1, t1, 2
             or t1, t1, t0
@@ -2406,7 +2406,7 @@ poly_uniform_gamma1_dilithium:
             /* Bytes processed: 20 */
 
             /* Bits rest: 16 */
-            lw t2, 20(s3)
+            lw t2, 20(a4)
             andi t1, t2, 3
             slli t1, t1, 16
             or t1, t1, t0
@@ -2418,7 +2418,7 @@ poly_uniform_gamma1_dilithium:
             sw t1, 36(a0) /* coeff 9 */
             srli t0, t0, 18
             /* Bits rest: 12 */
-            lw t2, 24(s3)
+            lw t2, 24(a4)
             andi t1, t2, 63
             slli t1, t1, 12
             or t1, t1, t0
@@ -2430,7 +2430,7 @@ poly_uniform_gamma1_dilithium:
             sw t1, 44(a0) /* coeff 11 */
             srli t0, t0, 18
             /* Bits rest: 8 */
-            lw t2, 28(s3)
+            lw t2, 28(a4)
             andi t1, t2, 1023
             slli t1, t1, 8
             or t1, t1, t0
@@ -2442,7 +2442,7 @@ poly_uniform_gamma1_dilithium:
             sw t1, 52(a0) /* coeff 13 */
             srli t0, t0, 18
             /* Bits rest: 4 */
-            lw t2, 32(s3)
+            lw t2, 32(a4)
             and t1, t2, t6
             slli t1, t1, 4
             or t1, t1, t0
@@ -2456,7 +2456,7 @@ poly_uniform_gamma1_dilithium:
             /* Bytes processed: 36 */
 
             addi a0, a0, 64
-            addi s3, s3, 36
+            addi a4, a4, 36
         nop /* TODO: handle this better */
    
     /* Finish the SHAKE-256 operation. */
@@ -2568,41 +2568,47 @@ poly_decompose_dilithium:
  * @param[in]     a1: a0 pointer to low part of input polynomial
  * @param[in]     a2: a1: pointer to high part of input polynomial
  *
- * clobbered registers: TODO
+ * clobbered registers: t0-t2, t4-t6, a0-a2, a4-a7
  */
 .global poly_make_hint_dilithium
 poly_make_hint_dilithium:
     li   t2, 0
     li   t4, 1
 
-    li   t6,94208
-    addi t6,t6,1024
-    li   a6,192512
-    addi a6,a6,-2048
-    li   a7,-94208
-    addi a7,a7,-1024
+    li   t6, 94208
+    addi t6, t6, 1024
+    li   a6, 192512
+    addi a6, a6, -2048
+    li   a7, -94208
+    addi a7, a7, -1024
+
     LOOPI 256, 18
         lw t0, 0(a1)
         lw t1, 0(a2)
-        add     a4,t0,t6
-        addi    a5,t0, 0
-        sltu    t5,a6,a4
-        beq     t4, t5, _L3_poly_make_hint_dilithium
-        li      t0,0
-        beq     a5,a7,_L6_poly_make_hint_dilithium
-        beq zero, zero, _loop_end_poly_make_hint_dilithium
+
+        add  a4, t0, t6
+        addi a5, t0, 0
+        sltu t5, a6, a4
+        beq  t4, t5, _L3_poly_make_hint_dilithium
+        li   t0, 0
+        beq  a5, a7, _L6_poly_make_hint_dilithium
+        beq  zero, zero, _loop_end_poly_make_hint_dilithium
+
 _L6_poly_make_hint_dilithium:
         sltu t0, zero, t1
-        beq zero, zero, _loop_end_poly_make_hint_dilithium
+        beq  zero, zero, _loop_end_poly_make_hint_dilithium
+
 _L3_poly_make_hint_dilithium:
-        li      t0,1
+        li  t0, 1
         beq zero, zero, _loop_end_poly_make_hint_dilithium
+
 _loop_end_poly_make_hint_dilithium:
-        sw t0, 0(a0)
-        add t2, t2, t0
+        sw   t0, 0(a0)
+        add  t2, t2, t0
         addi a1, a1, 4
         addi a2, a2, 4
         addi a0, a0, 4
+
     addi a0, t2, 0
     ret
 
@@ -2615,11 +2621,12 @@ _loop_end_poly_make_hint_dilithium:
  *
  * Flags: TODO
  *
+ * @param[in]     a2: address of gamma1_vec_const
  * @param[in]     a1: pointer to input polynomial
  * @param[in]     a0: pointer to output byte array with at least
  *                    POLYZ_PACKEDBYTES bytes
  *
- * clobbered registers: a0-a1, t0-t6
+ * clobbered registers: a0-a1, t0-t2, w0-w1
  */
 .global polyz_pack_dilithium
 polyz_pack_dilithium:
@@ -2765,7 +2772,7 @@ polyz_pack_dilithium:
  * @param[in]     a1: pointer to input polynomial h
  * @param[in]     a0: pointer to output byte array signature
  *
- * clobbered registers: a0-a1, t0-t2
+ * clobbered registers: a1-a2, t0-t6
  */
 .global polyvec_encode_h_dilithium
 polyvec_encode_h_dilithium:
