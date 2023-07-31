@@ -103,53 +103,43 @@
  * (Q-1)/ALPHA where we set a1 = 0 and -ALPHA/2 <= a0 = a mod^+ Q - Q < 0.
  * Assumes a to be standard representative.
  * 
- * Returns: 
+ * Returns: -
  *
  * Flags: TODO
  *
  * @param[in]     w0: input element vector
  * @param[out]    w1: output element vector "a0"
  * @param[out]    w2: output element vector "a1"
+ * @param[in]     w5-w11: constants in the following order: decompose_127_const,
+ * decompose_const, reduce32_const, decompose_43_const, gamma2_vec_const,
+ * qm1half_const, modulus
  *
- * clobbered registers: TODO
+ * clobbered registers: w1-w4, t0, t3-t4
  */
 .global decompose_dilithium
 decompose_dilithium:
-/* TODO: load constants only once outside */
-    la t0, decompose_127_const
-    li t3, 3
-    bn.lid t3, 0(t0)
     /* a + 127 */
-    bn.addv.8S w2, w0, w3
+    bn.addv.8S w2, w0, w5
     /* (a + 127) >> 7 */
     bn.orv.8S w2, bn0, w2 >> 7
-    la t0, decompose_const
-    li t4, 4
-    bn.lid t4, 0(t0)
-    bn.mulv.8S w2, w2, w4
-    la t0, reduce32_const
-    bn.lid t4, 0(t0)
-    bn.orv.8S w4, bn0, w4 << 23
+    
+    bn.mulv.8S w2, w2, w6
+    
+    bn.orv.8S  w4, bn0, w7 << 23
     bn.addv.8S w2, w2, w4
-    bn.orv.8S w2, bn0, w2 >> 24
-    la t0, decompose_43_const
-    bn.lid t4, 0(t0)
-    bn.subv.8S w3, w4, w2
+    bn.orv.8S  w2, bn0, w2 >> 24
+
+    bn.subv.8S w3, w8, w2
     bn.andv.8S w3, w2, w3 a >> 31 /* (((Q-1)/2 - *a0) >> 31) & Q */ 
     bn.xorv.8S w2, w2, w3
     /* a0 */
-    la t0, gamma2_vec_const
-    bn.lid t4, 0(t0)
-    bn.mulv.8S w4, w4, w2 /* *a */
-    bn.orv.8S w4, bn0, w4 << 1 /* *2 */
+    
+    bn.mulv.8S w4, w9, w2 /* *a */
+    bn.orv.8S  w4, bn0, w4 << 1 /* *2 */
     bn.subv.8S w1, w0, w4 /* a - a1*2*GAMMA2 */
-    la t0, qm1half_const
-    bn.lid t4, 0(t0)
-    bn.subv.8S w4, w4, w1 /* ((Q-1)/2 - *a0) */
-    la t0, modulus
-    li t3, 3
-    bn.lid t3, 0(t0)
-    /* TODO: double check the shift type */
-    bn.andv.8S w4, w3, w4 a >> 31 /* (((Q-1)/2 - *a0) >> 31) & Q */ 
+    
+    bn.subv.8S w4, w10, w1 /* ((Q-1)/2 - *a0) */
+    
+    bn.andv.8S w4, w11, w4 a >> 31 /* (((Q-1)/2 - *a0) >> 31) & Q */ 
     bn.subv.8S w1, w1, w4
     ret

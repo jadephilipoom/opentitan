@@ -596,7 +596,7 @@ _loop_inner_skip_load_poly_challenge:
  * @param[in]     a2: nonce
  * @param[in]     a1: dmem pointer to polynomial
  *
- * clobbered registers: w8
+ * clobbered registers: a0-a5, t0-t5, w8
  */
 .global poly_uniform
 poly_uniform:
@@ -605,7 +605,7 @@ poly_uniform:
     beq a5, zero, _aligned
     sub sp, sp, a5
 _aligned:
-    /* save fp to stack */
+    /* save fp to stack, use 32 bytes to keep it 32-byte aligned */
     addi sp, sp, -32
     sw fp, 0(sp)
 
@@ -624,12 +624,8 @@ _aligned:
     sw a2, STACK_NONCE(fp)
 
     /* Load Q to GPR */
-    addi a2, zero, 128
-    slli a2, a2, 16
-    addi a3, zero, 32
-    slli a3, a3, 8
-    sub a2, a2, a3
-    addi a2, a2, 1
+    la t0, modulus
+    lw a2, 0(t0)
     
     /* Initialize a SHAKE128 operation. */
     addi      t0, zero, SHAKE128_START_CMD
@@ -640,17 +636,20 @@ _aligned:
     addi a1, zero, 32 /* set message length */
     jal  x1, keccak_send_message /* a0 already contains the input buffer */
     addi a1, zero, 2 /* set message length */
-    addi a0, fp, STACK_NONCE
+    /* TODO: Have a separate keccak_send_message that can read from a reg, not
+    mem? */
+    addi a0, fp, STACK_NONCE /* Set a0 to point to the nonce in memory */
     jal  x1, keccak_send_message
 
     addi a1, a4, 0 /* move output pointer back to a1 */
     
-    addi s0, zero, 8 
-
     /* t0 = 1020, last valid address*/
     addi t0, a1, 1020
     /* Load mask */
     li t2, 0x7FFFFF
+
+    /* WDR index */
+    li t5, 8
 
 _rej_sample_loop:
     /* First squeeze */
@@ -659,18 +658,20 @@ _rej_sample_loop:
 
     /* Process floor(32/3)*3 = 30 bytes */
     /* Init loop counter because we cannot early exit hw loops */
-    addi t4, zero, 10
+    li t4, 10
 _rej_sample_loop_p1:
-        /* Get least significant word into GPR */
-        bn.sid s0, STACK_WDR2GPR(fp)
+        /* Get least significant word of shake output into GPR */
+        bn.sid t5, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
 
         and  t1, t2, t1 /* Mask the bytes from Shake */
         slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
-        beq  t3, zero, _skip_store1 
+        beq  t3, zero, _skip_store1 /* reject */
         sw   t1, 0(a1)
+        /* if we have written the last word, exit */
         beq  a1, t0, _end_rej_sample_loop
+        /* increment output pointer */
         addi a1, a1, 4
 
 _skip_store1:
@@ -678,11 +679,11 @@ _skip_store1:
     bne t4, zero, _rej_sample_loop_p1
     /* Process remaining 2 bytes */
     /* Get last two bytes of shake output in shake_reg into GPR */
-    bn.sid s0, STACK_WDR2GPR(fp)
+    bn.sid t5, STACK_WDR2GPR(fp)
     lw     t1, STACK_WDR2GPR(fp)
     /* Squeeze */
     bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
-    bn.sid s0, STACK_WDR2GPR(fp)
+    bn.sid t5, STACK_WDR2GPR(fp)
     lw     t3, STACK_WDR2GPR(fp)
     /* We read 1 byte from shake, so shift by 8 */
     bn.or  shake_reg, bn0, shake_reg >> 8
@@ -705,7 +706,7 @@ _skip_store2:
     addi t4, zero, 10
 _rej_sample_loop_p2:
         /* Get least significant word into GPR */
-        bn.sid s0, STACK_WDR2GPR(fp)
+        bn.sid t5, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
 
@@ -721,11 +722,11 @@ _skip_store3:
 
     /* Process remaining 1 byte */
     /* Get last byte of shake output in shake_reg into GPR */
-    bn.sid s0, STACK_WDR2GPR(fp)
+    bn.sid t5, STACK_WDR2GPR(fp)
     lw     t1, STACK_WDR2GPR(fp)
     /* Squeeze */
     bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
-    bn.sid s0, STACK_WDR2GPR(fp)
+    bn.sid t5, STACK_WDR2GPR(fp)
     lw     t3, STACK_WDR2GPR(fp)
     /* We read 2 byte from shake, so shift by 16 */
     bn.or  shake_reg, bn0, shake_reg >> 16
@@ -749,7 +750,7 @@ _skip_store4:
     addi t4, zero, 10
 _rej_sample_loop_p3:
         /* Get least significant word into GPR */
-        bn.sid s0, STACK_WDR2GPR(fp)
+        bn.sid t5, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
         bn.or  shake_reg, bn0, shake_reg >> 24
 
@@ -791,16 +792,16 @@ _end_rej_sample_loop:
  * @param[in]     a2: nonce
  * @param[in]     a1: dmem pointer to polynomial
  *
- * clobbered registers: w8, w9, w10, w11, w12, w13
+ * clobbered registers: a1, a3-a5, w8-w15
  */
 .global poly_uniform_eta
 poly_uniform_eta:
 /* 32 byte align the sp */
-    andi s11, sp, 31
-    beq s11, zero, _aligned_poly_uniform_eta
-    sub sp, sp, s11
+    andi a5, sp, 31
+    beq a5, zero, _aligned_poly_uniform_eta
+    sub sp, sp, a5
 _aligned_poly_uniform_eta:
-    /* save fp to stack */
+    /* save fp to stack, use 32 bytes to keep it 32-byte aligned */
     addi sp, sp, -32
     sw fp, 0(sp)
 
@@ -854,6 +855,10 @@ _rej_eta_sample_loop:
         addi t4, zero, 32
         bn.addi w14, bn0, 0xFF
         bn.addi w15, bn0, 15
+
+        bn.addi w12, bn0, 205
+        bn.addi w0, bn0, 5
+        bn.addi w1, bn0, 2
 _rej_eta_sample_loop_inner:
             /* Get state into working copy */
             bn.add w9, shake_reg, bn0
@@ -879,18 +884,16 @@ _rej_eta_sample_loop_inner:
 
             /* t0 = t0 - (205*t0 >> 10)*5; */
             /* 205 * t0 */
-            bn.addi w12, bn0, 205
             bn.mulv.l.8S w13, w12, w9, 0
             /* (205 * t0 >> 10) */
             bn.rshi w13, bn0, w13 >> 10
             /* (205*t0 >> 10)*5 */
-            bn.addi w12, bn0, 5
-            bn.mulv.l.8S w13, w12, w13, 0
+            
+            bn.mulv.l.8S w13, w0, w13, 0
             /* t0 - (205 * t0 >> 10) * 5 */
             bn.subv.8S w9, w9, w13
             /* 2 - (t0 - (205 * t0 >> 10) * 5) */
-            bn.addi w13, bn0, 2
-            bn.subv.8S w9, w13, w9
+            bn.subv.8S w9, w1, w9
 
             /* WDR to GPR */
             addi t2, zero, 9
@@ -914,20 +917,18 @@ _rej_eta_sample_loop_inner_1:
 
             /* t1 = t1 - (205*t1 >> 10)*5; */
             /* 205 * t1 */
-            bn.addi w12, w31, 205
             bn.mulv.l.8S w13, w12, w10, 0
             /* (205 * t1 >> 10) */
             bn.rshi w13, bn0, w13 >> 10
             /* (205*t1 >> 10)*5 */
-            bn.addi w12, bn0, 5
-            bn.mulv.8S w13, w12, w13
+            bn.mulv.8S w13, w0, w13
             /* t1 - (205 * t1 >> 10) * 5 */
             bn.subv.8S w10, w10, w13
             /* 2 - (t1 - (205 * t1 >> 10) * 5) */
-            bn.addi w13, bn0, 2
-            bn.subv.8S w10, w13, w10
+            bn.subv.8S w10, w1, w10
 
-            addi t2, zero, 10
+            li t2, 10
+            /* Store coefficient value from WDR into target polynomial */
             bn.sid t2, STACK_WDR2GPR(fp)
             lw     t2, STACK_WDR2GPR(fp)
             sw     t2, 0(a1)
@@ -952,7 +953,7 @@ _end_rej_eta_sample_loop:
     lw fp, 0(sp)
     addi sp, sp, 32
     /* Correct alignment offset (unalign) */
-    add sp, sp, s11
+    add sp, sp, a5
 
     ret
 
@@ -969,7 +970,7 @@ _end_rej_eta_sample_loop:
  * @param[out]    a1: input poly pointer
  * @param[out]    a2: input hint poly pointer
  *
- * clobbered registers: TODO
+ * clobbered registers: a0-a5, t0-t6, w0-w11
  */
 .global poly_use_hint_dilithium
 poly_use_hint_dilithium:
@@ -986,23 +987,63 @@ poly_use_hint_dilithium:
     #define STACK_WDR2GPR1 -32
     #define STACK_WDR2GPR2 -64
     addi a3, a0, 1024 /* overall stop address */
+
+    /* Constants */
+    li a4, 43
+    li a5, 1
+    li a6, 2
+
+    /* WDR constants for decompose */
+    la t0, decompose_127_const
+    li t1, 5
+    /* w5 <= decompose_127_const */
+    bn.lid t1, 0(t0)
+
+    la t0, decompose_const
+    li t1, 6
+    /* w6 <= decompose_const */
+    bn.lid t1, 0(t0)
+
+    la t0, reduce32_const
+    li t1, 7
+    /* w7 <= reduce32_const */
+    bn.lid t1, 0(t0)
+
+    la t0, decompose_43_const
+    li t1, 8
+    /* w8 <= decompose_43_const */
+    bn.lid t1, 0(t0)
+
+    la t0, gamma2_vec_const
+    li t1, 9
+    /* w9 <= gamma2_vec_const */
+    bn.lid t1, 0(t0)
+
+    la t0, qm1half_const
+    li t1, 10
+    /* w10 <= qm1half_const */
+    bn.lid t1, 0(t0)
+
+    la t0, modulus
+    li t1, 11
+    /* w11 <= modulus */
+    bn.lid t1, 0(t0)
+
 _loop_poly_use_hint_dilithium:
     /* vectorized part: decompose */
     li t0, 0
     bn.lid t0, 0(a1++)
     jal x1, decompose_dilithium
 
-    /* Setup WDRs */
-    li t1, 1
-    li t2, 2
-    bn.sid t1, STACK_WDR2GPR1(fp)
-    bn.sid t2, STACK_WDR2GPR2(fp)
+    /* Store result form decomposition do dmem */
+    bn.sid a5, STACK_WDR2GPR1(fp)
+    bn.sid a6, STACK_WDR2GPR2(fp)
 
     addi t2, fp, STACK_WDR2GPR1 /* a0 */
     addi t3, fp, STACK_WDR2GPR2 /* a1 */
     addi t4, a0, 32 /* stop address */
     /* scalar part starts here */
-    LOOPI 8, 26
+    LOOPI 8, 23
         lw t1, 0(t3) /* Load a1 */
         /* if(hint == 0) */
         lw t5, 0(a2)
@@ -1013,11 +1054,9 @@ _inner_loop_skip_store1_poly_use_hint_dilithium:
         /* if(0 < a0) */
         lw t5, 0(t2)
         slt t5, zero, t5
-        li t6, 1
-        bne t5, t6, _inner_loop_else_poly_use_hint_dilithium
+        bne t5, a5, _inner_loop_else_poly_use_hint_dilithium
         /* (a1 == 43) */
-        li t5, 43
-        bne t1, t5, _inner_loop_aplus1_poly_use_hint_dilithium
+        bne t1, a4, _inner_loop_aplus1_poly_use_hint_dilithium
         sw zero, 0(a0) /* return 0 */
         beq zero, zero, _inner_loop_end_poly_use_hint_dilithium
 _inner_loop_aplus1_poly_use_hint_dilithium:
@@ -1026,8 +1065,7 @@ _inner_loop_aplus1_poly_use_hint_dilithium:
         beq zero, zero, _inner_loop_end_poly_use_hint_dilithium
 _inner_loop_else_poly_use_hint_dilithium:
         bne t1, zero, _inner_loop_aminus1_poly_use_hint_dilithium
-        li t5, 43
-        sw t5, 0(a0)
+        sw a4, 0(a0)
         beq zero, zero, _inner_loop_end_poly_use_hint_dilithium
 _inner_loop_aminus1_poly_use_hint_dilithium:
         addi t1, t1, -1
@@ -1037,6 +1075,7 @@ _inner_loop_end_poly_use_hint_dilithium:
         addi a0, a0, 4 /* increment output */
         addi t2, t2, 4 /* increment *a0 */
         addi a2, a2, 4 /* increment *hint */
+        /* LOOP END */
 
     bne a3, a0, _loop_poly_use_hint_dilithium
 
@@ -2461,15 +2500,51 @@ poly_uniform_gamma1_dilithium:
  * @param[in]     a1: a1: pointer to output polynomial with coefficients c1
  * @param[in]     a2: *a: pointer to input polynomial
  *
- * clobbered registers: TODO
+ * clobbered registers: w0-w11, a0-a2, t0-t4
  */
 .global poly_decompose_dilithium
 poly_decompose_dilithium:
-    /* TODO: improve handling of constants */
-    LOOPI 32, 7
-        li t0, 0
-        li t1, 1
-        li t2, 2
+    /* WDR constants for decompose */
+    la t0, decompose_127_const
+    li t1, 5
+    /* w5 <= decompose_127_const */
+    bn.lid t1, 0(t0)
+
+    la t0, decompose_const
+    li t1, 6
+    /* w6 <= decompose_const */
+    bn.lid t1, 0(t0)
+
+    la t0, reduce32_const
+    li t1, 7
+    /* w7 <= reduce32_const */
+    bn.lid t1, 0(t0)
+
+    la t0, decompose_43_const
+    li t1, 8
+    /* w8 <= decompose_43_const */
+    bn.lid t1, 0(t0)
+
+    la t0, gamma2_vec_const
+    li t1, 9
+    /* w9 <= gamma2_vec_const */
+    bn.lid t1, 0(t0)
+
+    la t0, qm1half_const
+    li t1, 10
+    /* w10 <= qm1half_const */
+    bn.lid t1, 0(t0)
+
+    la t0, modulus
+    li t1, 11
+    /* w11 <= modulus */
+    bn.lid t1, 0(t0)
+
+    /* Setup constants for WDRs */
+    li t0, 0
+    li t1, 1
+    li t2, 2
+    LOOPI 32, 4
         bn.lid t0, 0(a2++)
         jal x1, decompose_dilithium
         bn.sid t1, 0(a0++)
@@ -2484,11 +2559,12 @@ poly_decompose_dilithium:
  *  bits of the corresponding coefficient of the input polynomial overflow into
  *  the high bits.
  * 
- * Returns: -
+ * Returns: Number of one bits
  *
  * Flags: TODO
  *
  * @param[in]     a0: pointer to output hint polynomial
+ * @param[out]    a0: Number of one bits
  * @param[in]     a1: a0 pointer to low part of input polynomial
  * @param[in]     a2: a1: pointer to high part of input polynomial
  *
@@ -2496,45 +2572,6 @@ poly_decompose_dilithium:
  */
 .global poly_make_hint_dilithium
 poly_make_hint_dilithium:
-    /*li      a7,-94208
-        li      a6,8192000
-        li      t3,8286208
-        addi      a5,a0, 0
-        addi    t1,a1,1024
-        li      a0,0
-        addi    a7,a7,-1025
-        addi    a6,a6,-2048
-        addi    t3,t3,-1023
-        li      t4,1
-        beq zero, zero, .L5
-.L13:
-        beq     a4,t3,.L11
-.L3:
-        sw      t4,0(a5)
-        addi    a1,a1,4
-        addi    a0,a0,1
-        addi    a5,a5,4
-        addi    a2,a2,4
-        beq     t1,a1,.L12
-.L5:
-        lw      a4,0(a1)
-        add     a3,a4,a7
-        sltu    t6, a6, a3
-        beq zero, t6, .L13
-        sw      zero,0(a5)
-.L14:
-        addi    a1,a1,4
-        addi    a5,a5,4
-        addi    a2,a2,4
-        bne     t1,a1,.L5
-.L12:
-        ret
-.L11:
-        lw      a4,0(a2)
-        beq     a4,zero,.L3
-        sw      zero,0(a5)
-        beq zero, zero, .L14*/
-
     li   t2, 0
     li   t4, 1
 
@@ -2550,14 +2587,14 @@ poly_make_hint_dilithium:
         add     a4,t0,t6
         addi    a5,t0, 0
         sltu    t5,a6,a4
-        beq     t4, t5, _L3
+        beq     t4, t5, _L3_poly_make_hint_dilithium
         li      t0,0
-        beq     a5,a7,_L6
+        beq     a5,a7,_L6_poly_make_hint_dilithium
         beq zero, zero, _loop_end_poly_make_hint_dilithium
-_L6:
+_L6_poly_make_hint_dilithium:
         sltu t0, zero, t1
         beq zero, zero, _loop_end_poly_make_hint_dilithium
-_L3:
+_L3_poly_make_hint_dilithium:
         li      t0,1
         beq zero, zero, _loop_end_poly_make_hint_dilithium
 _loop_end_poly_make_hint_dilithium:
