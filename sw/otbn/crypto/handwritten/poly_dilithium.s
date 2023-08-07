@@ -143,21 +143,20 @@ _no_full_wdr:
 /**
  * polyt1_unpack_dilithium
  *
- * Unpack polynomial t1 with coefficients fitting in 10 bits. 
+ * Unpack polynomial t1 with coefficients fitting in 10 bits.
+ * Output coefficients are standard representatives.
  * 
  * Returns: -
  *
- * Flags: TODO
- *
- * @param[in]     a1: pointer to input byte array with at least
-                      POLYT1_PACKEDBYTES bytes
- * @param[in]     a0: pointer to output polynomial
+ * @param[in]  a1: pointer to input byte array with POLYT1_PACKEDBYTES bytes
+ * @param[out] a0: pointer to output polynomial
  *
  * clobbered registers: a0-a1, t0-t2
  */
 
 .global polyt1_unpack_dilithium
 polyt1_unpack_dilithium:
+    /* Unpack all 16 * 16 = 256 = n coefficients */
     LOOPI 16, 62
         lw t0, 0(a1)
         andi t1, t0, 0x3ff
@@ -169,12 +168,12 @@ polyt1_unpack_dilithium:
         andi t1, t0, 0x3ff
         sw t1, 8(a0) /* coeff 2 */
         srli t0, t0, 10
-        /* Bits rest: 2 */
+        /* Bits remaining in register: 2 */
         lw t2, 4(a1)
         andi t1, t2, 0xff
         slli t1, t1, 2
         or t1, t1, t0
-        sw t1, 12(a0)
+        sw t1, 12(a0) /* coeff 3 */
         srli t0, t2, 8
         /* Bytes processed: 8 */
 
@@ -184,12 +183,12 @@ polyt1_unpack_dilithium:
         andi t1, t0, 0x3ff
         sw t1, 20(a0) /* coeff 5 */
         srli t0, t0, 10
-        /* Bits rest: 4 */
+        /* Bits remaining in register: 4 */
         lw t2, 8(a1)
         andi t1, t2, 0x3f
         slli t1, t1, 4
         or t1, t1, t0
-        sw t1, 24(a0)
+        sw t1, 24(a0) /* coeff 6 */
         srli t0, t2, 6
         /* Bytes processed: 12 */
 
@@ -199,12 +198,12 @@ polyt1_unpack_dilithium:
         andi t1, t0, 0x3ff
         sw t1, 32(a0) /* coeff 8 */
         srli t0, t0, 10
-        /* Bits rest: 6 */
+        /* Bits remaining in register: 6 */
         lw t2, 12(a1)
         andi t1, t2, 0xf
         slli t1, t1, 6
         or t1, t1, t0
-        sw t1, 36(a0)
+        sw t1, 36(a0) /* coeff 9 */
         srli t0, t2, 4
         /* Bytes processed: 16 */
 
@@ -214,12 +213,12 @@ polyt1_unpack_dilithium:
         andi t1, t0, 0x3ff
         sw t1, 44(a0) /* coeff 11 */
         srli t0, t0, 10
-        /* Bits rest: 8 */
+        /* Bits remaining in register: 8 */
         lw t2, 16(a1)
         andi t1, t2, 0x3
         slli t1, t1, 8
         or t1, t1, t0
-        sw t1, 48(a0)
+        sw t1, 48(a0) /* coeff 12 */
         srli t0, t2, 2
         /* Bytes processed: 20 */
 
@@ -229,7 +228,7 @@ polyt1_unpack_dilithium:
         andi t1, t0, 0x3ff
         sw t1, 56(a0) /* coeff 14 */
         srli t0, t0, 10
-        /* Bits rest: 10 */
+        /* Bits remaining in register: 10 */
         andi t1, t0, 0x3ff
         sw t1, 60(a0) /* coeff 15 */
         /* Bytes processed: 20 */
@@ -242,31 +241,31 @@ polyt1_unpack_dilithium:
 /**
  * polyz_unpack_dilithium
  *
- * Unpack polynomial z with coefficients fitting in 18 bits. 
+ * Unpack polynomial z with coefficients in [-(GAMMA1 - 1), GAMMA1] fitting into
+ * 18 bits. 
  * 
  * Returns: -
  *
- * Flags: TODO
- *
- * @param[in]     a1: pointer to input byte array with at least
-                      POLYZ_PACKEDBYTES bytes
- * @param[in]     a0: pointer to output polynomial
+ * @param[in]  a1: pointer to input byte array with POLYZ_PACKEDBYTES bytes
+ * @param[out] a0: pointer to output polynomial
  *
  * clobbered registers: a0-a1, t0-t6
  */
 .global polyz_unpack_dilithium
 polyz_unpack_dilithium:
+    /* Constants for masking (don't fit immediate) */
     li t3, 0x3ffff
     li t4, 0xffff
     li t5, 0xfff
     li t6, 0x3fff
 
+    /* Unpack all 16 * 16 = 256 = n coefficients */
     LOOPI 16, 74
         lw t0, 0(a1)
         and t1, t0, t3
         sw t1, 0(a0) /* coeff 0 */
         srli t0, t0, 18
-        /* Bits rest: 14 */
+        /* Bits remaining in register: 14 */
         lw t2, 4(a1)
         andi t1, t2, 15
         slli t1, t1, 14
@@ -278,7 +277,7 @@ polyz_unpack_dilithium:
         and t1, t0, t3
         sw t1, 8(a0) /* coeff 2 */
         srli t0, t0, 18
-        /* Bits rest: 10 */
+        /* Bits remaining in register: 10 */
         lw t2, 8(a1)
         andi t1, t2, 255
         slli t1, t1, 10
@@ -290,7 +289,7 @@ polyz_unpack_dilithium:
         and t1, t0, t3
         sw t1, 16(a0) /* coeff 4 */
         srli t0, t0, 18
-        /* Bits rest: 6 */
+        /* Bits remaining in register: 6 */
         lw t2, 12(a1)
         and t1, t2, t5
         slli t1, t1, 6
@@ -302,7 +301,7 @@ polyz_unpack_dilithium:
         and t1, t0, t3
         sw t1, 24(a0) /* coeff 6 */
         srli t0, t0, 18
-        /* Bits rest: 2 */
+        /* Bits remaining in register: 2 */
         lw t2, 16(a1)
         and t1, t2, t4
         slli t1, t1, 2
@@ -311,7 +310,7 @@ polyz_unpack_dilithium:
         srli t0, t2, 16
         /* Bytes processed: 20 */
 
-        /* Bits rest: 16 */
+        /* Bits remaining in register: 16 */
         lw t2, 20(a1)
         andi t1, t2, 3
         slli t1, t1, 16
@@ -323,7 +322,7 @@ polyz_unpack_dilithium:
         and t1, t0, t3
         sw t1, 36(a0) /* coeff 9 */
         srli t0, t0, 18
-        /* Bits rest: 12 */
+        /* Bits remaining in register: 12 */
         lw t2, 24(a1)
         andi t1, t2, 63
         slli t1, t1, 12
@@ -335,7 +334,7 @@ polyz_unpack_dilithium:
         and t1, t0, t3
         sw t1, 44(a0) /* coeff 11 */
         srli t0, t0, 18
-        /* Bits rest: 8 */
+        /* Bits remaining in register: 8 */
         lw t2, 28(a1)
         andi t1, t2, 1023
         slli t1, t1, 8
@@ -347,7 +346,7 @@ polyz_unpack_dilithium:
         and t1, t0, t3
         sw t1, 52(a0) /* coeff 13 */
         srli t0, t0, 18
-        /* Bits rest: 4 */
+        /* Bits remaining in register: 4 */
         lw t2, 32(a1)
         and t1, t2, t6
         slli t1, t1, 4
@@ -356,7 +355,7 @@ polyz_unpack_dilithium:
         srli t0, t2, 14
         /* Bytes processed: 36 */
 
-        /* Bits rest: 18 */
+        /* Bits remaining in register: 18 */
         and t1, t0, t3
         sw t1, 60(a0) /* coeff 15 */
         /* Bytes processed: 36 */
@@ -366,6 +365,8 @@ polyz_unpack_dilithium:
     
     /* reset pointer */
     addi a0, a0, -1024
+
+    /* vectorized subtraction from gamma1 */
     li t0, 0
     li t1, 1
     la t2, gamma1_vec_const
@@ -373,7 +374,7 @@ polyz_unpack_dilithium:
     LOOPI 32, 3
         /* w0 <= coeffs[i:i+8] */
         bn.lid t0, 0(a0)
-        /* w0 <= gamma1 - w0 */
+        /* w0 <= gamma1_vec_const - w0 */
         bn.subv.8S w0, w1, w0
         /* coeffs[i:i+8] <= w0 */
         bn.sid t0, 0(a0++)
@@ -412,10 +413,11 @@ poly_chknorm_dilithium:
     /* Load modulus Q */
     la   t0, modulus
     lw   t1, 0(t0)
+    /* Compute (Q-1)/8 */
     addi t1, t1, -1
     srli t1, t1, 3 /* /8 */
 
-    /* (Q-1)/8 < B ? */
+    /* (Q-1)/8 <? B  */
     slt t2, t1, a1
     li  t0, 1
     beq t0, t2, _ret1_poly_chknorm_dilithium
@@ -427,15 +429,24 @@ poly_chknorm_dilithium:
     li t2, 2
 _loop_poly_chknorm_dilithium:
     bn.lid      t1, 0(a0)
-    bn.orv.8S   w2, bn0, w1 a >> 31 /* a->coeffs[i] >> 31 */
-    bn.andv.8S  w2, w2, w1 a << 1 /* t & 2*a->coeffs[i] */
-    bn.subv.8S  w2, w1, w2 /* a->coeffs[i] - (t & 2*a->coeffs[i]) */
+    /* constant time absolute value 
+       t = a->coeffs[i] >> 31;
+       t = a->coeffs[i] - (t & 2*a->coeffs[i]);
+    */
+    /* Get the mask */
+    /* w2 <= 0, if w1 >=? 0, else 0xFFFFFFFF */ 
+    bn.orv.8S   w2, bn0, w1 a >> 31
+    /* w2 <= w2 & (2 * w1) */
+    bn.andv.8S  w2, w2, w1 a << 1
+    /* w2 <= w1 - w2 */
+    bn.subv.8S  w2, w1, w2
     bn.sid      t2, STACK_WDR2GPR(fp)
     
     addi t4, fp, STACK_WDR2GPR
     /* Check bound */
     .irp    offset,0,4,8,12,16,20,24,28
         lw  t3, \offset(t4)
+        /* t5 <= 1, if t3 <? a1, else 0 with a1 the bound */
         slt t5, t3, a1
         beq t5, zero, _ret1_poly_chknorm_dilithium
     .endr
@@ -449,6 +460,7 @@ _ret0_poly_chknorm_dilithium:
     /* Pop ebp */
     lw fp, 0(sp)
     addi sp, sp, 32
+    /* return success */
     li a0, 0
     ret
 _ret1_poly_chknorm_dilithium:
@@ -457,6 +469,7 @@ _ret1_poly_chknorm_dilithium:
     /* Pop ebp */
     lw fp, 0(sp)
     addi sp, sp, 32
+    /* return fail */
     li a0, 1
     ret
 
@@ -470,10 +483,10 @@ _ret1_poly_chknorm_dilithium:
  *
  * Flags: TODO
  *
- * @param[in]     a1: mu byte array containing seed of length SEEDBYTES
- * @param[in]     a0: pointer to output polynomial
+ * @param[in]  a1: mu byte array containing seed of length SEEDBYTES
+ * @param[out] a0: pointer to output polynomial
  *
- * clobbered registers: a0-a6, t0-t3, w0-w3
+ * clobbered registers: a0-a5, t0-t3, w0-w3
  */
 .global poly_challenge
 poly_challenge:
@@ -491,6 +504,7 @@ poly_challenge:
 
     /* Initialize output poly to 0 */
     add t1, zero, a0
+    /* w31 contains all zeros by convention */ 
     li t0, 31
     LOOPI 32, 1
         bn.sid t0, 0(t1++)
@@ -512,77 +526,98 @@ poly_challenge:
 
     /* Setup WDR */
     li t0, 0
-    /* Read first SHAKE */
+    li a6, 3
+    /* Read first SHAKE output */
     bn.wsrr  w0, 0x9 /* KECCAK_DIGEST */
 
     /* fill signs */
-    /* Load mask (2**64)-1 */
+
+    /* Load mask (2**64)-1 to w2 */
     bn.addi w1, bn0, 1
     bn.or w2, bn0, w1 << 64
     bn.sub w2, w2, w1
 
     /* w1 <= signs */
+    /* Mask out the sign bits from the WDR containing the SHAKE output */
     bn.or w1, bn0, w0
     bn.and w1, w1, w2
     /* w2 <= 1-bit mask */
     bn.addi w2, bn0, 1
-    /* shift out sign bits from buf */
+    /* shift out sign bits from the register containing the SHAKE output */
     bn.rshi w0, bn0, w0 >> 64
     /* a2 <= number of remaining bits in buf */
     li a2, 192
     
     li t1, TAU
     li a4, N
-    /* a3 = i = N-TAU */
+    /* a3 <= i = N-TAU */
     sub a3, a4, t1
-    li a6, 0
     li t3, 1
-_loop_poly_challenge:
-    /* get address of c->coeffs[i]; */
-    slli a5, a3, 2 /* *4 for byte position */
-    add  a5, a5, a0 /* c->coeffs + i*4 */
-    /* do... */
-_loop_inner_poly_challenge:
-    /* shake */
-    bne a6, a2, _loop_inner_skip_load_poly_challenge
-    bn.wsrr  w0, 0x9 /* KECCAK_DIGEST */
-    li a2, 256
-_loop_inner_skip_load_poly_challenge:
-    bn.sid t0, STACK_WDR2GPR(fp)
-    bn.rshi w0, bn0, w0 >> 8 /* shift out used bits */
-    addi a2, a2, -8 /* decrease number of remaining bits */
-    /* TODO: optimize this to use all bytes from this load */
-    lw t1, STACK_WDR2GPR(fp)
-    andi t1, t1, 0xFF
-    sltu t2, a3, t1 /* i < b ? */
-    /* while(b > i); */
-    beq t3, t2, _loop_inner_poly_challenge
 
-    /* get address of c->coeffs[b]; */
-    slli t1, t1, 2 /* b = b' * 4 for byte position */
-    add t1, t1, a0 /* c->coeffs + b'*4 */
+    /* TODO: Check if we could use HW loop? */
+_loop_poly_challenge:
+    /* get address of c->coeffs[i], the current coefficient */
+    slli a5, a3, 2 /* i * 4 for byte position */
+    add  a5, a5, a0 /* Add the array start address: c->coeffs + i * 4 */
+    /* start do-while loop */
+_loop_inner_poly_challenge:
+        /* If the SHAKE output "buffer" register w0 is empty, squeeze again.
+           Since all reads from w0 are equally large (8 bits) and 8 | 256, 
+           we can just check for "zero" */
+        bne zero, a2, _loop_inner_skip_load_poly_challenge
+        bn.wsrr  w0, 0x9 /* KECCAK_DIGEST */
+        li a2, 256 /* reset the remaining bits counter */
+_loop_inner_skip_load_poly_challenge:
+        /* Store w0 to the stack in order to read one word into a GPR */
+        bn.sid t0, STACK_WDR2GPR(fp)
+        bn.rshi w0, bn0, w0 >> 8 /* shift out used bits */
+        addi a2, a2, -8 /* decrease number of remaining bits */
+        /* TODO: optimize this to use all bytes from this load */
+        lw t1, STACK_WDR2GPR(fp) /* get one word of SHAKE output into GPR */
+        /* t1 = b from the reference implementation */
+        andi t1, t1, 0xFF /* mask out one byte, because we only need one */
+        sltu t2, a3, t1 /* i <? b */
+        /* while(b > i); */
+        beq t3, t2, _loop_inner_poly_challenge
+
+
+    /* Implements:
+       c->coeffs[i] = c->coeffs[b];
+       c->coeffs[b] = 1 - 2*(signs & 1);
+       signs >>= 1; */
+    /* get address of c->coeffs[b] */
+    slli t1, t1, 2  /* b * 4 for byte position */
+    add  t1, t1, a0 /* Add the array start address: c->coeffs + b * 4 */
+
+    /* "swap" */
     lw t2, 0(t1) /* Load c->coeffs[b] */
     sw t2, 0(a5) /* c->coeffs[i] = c->coeffs[b]; */
-    bn.and w3, w1, w2 /* signs & 0x1 */
-    bn.add w3, w3, w3 /* 2*(signs & 0x1) */
-    bn.sub w3, w2, w3 /* 0x1 - 2*(signs & 0x1) */
-    bn.rshi w1, bn0, w1 >> 1 /* signs >>= 1 */
-    li t2, 3
-    bn.sid t2, STACK_WDR2GPR(fp)
-    lw t2, STACK_WDR2GPR(fp)
-    sw t2, 0(t1) /* c->coeffs[b] = 1 - 2*(signs & 1); */
 
-    addi a3, a3, 1
-    bne a3, a4, _loop_poly_challenge
+    /* TODO: accumulate result values in WDR and store once 32 bytes; avoid 
+       moving between WDR and GPR? */
+    bn.and  w3, w1, w2            /* signs & 1 */
+    bn.add  w3, w3, w3            /* 2 * (signs & 1) */
+    bn.sub  w3, w2, w3            /* 1 - 2 * (signs & 1) */
+    bn.sid  a6, STACK_WDR2GPR(fp) /* Store w3 to memory to move value to GPR */
+    lw      t2, STACK_WDR2GPR(fp)
+    sw      t2, 0(t1)             /* c->coeffs[b] = 1 - 2*(signs & 1); */
+
+    bn.rshi w1, bn0, w1 >> 1 /* Discard the used bit: signs >>= 1 */
+
+    addi a3, a3, 1 /* i++ */
+    bne  a3, a4, _loop_poly_challenge /* i != N */
 
     /* Finish the SHAKE-256 operation. */
-    addi      t0, zero, KECCAK_DONE_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, KECCAK_DONE_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
+
     /* sp <- fp */
     addi sp, fp, 0
+
     /* Pop ebp */
     lw fp, 0(sp)
     addi sp, sp, 32
+
     ret
 
 /**
@@ -592,32 +627,32 @@ _loop_inner_skip_load_poly_challenge:
  *
  * Flags: TODO
  *
- * @param[in]     a0: pointer to rho
- * @param[in]     a2: nonce
- * @param[in]     a1: dmem pointer to polynomial
+ * @param[in]  a0: pointer to rho
+ * @param[in]  a2: nonce
+ * @param[out] a1: dmem pointer to polynomial
  *
  * clobbered registers: a0-a5, t0-t5, w8
  */
 .global poly_uniform
 poly_uniform:
+    /* TODO: Check if this is required */ 
     /* 32 byte align the sp */
     andi a5, sp, 31
-    beq a5, zero, _aligned
-    sub sp, sp, a5
+    beq  a5, zero, _aligned
+    sub  sp, sp, a5
 _aligned:
     /* save fp to stack, use 32 bytes to keep it 32-byte aligned */
     addi sp, sp, -32
-    sw fp, 0(sp)
+    sw   fp, 0(sp)
 
     addi fp, sp, 0
     
     /* Adjust sp to accomodate local variables */
     addi sp, sp, -64
 
-    /* Reserve space for tmp buffer to hold a WDR */
+    /* Space for tmp buffer to hold a WDR */
     #define STACK_WDR2GPR -32
-
-    /* Reserve space for the nonce */
+    /* Space for the nonce */
     #define STACK_NONCE -64
 
     /* Store nonce to memory */
@@ -628,77 +663,98 @@ _aligned:
     lw a2, 0(t0)
     
     /* Initialize a SHAKE128 operation. */
-    addi      t0, zero, SHAKE128_START_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, SHAKE128_START_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
 
     /* Send the message to the Keccak core. */
-    addi a4, a1, 0 /* save output pointer */
-    addi a1, zero, 32 /* set message length */
+    addi a4, a1, 0               /* save output pointer */
+    addi a1, zero, 32            /* set message length */
     jal  x1, keccak_send_message /* a0 already contains the input buffer */
-    addi a1, zero, 2 /* set message length */
+    addi a1, zero, 2             /* set message length */
     /* TODO: Have a separate keccak_send_message that can read from a reg, not
     mem? */
-    addi a0, fp, STACK_NONCE /* Set a0 to point to the nonce in memory */
+    addi a0, fp, STACK_NONCE      /* Set a0 to point to the nonce in memory */
     jal  x1, keccak_send_message
 
     addi a1, a4, 0 /* move output pointer back to a1 */
     
-    /* t0 = 1020, last valid address*/
+    /* t0 = 1020, a1 + 1020 is the last valid address */
     addi t0, a1, 1020
-    /* Load mask */
+
+    /* Load mask for coefficient */
     li t2, 0x7FFFFF
 
     /* WDR index */
     li t5, 8
 
+    /* Loop until 256 coefficients have been written to the output */
 _rej_sample_loop:
     /* First squeeze */
     .equ w8, shake_reg
     bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
 
-    /* Process floor(32/3)*3 = 30 bytes */
+    /* With one SHAKE squeeze, we get 32 bytes of data. From this, we can try to
+       build 10 coefficients with 3 bytes each and are left with 2 bytes
+       remainder. We then take the two remaining bytes and one byte from the
+       next squeeze operation and try to get another coefficient, leaving us
+       with 31 bytes from which we can again, try to read 10 coefficients and
+       are left with 1 byte remainder. From the next 32 bytes, we take 2 bytes
+       and try to build one coefficient with the remaining 1 byte. Finally, we
+       are left with 30 bytes which we can try to turn into 10 coefficients
+       without any remainder. lcm(3, 32) = 96, meaning we use 96 bytes of SHAKE
+       output each (full) iteration of the main loop. In case we reach the
+       target amount of coefficients, we jump to _end_rej_sample_loop and exit.
+       */
+
+    /* Process floor(32 bytes / 3 bytes) * 3 bytes = 30 bytes */
     /* Init loop counter because we cannot early exit hw loops */
     li t4, 10
 _rej_sample_loop_p1:
         /* Get least significant word of shake output into GPR */
         bn.sid t5, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
-        bn.or  shake_reg, bn0, shake_reg >> 24
 
-        and  t1, t2, t1 /* Mask the bytes from Shake */
-        slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
-        beq  t3, zero, _skip_store1 /* reject */
+        /* Shift out the 3 bytes we read for the next potential coefficient */
+        bn.or shake_reg, bn0, shake_reg >> 24
+
+        and  t1, t2, t1             /* Mask the bytes from Shake */
+        slt  t3, t1, a2             /* t3 <= 1, if t1 <? Q, else 0 */ 
+        beq  t3, zero, _skip_store1 /* Reject */
         sw   t1, 0(a1)
-        /* if we have written the last word, exit */
+
+        /* if we have written the last coefficient, exit */
         beq  a1, t0, _end_rej_sample_loop
-        /* increment output pointer */
-        addi a1, a1, 4
+        addi a1, a1, 4 /* increment output pointer */
 
 _skip_store1:
-    addi t4, t4, -1
-    bne t4, zero, _rej_sample_loop_p1
+        /* Loop logic */
+        addi t4, t4, -1
+        bne  t4, zero, _rej_sample_loop_p1
+
     /* Process remaining 2 bytes */
-    /* Get last two bytes of shake output in shake_reg into GPR */
+    /* Get last two bytes of shake output in shake_reg into GPR t1 */
     bn.sid t5, STACK_WDR2GPR(fp)
     lw     t1, STACK_WDR2GPR(fp)
-    /* Squeeze */
-    bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
-    bn.sid t5, STACK_WDR2GPR(fp)
-    lw     t3, STACK_WDR2GPR(fp)
-    /* We read 1 byte from shake, so shift by 8 */
-    bn.or  shake_reg, bn0, shake_reg >> 8
-    /* Only keep lower byte */
-    andi t3, t3, 0xFF
-    /* Shift it to be byte 3 */
-    slli t3, t3, 16
-    or t1, t3, t1
 
-    and  t1, t2, t1 /* Mask the bytes from Shake */
-    slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
-    beq  t3, zero, _skip_store2 
-    sw   t1, 0(a1)
+    /* Squeeze */
+    bn.wsrr shake_reg, 0x9 /* KECCAK_DIGEST */
+
+    /* Move 4 byte of the SHAKE output into GPR t3 */
+    bn.sid  t5, STACK_WDR2GPR(fp)
+    lw      t3, STACK_WDR2GPR(fp)
+    /* We use only 1 byte of the 4, so shift by 8 */
+    bn.or shake_reg, bn0, shake_reg >> 8
+    andi  t3, t3, 0xFF                   /* Only keep lowest byte */
+    slli  t3, t3, 16                     /* Shift it to be byte at index 3 */
+    or    t1, t3, t1                     /* Merge with remaining bytes */
+    and   t1, t2, t1                     /* Mask the bytes from Shake */
+    slt   t3, t1, a2                     /* (t3 = 1) <= t1 <? Q */ 
+    beq   t3, zero, _skip_store2         /* reject */
+    sw    t1, 0(a1)                      /* Store fitting coefficient */
+
+    /* if we have written the last coefficient, exit */
     beq  a1, t0, _end_rej_sample_loop
-    addi a1, a1, 4
+    addi a1, a1, 4 /* increment output pointer */
 _skip_store2:
 
     /* Process floor(31/3)*3 = 30 bytes */
@@ -708,68 +764,82 @@ _rej_sample_loop_p2:
         /* Get least significant word into GPR */
         bn.sid t5, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
+
+        /* Shift out the 3 bytes we read for the next potential coefficient */
         bn.or  shake_reg, bn0, shake_reg >> 24
 
-        and  t1, t2, t1 /* Mask the bytes from Shake */
-        slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
-        beq  t3, zero, _skip_store3 
-        sw   t1, 0(a1)
+        and  t1, t2, t1             /* Mask the bytes from Shake */
+        slt  t3, t1, a2             /* t3 <= 1, if t1 <? Q, else 0 */ 
+        beq  t3, zero, _skip_store3 /* reject */ 
+        sw   t1, 0(a1)              /* Store fitting coefficient */
+
+        /* if we have written the last coefficient, exit */
         beq  a1, t0, _end_rej_sample_loop
-        addi a1, a1, 4
+        addi a1, a1, 4 /* increment output pointer */
+
 _skip_store3:
-    addi t4, t4, -1
-    bne t4, zero, _rej_sample_loop_p2
+        /* Loop logic */
+        addi t4, t4, -1
+        bne  t4, zero, _rej_sample_loop_p2
 
     /* Process remaining 1 byte */
     /* Get last byte of shake output in shake_reg into GPR */
     bn.sid t5, STACK_WDR2GPR(fp)
     lw     t1, STACK_WDR2GPR(fp)
+
     /* Squeeze */
     bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
+
+    /* Move 4 byte of the SHAKE output into GPR t3 */
     bn.sid t5, STACK_WDR2GPR(fp)
     lw     t3, STACK_WDR2GPR(fp)
-    /* We read 2 byte from shake, so shift by 16 */
-    bn.or  shake_reg, bn0, shake_reg >> 16
-    /* Only keep lower bytes */
-    li  t4, 0xFFFF
-    and t3, t3, t4
-    /* Shift to be bytes 2+3 */
-    slli t3, t3, 8
-    or t1, t1, t3 
+    bn.or  shake_reg, bn0, shake_reg >> 16 /* Using 2 byte of the 4, so shift 16 */
+    li     t4, 0xFFFF                      /* Only keep lower 2 bytes */
+    and    t3, t3, t4                      /* Mask */
+    slli   t3, t3, 8                       /* Shift to be bytes at index 2+3 */
+    or     t1, t1, t3                      /* Merge with remaining byte */
+    and    t1, t2, t1                      /* Mask the bytes from Shake */
+    slt    t3, t1, a2                      /* t3 <= 1, if t1 <? Q, else 0 */ 
+    beq    t3, zero, _skip_store4          /* Reject */
+    sw     t1, 0(a1)                       /* Store fitting coefficient */
 
-    and  t1, t2, t1 /* Mask the bytes from Shake */
-    slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
-    beq  t3, zero, _skip_store4
-    sw   t1, 0(a1)
+    /* if we have written the last coefficient, exit */
     beq  a1, t0, _end_rej_sample_loop
-    addi a1, a1, 4
+    addi a1, a1, 4 /* increment output pointer */
 _skip_store4:
 
     /* Process floor(30/3)*3 = 30 bytes */
     /* Init loop counter because we cannot early exit hw loops */
-    addi t4, zero, 10
+    li t4, 10
 _rej_sample_loop_p3:
-        /* Get least significant word into GPR */
+        /* Get least significant word of shake output into GPR */
         bn.sid t5, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
+
+        /* Shift out the 3 bytes we read for the next potential coefficient */
         bn.or  shake_reg, bn0, shake_reg >> 24
 
-        and  t1, t2, t1 /* Mask the bytes from Shake */
-        slt t3, t1, a2   /* (t3 = 1) <= t1 <? Q */ 
-        beq  t3, zero, _skip_store5 
-        sw   t1, 0(a1)
+        and t1, t2, t1             /* Mask the bytes from Shake */
+        slt t3, t1, a2             /* t3 <= 1, if t1 <? Q, else 0 */ 
+        beq t3, zero, _skip_store5 /* Reject */
+        sw  t1, 0(a1)
+
+        /* if we have written the last coefficient, exit */
         beq  a1, t0, _end_rej_sample_loop
         addi a1, a1, 4
+
 _skip_store5:
-    addi t4, t4, -1
-    bne t4, zero, _rej_sample_loop_p3
+        /* Loop logic */
+        addi t4, t4, -1
+        bne t4, zero, _rej_sample_loop_p3
 
     /* No remainder! Start all over again. */
     beq zero, zero, _rej_sample_loop
+
 _end_rej_sample_loop:
     /* Finish the SHAKE-256 operation. */
-    addi      t0, zero, KECCAK_DONE_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, KECCAK_DONE_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
 
     /* sp <- fp */
     addi sp, fp, 0
@@ -1837,7 +1907,7 @@ polyeta_unpack_dilithium:
         andi t1, t0, 7
         sw t1, 36(a0) /* coeff 9 */
         srli t0, t0, 3
-        /* Bits rest: 2 */
+        /* Bits remaining in register: 2 */
         lw t2, 4(a1)
         andi t1, t2, 1
         slli t1, t1, 2
@@ -1876,7 +1946,7 @@ polyeta_unpack_dilithium:
         andi t1, t0, 7
         sw t1, 80(a0) /* coeff 20 */
         srli t0, t0, 3
-        /* Bits rest: 1 */
+        /* Bits remaining in register: 1 */
         lw t2, 8(a1)
         andi t1, t2, 3
         slli t1, t1, 1
@@ -1912,7 +1982,7 @@ polyeta_unpack_dilithium:
         andi t1, t0, 7
         sw t1, 120(a0) /* coeff 30 */
         srli t0, t0, 3
-        /* Bits rest: 3 */
+        /* Bits remaining in register: 3 */
         andi t1, t0, 7
         sw t1, 124(a0) /* coeff 31 */
         /* Bytes processed: 12 */
@@ -2101,7 +2171,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 4(a0) /* coeff 1 */
         srli t0, t0, 13
-        /* Bits rest: 6 */
+        /* Bits remaining in register: 6 */
         lw t2, 4(a1)
         andi t1, t2, 127
         slli t1, t1, 6
@@ -2113,7 +2183,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 12(a0) /* coeff 3 */
         srli t0, t0, 13
-        /* Bits rest: 12 */
+        /* Bits remaining in register: 12 */
         lw t2, 8(a1)
         andi t1, t2, 1
         slli t1, t1, 12
@@ -2128,7 +2198,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 24(a0) /* coeff 6 */
         srli t0, t0, 13
-        /* Bits rest: 5 */
+        /* Bits remaining in register: 5 */
         lw t2, 12(a1)
         andi t1, t2, 255
         slli t1, t1, 5
@@ -2140,7 +2210,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 32(a0) /* coeff 8 */
         srli t0, t0, 13
-        /* Bits rest: 11 */
+        /* Bits remaining in register: 11 */
         lw t2, 16(a1)
         andi t1, t2, 3
         slli t1, t1, 11
@@ -2155,7 +2225,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 44(a0) /* coeff 11 */
         srli t0, t0, 13
-        /* Bits rest: 4 */
+        /* Bits remaining in register: 4 */
         lw t2, 20(a1)
         andi t1, t2, 511
         slli t1, t1, 4
@@ -2167,7 +2237,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 52(a0) /* coeff 13 */
         srli t0, t0, 13
-        /* Bits rest: 10 */
+        /* Bits remaining in register: 10 */
         lw t2, 24(a1)
         andi t1, t2, 7
         slli t1, t1, 10
@@ -2182,7 +2252,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 64(a0) /* coeff 16 */
         srli t0, t0, 13
-        /* Bits rest: 3 */
+        /* Bits remaining in register: 3 */
         lw t2, 28(a1)
         andi t1, t2, 1023
         slli t1, t1, 3
@@ -2194,7 +2264,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 72(a0) /* coeff 18 */
         srli t0, t0, 13
-        /* Bits rest: 9 */
+        /* Bits remaining in register: 9 */
         lw t2, 32(a1)
         andi t1, t2, 15
         slli t1, t1, 9
@@ -2209,7 +2279,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 84(a0) /* coeff 21 */
         srli t0, t0, 13
-        /* Bits rest: 2 */
+        /* Bits remaining in register: 2 */
         lw t2, 36(a1)
         andi t1, t2, 2047
         slli t1, t1, 2
@@ -2221,7 +2291,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 92(a0) /* coeff 23 */
         srli t0, t0, 13
-        /* Bits rest: 8 */
+        /* Bits remaining in register: 8 */
         lw t2, 40(a1)
         andi t1, t2, 31
         slli t1, t1, 8
@@ -2236,7 +2306,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 104(a0) /* coeff 26 */
         srli t0, t0, 13
-        /* Bits rest: 1 */
+        /* Bits remaining in register: 1 */
         lw t2, 44(a1)
         and t1, t2, t4
         slli t1, t1, 1
@@ -2248,7 +2318,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 112(a0) /* coeff 28 */
         srli t0, t0, 13
-        /* Bits rest: 7 */
+        /* Bits remaining in register: 7 */
         lw t2, 48(a1)
         andi t1, t2, 63
         slli t1, t1, 7
@@ -2260,7 +2330,7 @@ polyt0_unpack_dilithium:
         and t1, t0, t3
         sw t1, 120(a0) /* coeff 30 */
         srli t0, t0, 13
-        /* Bits rest: 13 */
+        /* Bits remaining in register: 13 */
         and t1, t0, t3
         sw t1, 124(a0) /* coeff 31 */
         /* Bytes processed: 52 */
@@ -2360,7 +2430,7 @@ poly_uniform_gamma1_dilithium:
             and t1, t0, t3
             sw t1, 0(a0) /* coeff 0 */
             srli t0, t0, 18
-            /* Bits rest: 14 */
+            /* Bits remaining in register: 14 */
             lw t2, 4(a4)
             andi t1, t2, 15
             slli t1, t1, 14
@@ -2372,7 +2442,7 @@ poly_uniform_gamma1_dilithium:
             and t1, t0, t3
             sw t1, 8(a0) /* coeff 2 */
             srli t0, t0, 18
-            /* Bits rest: 10 */
+            /* Bits remaining in register: 10 */
             lw t2, 8(a4)
             andi t1, t2, 255
             slli t1, t1, 10
@@ -2384,7 +2454,7 @@ poly_uniform_gamma1_dilithium:
             and t1, t0, t3
             sw t1, 16(a0) /* coeff 4 */
             srli t0, t0, 18
-            /* Bits rest: 6 */
+            /* Bits remaining in register: 6 */
             lw t2, 12(a4)
             and t1, t2, t4
             slli t1, t1, 6
@@ -2396,7 +2466,7 @@ poly_uniform_gamma1_dilithium:
             and t1, t0, t3
             sw t1, 24(a0) /* coeff 6 */
             srli t0, t0, 18
-            /* Bits rest: 2 */
+            /* Bits remaining in register: 2 */
             lw t2, 16(a4)
             and t1, t2, t5
             slli t1, t1, 2
@@ -2405,7 +2475,7 @@ poly_uniform_gamma1_dilithium:
             srli t0, t2, 16
             /* Bytes processed: 20 */
 
-            /* Bits rest: 16 */
+            /* Bits remaining in register: 16 */
             lw t2, 20(a4)
             andi t1, t2, 3
             slli t1, t1, 16
@@ -2417,7 +2487,7 @@ poly_uniform_gamma1_dilithium:
             and t1, t0, t3
             sw t1, 36(a0) /* coeff 9 */
             srli t0, t0, 18
-            /* Bits rest: 12 */
+            /* Bits remaining in register: 12 */
             lw t2, 24(a4)
             andi t1, t2, 63
             slli t1, t1, 12
@@ -2429,7 +2499,7 @@ poly_uniform_gamma1_dilithium:
             and t1, t0, t3
             sw t1, 44(a0) /* coeff 11 */
             srli t0, t0, 18
-            /* Bits rest: 8 */
+            /* Bits remaining in register: 8 */
             lw t2, 28(a4)
             andi t1, t2, 1023
             slli t1, t1, 8
@@ -2441,7 +2511,7 @@ poly_uniform_gamma1_dilithium:
             and t1, t0, t3
             sw t1, 52(a0) /* coeff 13 */
             srli t0, t0, 18
-            /* Bits rest: 4 */
+            /* Bits remaining in register: 4 */
             lw t2, 32(a4)
             and t1, t2, t6
             slli t1, t1, 4
@@ -2450,7 +2520,7 @@ poly_uniform_gamma1_dilithium:
             srli t0, t2, 14
             /* Bytes processed: 36 */
 
-            /* Bits rest: 18 */
+            /* Bits remaining in register: 18 */
             and t1, t0, t3
             sw t1, 60(a0) /* coeff 15 */
             /* Bytes processed: 36 */
