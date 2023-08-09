@@ -697,7 +697,7 @@ _rej_sample_loop:
        build 10 coefficients with 3 bytes each and are left with 2 bytes
        remainder. We then take the two remaining bytes and one byte from the
        next squeeze operation and try to get another coefficient, leaving us
-       with 31 bytes from which we can again, try to read 10 coefficients and
+       with 31 bytes from which we can, again, try to read 10 coefficients and
        are left with 1 byte remainder. From the next 32 bytes, we take 2 bytes
        and try to build one coefficient with the remaining 1 byte. Finally, we
        are left with 30 bytes which we can try to turn into 10 coefficients
@@ -740,17 +740,17 @@ _skip_store1:
     bn.wsrr shake_reg, 0x9 /* KECCAK_DIGEST */
 
     /* Move 4 byte of the SHAKE output into GPR t3 */
-    bn.sid  t5, STACK_WDR2GPR(fp)
-    lw      t3, STACK_WDR2GPR(fp)
+    bn.sid t5, STACK_WDR2GPR(fp)
+    lw     t3, STACK_WDR2GPR(fp)
     /* We use only 1 byte of the 4, so shift by 8 */
-    bn.or shake_reg, bn0, shake_reg >> 8
-    andi  t3, t3, 0xFF                   /* Only keep lowest byte */
-    slli  t3, t3, 16                     /* Shift it to be byte at index 3 */
-    or    t1, t3, t1                     /* Merge with remaining bytes */
-    and   t1, t2, t1                     /* Mask the bytes from Shake */
-    slt   t3, t1, a2                     /* (t3 = 1) <= t1 <? Q */ 
-    beq   t3, zero, _skip_store2         /* reject */
-    sw    t1, 0(a1)                      /* Store fitting coefficient */
+    bn.or  shake_reg, bn0, shake_reg >> 8
+    andi   t3, t3, 0xFF                   /* Only keep lowest byte */
+    slli   t3, t3, 16                     /* Shift it to be byte at index 3 */
+    or     t1, t3, t1                     /* Merge with remaining bytes */
+    and    t1, t2, t1                     /* Mask the bytes from Shake */
+    slt    t3, t1, a2                     /* t3 <= 1, if t1 <? Q, else 0 */ 
+    beq    t3, zero, _skip_store2         /* reject */
+    sw     t1, 0(a1)                      /* Store fitting coefficient */
 
     /* if we have written the last coefficient, exit */
     beq  a1, t0, _end_rej_sample_loop
@@ -761,7 +761,7 @@ _skip_store2:
     /* Init loop counter because we cannot early exit hw loops */
     addi t4, zero, 10
 _rej_sample_loop_p2:
-        /* Get least significant word into GPR */
+        /* Get least significant word of shake output into GPR */
         bn.sid t5, STACK_WDR2GPR(fp)
         lw     t1, STACK_WDR2GPR(fp)
 
@@ -793,7 +793,7 @@ _skip_store3:
     /* Move 4 byte of the SHAKE output into GPR t3 */
     bn.sid t5, STACK_WDR2GPR(fp)
     lw     t3, STACK_WDR2GPR(fp)
-    bn.or  shake_reg, bn0, shake_reg >> 16 /* Using 2 byte of the 4, so shift 16 */
+    bn.or  shake_reg, bn0, shake_reg >> 16 /* Using 2 of 4 bytes, so shift 16 */
     li     t4, 0xFFFF                      /* Only keep lower 2 bytes */
     and    t3, t3, t4                      /* Mask */
     slli   t3, t3, 8                       /* Shift to be bytes at index 2+3 */
@@ -862,7 +862,7 @@ _end_rej_sample_loop:
  * @param[in]     a2: nonce
  * @param[in]     a1: dmem pointer to polynomial
  *
- * clobbered registers: a1, a3-a5, w8-w15
+ * clobbered registers: a1, a3-a5, w8-w15, t0-t5
  */
 .global poly_uniform_eta
 poly_uniform_eta:
@@ -880,142 +880,132 @@ _aligned_poly_uniform_eta:
     /* Adjust sp to accomodate local variables */
     addi sp, sp, -64
 
-    /* Reserve space for tmp buffer to hold a WDR */
+    /* Space for tmp buffer to hold a WDR */
     #define STACK_WDR2GPR -32
 
-    /* Reserve space for the nonce */
+    /* Space for the nonce */
     #define STACK_NONCE -64
 
     /* Store nonce to memory */
     sw a2, STACK_NONCE(fp)
 
-    /* Load a3 <- Q */
-    addi a3, zero, 128
-    slli a3, a3, 16
-    addi a4, zero, 32
-    slli a4, a4, 8
-    sub a3, a3, a4
-    addi a3, a3, 1
+    /* Load a3 <= Q */
+    la t0, modulus
+    lw a3, 0(t0)
     
     /* Initialize a SHAKE256 operation. */
-    addi      t0, zero, SHAKE256_START_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, SHAKE256_START_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
 
-    /* Send the message to the Keccak core. */
-    addi a4, a1, 0 /* save output pointer */
-    addi a1, zero, 64 /* set message length */
+    /* Send the messages to the Keccak core. */
+    addi a4, a1, 0               /* save output pointer */
+    addi a1, zero, 64            /* set rho length */
     jal  x1, keccak_send_message /* a0 already contains the input buffer */
-    addi a1, zero, 2 /* set message length */
-    addi a0, fp, STACK_NONCE
+    addi a1, zero, 2             /* set nonce length */
+    addi a0, fp, STACK_NONCE     /* After rho, absorb nonce */
     jal  x1, keccak_send_message
-
     addi a1, a4, 0 /* move output pointer back to a1 */
-    
-    addi s0, zero, 8 
 
     /* t0 = 1024, stop address*/
     addi t0, a1, 1024
-    addi t5, zero, 15
+
+    /* Initialize constants for WDR index */
+    li t5, 9
+    li t6, 10
 _rej_eta_sample_loop:
-        /* First squeeze */
-        .equ w8, shake_reg
-        bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
-        
-        /* Loop counter, we have 32B to read from shake */
-        addi t4, zero, 32
-        bn.addi w14, bn0, 0xFF
-        bn.addi w15, bn0, 15
+    /* First squeeze */
+    .equ w8, shake_reg
+    bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
+    
+    /* Loop counter, we have 32B to read from shake */
+    li t4, 32
+    /* Initialize constants */
+    bn.addi w14, bn0, 0xFF
+    bn.addi w15, bn0, 15
+    bn.addi w12, bn0, 205
+    bn.addi w0, bn0, 5
+    bn.addi w1, bn0, 2
 
-        bn.addi w12, bn0, 205
-        bn.addi w0, bn0, 5
-        bn.addi w1, bn0, 2
 _rej_eta_sample_loop_inner:
-            /* Get state into working copy */
-            bn.add w9, shake_reg, bn0
-            /* shift out the used byte */
-            bn.or  shake_reg, bn0, shake_reg >> 8
-            
-            /* Mask out all other bytes */
-            bn.and  w9, w9, w14
-            /* Prepare "t1" */
-            bn.rshi w10, bn0, w9 >> 4
-            /* Prepare "t0" */
-            bn.and  w9, w9, w15
+        /* Process first 4 bits */
+        bn.and  w9, shake_reg, w14            /* Mask out all other bytes */
+        bn.or  shake_reg, bn0, shake_reg >> 8 /* shift out the used byte */
 
-            /* Instead of < 15, != 15 can also be checked */
-            bn.cmp w9, w15
-             /* Get the FG0.Z flag into a register.
-                t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
-            csrrs    t2, 0x7c0, zero
-            srli     t2, t2, 3
-            andi     t2, t2, 1
+        
+        bn.rshi w10, bn0, w9 >> 4 /* Prepare "t1" */
+        bn.and  w9, w9, w15       /* Prepare "t0" */
 
-            bne t2, zero, _rej_eta_sample_loop_inner_1
+        /* Check "t0" < 15 */
+        /* Instead of < 15, != 15 can also be checked because we are
+            operating on 4-bit values */
+        bn.cmp w9, w15
+            /* Get the FG0.Z flag into a register.
+            t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+        csrrs  t2, 0x7c0, zero
+        srli   t2, t2, 3
+        andi   t2, t2, 1
 
-            /* t0 = t0 - (205*t0 >> 10)*5; */
-            /* 205 * t0 */
-            bn.mulv.l.8S w13, w12, w9, 0
-            /* (205 * t0 >> 10) */
-            bn.rshi w13, bn0, w13 >> 10
-            /* (205*t0 >> 10)*5 */
-            
-            bn.mulv.l.8S w13, w0, w13, 0
-            /* t0 - (205 * t0 >> 10) * 5 */
-            bn.subv.8S w9, w9, w13
-            /* 2 - (t0 - (205 * t0 >> 10) * 5) */
-            bn.subv.8S w9, w1, w9
+        bne t2, zero, _rej_eta_sample_loop_inner_1
 
-            /* WDR to GPR */
-            addi t2, zero, 9
-            bn.sid t2, STACK_WDR2GPR(fp)
-            lw     t2, STACK_WDR2GPR(fp)
-            sw     t2, 0(a1)
-            addi a1, a1, 4
-            beq a1, t0, _end_rej_eta_sample_loop
+        /* "t{0,1}" indicate the variable names from the reference code */ 
 
-            /* if(t1 < 15 && ctr < len) { */
+        /* Compute "t0" = "t0" - (205 * "t0" >> 10) * 5 from reference code */
+        bn.mulv.8S w13, w12, w9        /* 205 * "t0" */
+        bn.rshi    w13, bn0, w13 >> 10 /* (205 * "t0" >> 10) */
+        bn.mulv.8S w13, w0, w13        /* (205 * "t0" >> 10) * 5 */
+        bn.subv.8S w9, w9, w13         /* "t0" - (205 * "t0" >> 10) * 5 */
+        bn.subv.8S w9, w1, w9          /* 2 - ("t0" - (205 * "t0" >> 10) * 5) */
+
+        /* Store coefficient value from WDR into target polynomial */
+        bn.sid t5, STACK_WDR2GPR(fp)
+        lw     t2, STACK_WDR2GPR(fp)
+        sw     t2, 0(a1)
+
+        /* Loop logic */
+        addi a1, a1, 4
+        beq  a1, t0, _end_rej_eta_sample_loop
+
 _rej_eta_sample_loop_inner_1:
-            bn.addi w11, bn0, 15
-            bn.cmp w10, w11
-             /* Get the FG0.Z flag into a register.
-                t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
-            csrrs    t2, 0x7c0, zero
-            srli     t2, t2, 3
-            andi     t2, t2, 1
+        /* Process last 4 bits */
 
-            bne t2, zero, _rej_eta_sample_loop_inner_none
+        /* Check "t1" != 15 */
+        bn.cmp  w10, w15
+            /* Get the FG0.Z flag into a register.
+            t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+        csrrs    t2, 0x7c0, zero
+        srli     t2, t2, 3
+        andi     t2, t2, 1
 
-            /* t1 = t1 - (205*t1 >> 10)*5; */
-            /* 205 * t1 */
-            bn.mulv.l.8S w13, w12, w10, 0
-            /* (205 * t1 >> 10) */
-            bn.rshi w13, bn0, w13 >> 10
-            /* (205*t1 >> 10)*5 */
-            bn.mulv.8S w13, w0, w13
-            /* t1 - (205 * t1 >> 10) * 5 */
-            bn.subv.8S w10, w10, w13
-            /* 2 - (t1 - (205 * t1 >> 10) * 5) */
-            bn.subv.8S w10, w1, w10
+        bne t2, zero, _rej_eta_sample_loop_inner_none
 
-            li t2, 10
-            /* Store coefficient value from WDR into target polynomial */
-            bn.sid t2, STACK_WDR2GPR(fp)
-            lw     t2, STACK_WDR2GPR(fp)
-            sw     t2, 0(a1)
-            addi a1, a1, 4
-            beq a1, t0, _end_rej_eta_sample_loop
+        /* Compute "t1" = "t1" - (205 * "t1" >> 10) * 5 from reference code */
+        bn.mulv.8S w13, w12, w10       /* 205 * "t1" */
+        bn.rshi    w13, bn0, w13 >> 10 /* (205 * "t1" >> 10) */
+        bn.mulv.8S w13, w0, w13        /* (205 * "t1" >> 10) * 5 */
+        bn.subv.8S w10, w10, w13       /* "t1" - (205 * "t1" >> 10) * 5 */
+        bn.subv.8S w10, w1, w10        /* 2 - ("t1" - (205 * "t1" >> 10) * 5) */
+
+        /* Store coefficient value from WDR into target polynomial */
+        bn.sid t6, STACK_WDR2GPR(fp)
+        lw     t2, STACK_WDR2GPR(fp)
+        sw     t2, 0(a1)
+
+        /* Loop logic */
+        addi a1, a1, 4
+        beq  a1, t0, _end_rej_eta_sample_loop
 
 _rej_eta_sample_loop_inner_none:
+    /* Check if there are still SHAKE bytes left for next iteration */
+    addi t4, t4, -1
+    bne zero, t4, _rej_eta_sample_loop_inner
 
-            addi t4, t4, -1
-            bne zero, t4, _rej_eta_sample_loop_inner
+    /* All SHAKE bytes used and not done, squeeze again */
+    beq zero, zero, _rej_eta_sample_loop
 
-        /* Start all over again. */
-        beq zero, zero, _rej_eta_sample_loop
 _end_rej_eta_sample_loop:
     /* Finish the SHAKE-256 operation. */
-    addi      t0, zero, KECCAK_DONE_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, KECCAK_DONE_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
 
     /* sp <- fp */
     addi sp, fp, 0
