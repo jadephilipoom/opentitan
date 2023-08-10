@@ -862,7 +862,7 @@ _end_rej_sample_loop:
  * @param[in]     a2: nonce
  * @param[in]     a1: dmem pointer to polynomial
  *
- * clobbered registers: a1, a3-a5, w8-w15, t0-t5
+ * clobbered registers: a1, a3-a5, w8-w15, t0-t6
  */
 .global poly_uniform_eta
 poly_uniform_eta:
@@ -1091,49 +1091,59 @@ poly_use_hint_dilithium:
 
 _loop_poly_use_hint_dilithium:
     /* vectorized part: decompose */
-    li t0, 0
+    li     t0, 0
     bn.lid t0, 0(a1++)
-    jal x1, decompose_dilithium
+    jal    x1, decompose_dilithium
 
     /* Store result form decomposition do dmem */
     bn.sid a5, STACK_WDR2GPR1(fp)
     bn.sid a6, STACK_WDR2GPR2(fp)
 
-    addi t2, fp, STACK_WDR2GPR1 /* a0 */
-    addi t3, fp, STACK_WDR2GPR2 /* a1 */
-    addi t4, a0, 32 /* stop address */
+    /* "a{0,1}" refers to the variables from the reference code */
+
+    addi t2, fp, STACK_WDR2GPR1 /* "a0" */
+    addi t3, fp, STACK_WDR2GPR2 /* "a1" */
+    addi t4, a0, 32             /* stop address */
+
     /* scalar part starts here */
     LOOPI 8, 23
-        lw t1, 0(t3) /* Load a1 */
-        /* if(hint == 0) */
-        lw t5, 0(a2)
+        lw  t1, 0(t3) /* Load "a1" */
+        /* Check if hint is 0 */
+        lw  t5, 0(a2)
         bne t5, zero, _inner_loop_skip_store1_poly_use_hint_dilithium
-        sw t1, 0(a0)
+        sw  t1, 0(a0)
         beq zero, zero, _inner_loop_end_poly_use_hint_dilithium
 _inner_loop_skip_store1_poly_use_hint_dilithium:
-        /* if(0 < a0) */
+        /* if(0 < "a0") */
         lw t5, 0(t2)
         slt t5, zero, t5
-        bne t5, a5, _inner_loop_else_poly_use_hint_dilithium
-        /* (a1 == 43) */
-        bne t1, a4, _inner_loop_aplus1_poly_use_hint_dilithium
+        bne t5, a5, _inner_loop_else_poly_use_hint_dilithium /* go to else-branch */
+        /* if("a1" == 43) */
+        bne t1, a4, _inner_loop_aplus1_poly_use_hint_dilithium /* go to else-branch */
         sw zero, 0(a0) /* return 0 */
-        beq zero, zero, _inner_loop_end_poly_use_hint_dilithium
+        beq zero, zero, _inner_loop_end_poly_use_hint_dilithium /* go to iteration end */
 _inner_loop_aplus1_poly_use_hint_dilithium:
+        /* if("a1" == 43) else-branch */
+        /* Store "a1" + 1 */
         addi t1, t1, 1
         sw t1, 0(a0)
-        beq zero, zero, _inner_loop_end_poly_use_hint_dilithium
+        beq zero, zero, _inner_loop_end_poly_use_hint_dilithium /* unconditional */
 _inner_loop_else_poly_use_hint_dilithium:
-        bne t1, zero, _inner_loop_aminus1_poly_use_hint_dilithium
+        /* if(0 < "a0") else-branch */
+        /* if("a1" == 0) */
+        bne t1, zero, _inner_loop_aminus1_poly_use_hint_dilithium /* go to else-branch */
+        /* Store 43 */
         sw a4, 0(a0)
         beq zero, zero, _inner_loop_end_poly_use_hint_dilithium
 _inner_loop_aminus1_poly_use_hint_dilithium:
+        /* if("a1" == 0) else-branch */
+        /* Store "a1" - 1 */
         addi t1, t1, -1
         sw t1, 0(a0)
 _inner_loop_end_poly_use_hint_dilithium:
-        addi t3, t3, 4 /* increment *a1 */
+        addi t3, t3, 4 /* increment "a1" pointer */
         addi a0, a0, 4 /* increment output */
-        addi t2, t2, 4 /* increment *a0 */
+        addi t2, t2, 4 /* increment "a0" pointer */
         addi a2, a2, 4 /* increment *hint */
         /* LOOP END */
 
