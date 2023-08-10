@@ -21,13 +21,13 @@ main:
   bn.wsrw 0x0, w2
 
   /* Load stack address */
-  la    x2, stack_end
+  la x2, stack_end
   /* Load parameters */
-  la    x10, signature
-  la    x11, message
-  la    x12, messagelen
-  lw    x12, 0(x12) /* msglen */
-  la    x13, sk
+  la x10, signature
+  la x11, message
+  la x12, messagelen
+  lw x12, 0(x12) /* msglen */
+  la x13, sk
 
   jal x1, sign_dilithium
 
