@@ -180,43 +180,41 @@ verify_dilithium:
     addi fp, sp, 0
 
     /* Reserve space on the stack */
-    li t0, -38400
+    li  t0, -38400
     add sp, sp, t0
 
     /* Store parameters to stack */
-    li t0, STACK_SIG
+    li  t0, STACK_SIG
     add t0, fp, t0
-    sw a0, 0(t0)
-    li t0, STACK_SIGLEN
+    sw  a0, 0(t0)
+    li  t0, STACK_SIGLEN
     add t0, fp, t0
-    sw a1, 0(t0)
-    li t0, STACK_MSG
+    sw  a1, 0(t0)
+    li  t0, STACK_MSG
     add t0, fp, t0
-    sw a2, 0(t0)
-    li t0, STACK_MSGLEN
+    sw  a2, 0(t0)
+    li  t0, STACK_MSGLEN
     add t0, fp, t0
-    sw a3, 0(t0)
-    li t0, STACK_PK
+    sw  a3, 0(t0)
+    li  t0, STACK_PK
     add t0, fp, t0
-    sw a4, 0(t0)
+    sw  a4, 0(t0)
 
     /* Unpack pk */
     /* Unpack rho */
     addi   t0, zero, 0
-    bn.lid t0, 0(a4)
+    bn.lid t0, 0(a4++)
     li     t1, STACK_RHO
     add    t1, fp, t1
     bn.sid t0, 0(t1)
 
-    /* Advance pk */
-    addi a4, a4, 32
-
     /* Unpack t1 */
     /* Load pointer to t1 */
-    li a0, STACK_T1
-    add a0, fp, a0
+    li   a0, STACK_T1
+    add  a0, fp, a0
     /* Load pointer to packed t1 */
     addi a1, a4, 0
+
     /* Store t1 */
     LOOPI 4, 2
         jal x1, polyt1_unpack_dilithium
@@ -225,13 +223,16 @@ verify_dilithium:
     /* Unpack sig */
     /* Unpack c */
     /* Load sig pointer */
-    li t0, STACK_SIG
+    li  t0, STACK_SIG
     add t0, fp, t0
-    lw t0, 0(t0)
+    lw  t0, 0(t0)
     /* Load c pointer */
-    li t1, STACK_C
+    li  t1, STACK_C
     add t1, fp, t1
-    li t2, 2
+    
+    /* Setup WDR */
+    li  t2, 2
+    /* Copy c */
     bn.lid t2, 0(t0)
     bn.sid t2, 0(t1)
 
@@ -239,8 +240,9 @@ verify_dilithium:
     /* Advance sig pointer */
     addi a1, t0, 32
     /* Load pointer to z */
-    li a0, STACK_Z
-    add a0, fp, a0
+    li   a0, STACK_Z
+    add  a0, fp, a0
+
     LOOPI 4, 2
         jal x1, polyz_unpack_dilithium
         nop
@@ -248,7 +250,7 @@ verify_dilithium:
     /* Decode h */
     
     /* Load pointer to h */
-    li a0, STACK_H
+    li  a0, STACK_H
     add a0, fp, a0
 
     .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
@@ -264,10 +266,10 @@ verify_dilithium:
     .endr
 
     /* chknorm */
-    li t0, GAMMA1
-    li t1, BETA
+    li  t0, GAMMA1
+    li  t1, BETA
     sub a1, t0, t1
-    li a0, STACK_Z
+    li  a0, STACK_Z
     add a0, fp, a0
 
     LOOPI 4, 2
@@ -278,66 +280,76 @@ verify_dilithium:
 
     /* Compute H(rho, t1) */
     /* Load pointer to pk */
-    li a0, STACK_PK
+    li  a0, STACK_PK
     add a0, fp, a0
-    lw a0, 0(a0)
+    lw  a0, 0(a0)
+
     /* Initialize a SHAKE256 operation. */
-    addi      t0, zero, SHAKE256_START_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, SHAKE256_START_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
+
     /* Send the message to the Keccak core. */
     li  a1, CRYPTO_PUBLICKEYBYTES /* set message length to CRYPTO_PUBLICKEYBYTES */
     jal x1, keccak_send_message
     
-    li a0, STACK_MU
+    li  a0, STACK_MU
     add a0, fp, a0
+
     /* Setup WDR */
     li t1, 8
+
     /* Write SHAKE output to dmem */
-    bn.wsrr  w8, 0x9 /* KECCAK_DIGEST */
-    bn.sid t1, 0(a0) /* Store into buffer */
+    bn.wsrr w8, 0x9 /* KECCAK_DIGEST */
+    bn.sid  t1, 0(a0) /* Store into buffer */
 
     /* Finish the SHAKE-256 operation. */
-    addi      t2, zero, KECCAK_DONE_CMD
-    csrrw     zero, KECCAK_CMD_REG, t2
+    addi  t2, zero, KECCAK_DONE_CMD
+    csrrw zero, KECCAK_CMD_REG, t2
 
     /* Compute CRH(H(rho, t1), msg) */
     /* Initialize a SHAKE256 operation. */
-    addi      t2, zero, SHAKE256_START_CMD
-    csrrw     zero, KECCAK_CMD_REG, t2
+    addi  t2, zero, SHAKE256_START_CMD
+    csrrw zero, KECCAK_CMD_REG, t2
+
     /* Send mu to the Keccak core. */
-    li a1, 32
+    li  a1, 32
     /* a0 already contains mu pointer */
     jal  x1, keccak_send_message
+
     /* Send msg to the Keccak core. */
-    li t2, STACK_MSGLEN
+    li  t2, STACK_MSGLEN
     add t2, fp, t2
-    lw a1, 0(t2) /* a1 <= msglen */
-    li t2, STACK_MSG
+    lw  a1, 0(t2) /* a1 <= msglen */
+    li  t2, STACK_MSG
     add a0, fp, t2
-    lw a0, 0(a0) /* a0 <= *msg */
-    jal  x1, keccak_send_message
+    lw  a0, 0(a0) /* a0 <= *msg */
+    jal x1, keccak_send_message
+
     /* Setup WDR */
     li t1, 8
+
     /* Load *mu */
     li a0, STACK_MU
     add a0, fp, a0
-    /* Write SHAKE output to dmem */
-    bn.wsrr  w8, 0x9 /* KECCAK_DIGEST */
-    bn.sid t1, 0(a0) /* Store into buffer */
-    bn.wsrr  w8, 0x9 /* KECCAK_DIGEST */
-    bn.sid t1, 32(a0) /* Store into buffer */
-    /* Finish the SHAKE-256 operation. */
-    addi      t2, zero, KECCAK_DONE_CMD
-    csrrw     zero, KECCAK_CMD_REG, t2
 
-    li a0, STACK_CP
+    /* Write SHAKE output to dmem */
+    bn.wsrr w8, 0x9 /* KECCAK_DIGEST */
+    bn.sid  t1, 0(a0) /* Store into buffer */
+    bn.wsrr w8, 0x9 /* KECCAK_DIGEST */
+    bn.sid  t1, 32(a0) /* Store into buffer */
+
+    /* Finish the SHAKE-256 operation. */
+    addi  t2, zero, KECCAK_DONE_CMD
+    csrrw zero, KECCAK_CMD_REG, t2
+
+    li  a0, STACK_CP
     add a0, fp, a0
-    li a1, STACK_C
+    li  a1, STACK_C
     add a1, fp, a1
     jal x1, poly_challenge
 
-    /* expand matrix */
-    /* initialize the nonce */
+    /* Expand matrix */
+    /* Initialize the nonce */
     addi a2, zero, 0
 
     li a1, STACK_MAT
@@ -354,17 +366,17 @@ verify_dilithium:
         addi a2, a2, 252
 
     /* NTT(z) */
-    li a0, STACK_Z
-    add a0, fp, a0
+    li   a0, STACK_Z
+    add  a0, fp, a0
     addi a2, a0, 0 /* inplace */
-    la a1, twiddles_fwd
+    la   a1, twiddles_fwd
 
     .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
         push \reg
     .endr
 
     LOOPI 4, 2
-        jal x1, ntt_dilithium
+        jal  x1, ntt_dilithium
         addi a1, a1, -1024
 
     .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
@@ -372,10 +384,11 @@ verify_dilithium:
     .endr
 
     /* NTT(c) */
-    li a0, STACK_CP
-    add a0, fp, a0
+    li   a0, STACK_CP
+    add  a0, fp, a0
     addi a2, a0, 0 /* inplace */
-    la a1, twiddles_fwd
+    la   a1, twiddles_fwd
+
     .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
         push \reg
     .endr
@@ -385,31 +398,36 @@ verify_dilithium:
     .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
         pop \reg
     .endr
+
     /* shiftl(t1) */
 
-    li a0, STACK_T1
+    /* Load t1 address */
+    li  a0, STACK_T1
     add a0, fp, a0
+
+    /* Setup WDRs */
     li t0, 0
     li t1, 1
+
     LOOPI 4, 5
         LOOPI 32, 3
-            bn.lid t0, 0(a0)
+            bn.lid    t0, 0(a0)
             bn.orv.8S w0, bn0, w0 << D
-            bn.sid t0, 0(a0++)
-        nop /* TODO: find a better way */
+            bn.sid    t0, 0(a0++)
+        nop /* Nested loops must not end on the same instruciton  */
 
     /* NTT(t1) */
-    li a0, STACK_T1
-    add a0, fp, a0
+    li   a0, STACK_T1
+    add  a0, fp, a0
     addi a2, a0, 0 /* inplace */
-    la a1, twiddles_fwd
+    la   a1, twiddles_fwd
 
     .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
         push \reg
     .endr
 
     LOOPI 4, 2
-        jal x1, ntt_dilithium
+        jal  x1, ntt_dilithium
         addi a1, a1, -1024
 
     .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
@@ -418,61 +436,64 @@ verify_dilithium:
 
     /* Matrix-vector multiplication */
     /* Load source pointers */
-    li a0, STACK_Z
+    li  a0, STACK_Z
     add a0, fp, a0
 
-    li a1, STACK_MAT
+    li  a1, STACK_MAT
     add a1, fp, a1
+
     /* Load destination pointer */
-    li a2, STACK_W1
+    li  a2, STACK_W1
     add a2, fp, a2
 
     /* Load offset for resetting pointer */
     li s1, 4096
 
     LOOPI 4, 7
-        jal x1, poly_pointwise_dilithium
+        jal  x1, poly_pointwise_dilithium
         addi a2, a2, -1024
         LOOPI 3, 2
-            jal x1, poly_pointwise_acc_dilithium
+            jal  x1, poly_pointwise_acc_dilithium
             addi a2, a2, -1024
         /* Reset input vector pointer */
-        sub a0, a0, s1
+        sub  a0, a0, s1
         addi a2, a2, 1024
 
-    /* polyveck_pointwise_poly_montgomery(&t1, &cp, &t1); */
-    li a0, STACK_CP
+    /* t1 = cp * t1 */
+    li  a0, STACK_CP
     add a0, fp, a0
-    li a1, STACK_T1
+    li  a1, STACK_T1
     add a1, fp, a1
-    li a2, STACK_T1
+    li  a2, STACK_T1
     add a2, fp, a2
+
     LOOPI 4, 2
-        jal x1, poly_pointwise_dilithium
+        jal  x1, poly_pointwise_dilithium
         addi a0, a0, -1024
 
-    /* polyveck_sub(&w1, &w1, &t1); */
-    li a0, STACK_W1
+    /* w1 = w1 - t1 */
+    li  a0, STACK_W1
     add a0, fp, a0
-    li a1, STACK_T1
+    li  a1, STACK_T1
     add a1, fp, a1
-    li a2, STACK_W1
+    li  a2, STACK_W1
     add a2, fp, a2
+
     LOOPI 4, 2
         jal x1, poly_sub_dilithium
-        nop /* TODO: why is this needed? */
+        nop
 
     /* Inverse NTT on w1 */
-    li a0, STACK_W1
+    li  a0, STACK_W1
     add a0, fp, a0
-    la a1, twiddles_inv
+    la  a1, twiddles_inv
    
     .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
         push \reg
     .endr
 
     LOOPI 4, 3
-        jal x1, intt_dilithium
+        jal  x1, intt_dilithium
         /* Reset the twiddle pointer */
         addi a1, a1, -960
         /* Go to next input polynomial */
@@ -483,21 +504,21 @@ verify_dilithium:
     .endr
 
     /* Use hint */
-    li a0, STACK_W1
+    li  a0, STACK_W1
     add a0, fp, a0
-    li a1, STACK_W1
+    li  a1, STACK_W1
     add a1, fp, a1
-    li a2, STACK_H
+    li  a2, STACK_H
     add a2, fp, a2
    
-    LOOPI 4, 2 /* TODO Check pointers */
+    LOOPI 4, 2
         jal x1, poly_use_hint_dilithium
         nop
 
     /* Pack w1 */
-    li a1, STACK_W1
+    li  a1, STACK_W1
     add a1, fp, a1
-    li a0, STACK_BUF
+    li  a0, STACK_BUF
     add a0, fp, a0
 
     LOOPI 4, 2
@@ -506,41 +527,45 @@ verify_dilithium:
 
     /* Call random oracle and verify challenge */
     /* Initialize a SHAKE256 operation. */
-    addi      t0, zero, SHAKE256_START_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, SHAKE256_START_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
+
     /* Send mu to the Keccak core. */
-    li a0, STACK_MU
+    li  a0, STACK_MU
     add a0, fp, a0
     li  a1, CRHBYTES /* set mu length to CRHBYTES */
     jal x1, keccak_send_message
+
     /* Send buf to the Keccak core. */
-    li a0, STACK_BUF
+    li  a0, STACK_BUF
     add a0, fp, a0
     li  a1, 768 /* set mu length to K*POLYW1_PACKEDBYTES */
     jal x1, keccak_send_message
 
     /* Setup WDR for c2 */
     li t1, 8
+
     /* Write SHAKE output to dmem */
-    bn.wsrr  w8, 0x9 /* KECCAK_DIGEST */
+    bn.wsrr w8, 0x9 /* KECCAK_DIGEST */
 
     /* Finish the SHAKE-256 operation. */
-    addi      t2, zero, KECCAK_DONE_CMD
-    csrrw     zero, KECCAK_CMD_REG, t2
+    addi  t2, zero, KECCAK_DONE_CMD
+    csrrw zero, KECCAK_CMD_REG, t2
 
     /* Setup WDR for c */
     li t2, 9
-    li t0, STACK_C
-    add t0, fp, t0
+
+    li     t0, STACK_C
+    add    t0, fp, t0
     bn.lid t2, 0(t0)
 
     bn.cmp w8, w9
 
     /* Get the FG0.Z flag into a register.
     x2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
-    csrrs    t0, 0x7c0, zero
-    srli     t0, t0, 3
-    andi     t0, t0, 1
+    csrrs t0, 0x7c0, zero
+    srli  t0, t0, 3
+    andi  t0, t0, 1
 
     beq t0, zero, _fail_verify_dilithium
     beq zero, zero, _success_verify_dilithium
