@@ -72,7 +72,6 @@
       - [Testplan](./hw/ip/adc_ctrl/data/adc_ctrl_testplan.hjson)
     - [Programmer's Guide](./hw/ip/adc_ctrl/doc/programmers_guide.md)
     - [Checklist](./hw/ip/adc_ctrl/doc/checklist.md)
-    - [Interface and Registers](./hw/ip/adc_ctrl/data/adc_ctrl.hjson)
   - [AES](./hw/ip/aes/README.md)
     - [Theory of Operation](./hw/ip/aes/doc/theory_of_operation.md)
     - [Design Verification](./hw/ip/aes/dv/README.md)
