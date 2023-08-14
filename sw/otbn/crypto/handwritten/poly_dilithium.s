@@ -672,7 +672,7 @@ _aligned:
     jal  x1, keccak_send_message /* a0 already contains the input buffer */
     addi a1, zero, 2             /* set message length */
     /* TODO: Have a separate keccak_send_message that can read from a reg, not
-    mem? */
+       mem? */
     addi a0, fp, STACK_NONCE      /* Set a0 to point to the nonce in memory */
     jal  x1, keccak_send_message
 

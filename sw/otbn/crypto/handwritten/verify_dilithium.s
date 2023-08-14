@@ -543,9 +543,8 @@ verify_dilithium:
     jal x1, keccak_send_message
 
     /* Setup WDR for c2 */
-    li t1, 8
+    li      t1, 8
 
-    /* Write SHAKE output to dmem */
     bn.wsrr w8, 0x9 /* KECCAK_DIGEST */
 
     /* Finish the SHAKE-256 operation. */

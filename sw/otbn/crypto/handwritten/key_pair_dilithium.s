@@ -78,30 +78,32 @@
  */
 keccak_send_message:
   /* Compute the number of full 256-bit message chunks.
-       t0 <= x11 >> 5 = floor(len / 32) */
-  srli     t0, x11, 5
+      t0 <= x11 >> 5 = floor(len / 32) */
+  srli t0, x11, 5
 
   /* Write all full 256-bit sections of the test message. */
-  beq t0, zero, _no_full_wdr
-  loop     t0, 2
-    /* w0 <= dmem[x10..x10+32] = msg[32*i..32*i-1]
-       x10 <= x10 + 32 */
-    bn.lid   x0, 0(x10++)
-    /* Write to the KECCAK_MSG wide special register (index 8).
+  beq  t0, zero, _no_full_wdr
+
+  loop t0, 2
+      /* w0 <= dmem[x10..x10+32] = msg[32*i..32*i-1]
+         x10 <= x10 + 32 */
+      bn.lid  x0, 0(x10++)
+      /* Write to the KECCAK_MSG wide special register (index 8).
          KECCAK_MSG <= w0 */
-    bn.wsrw  0x8, w0
+      bn.wsrw 0x8, w0
+
 _no_full_wdr:
   /* Compute the remaining message length.
        t0 <= x10 & 31 = len mod 32 */
-  andi     t0, x11, 31
+  andi t0, x11, 31
 
   /* If the remaining length is zero, return early. */
-  beq      t0, x0, _keccak_send_message_end
+  beq t0, x0, _keccak_send_message_end
 
   /* Partial write: set KECCAK_WRITE_LEN special register before sending. */
-  csrrw    x0, KECCAK_WRITE_LEN_REG, t0
-  bn.lid   x0, 0(x10)
-  bn.wsrw  0x8, w0
+  csrrw   x0, KECCAK_WRITE_LEN_REG, t0
+  bn.lid  x0, 0(x10)
+  bn.wsrw 0x8, w0
 
   _keccak_send_message_end:
   ret
@@ -118,8 +120,7 @@ _no_full_wdr:
  * @param[out] x10: dmem pointer to public key
  * @param[out] x11: dmem pointer to private key
  *
- * clobbered registers: TODO
- *                      TODO
+ * clobbered registers: a0-a6, t0-t5, s1, w0-w30
  */
 .globl key_pair_dilithium
 key_pair_dilithium:
@@ -141,90 +142,97 @@ key_pair_dilithium:
     addi fp, sp, 0
 
     /* Reserve space on the stack */
-    li t0, -38400
+    li  t0, -38400
     add sp, sp, t0
 
     /* Store parameters to stack */
-    /* TODO: Select correct registers (zeta gets removed) */
-    li t0, STACK_PK_ADDR
+    li  t0, STACK_PK_ADDR
     add t0, fp, t0
-    sw a1, 0(t0)
-    li t0, STACK_SK_ADDR
+    sw  a1, 0(t0)
+    li  t0, STACK_SK_ADDR
     add t0, fp, t0
-    sw a2, 0(t0)
+    sw  a2, 0(t0)
 
     /* Initialize a SHAKE256 operation. */
-    addi      t0, zero, SHAKE256_START_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, SHAKE256_START_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
 
     /* Send the message to the Keccak core. */
     addi a1, zero, 32
     jal  x1, keccak_send_message
 
     /* Squeeze into output buffer */
-    /* load seedbuf address */
-    addi t1, fp, STACK_SEEDBUF
-    /* Read the digest from the KECCAK_DIGEST special register (index 8).
+    addi t1, fp, STACK_SEEDBUF /* load seedbuf address */
+
+    /* Read the digest and store to memory.
        dmem[STACK_SEEDBUF] <= SHAKE256(zeta, 1024) */
     li t0, 8
-    LOOPI 4, 3
-        bn.wsrr  w8, 0x9 /* KECCAK_DIGEST */
-        bn.sid t0, 0(t1) /* Store into buffer */
-        addi t1, t1, 32
+    LOOPI 4, 2
+        bn.wsrr w8, 0x9 /* KECCAK_DIGEST */
+        bn.sid  t0, 0(t1++) /* Store into buffer */
 
     /* Finish the SHAKE-256 operation. */
-    addi      t0, zero, KECCAK_DONE_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, KECCAK_DONE_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
 
-    /* expand matrix */
-    /* ! specific to dilithium2 */
-    /* initialize the nonce */
-    addi a2, zero, 0
+    /* Expand matrix */
 
-    li s1, STACK_MAT
-    add a1, fp, s1
+    /* Initialize the nonce */
+    li a2, 0
+
+    li a1, STACK_MAT
+    add a1, fp, a1
     LOOPI 4, 10
         LOOPI 4, 8
             /* Load parameters */
             addi a0, fp, STACK_RHO
-            push a2
+            push a2 /* TODO: What needs to be pushed here? */
             jal  x1, poly_uniform
-            pop a2
+            pop  a2
             addi a1, a1, 4
             addi a2, a2, 1
         addi a2, a2, 252
 
     /* Sample s1 */
-    /* initialize the nonce */
-    addi a2, zero, 0
+
+    li a2, 0 /* initialize the nonce */
+
     /* Load output pointer */
-    li s1, STACK_S1
-    add a1, fp, s1
+    li  a1, STACK_S1
+    add a1, fp, a1
+
     LOOPI 4, 3
         /* Load pointer to input */
         addi a0, fp, STACK_RHOPRIME
-        jal x1, poly_uniform_eta
+        jal  x1, poly_uniform_eta
         addi a2, a2, 1
     
     /* Sample s2 */
+
     /* initialize the nonce */
-    addi a2, zero, 4
+    li a2, 4
+
     /* Load output pointer */
-    li s1, STACK_S2
-    add a1, fp, s1
+    li  a1, STACK_S2
+    add a1, fp, a1
+
     LOOPI 4, 3
         /* Load pointer to input */
         addi a0, fp, STACK_RHOPRIME
-        jal x1, poly_uniform_eta
+        jal  x1, poly_uniform_eta /* Implicit increment of output pointer */
         addi a2, a2, 1
     
     /* NTT(s1) */
-    li s1, STACK_S1
-    add a0, fp, s1
-    la a1, twiddles_fwd
-    li s1, STACK_S1_HAT
-    add a2, fp, s1
+    /* Load pointer to input polynomial */
+    li  a0, STACK_S1
+    add a0, fp, a0
+    /* Load pointer to twiddle factors */
+    la  a1, twiddles_fwd
+    /* Load pointer to output polynomial */
+    li  a2, STACK_S1_HAT
+    add a2, fp, a2
 
+    /* TODO: Check what is needed to be preserved */
     .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
         push \reg
     .endr
@@ -238,68 +246,73 @@ key_pair_dilithium:
     .endr
 
     /* Matrix-vector multiplication */
-    /* Load source pointers */
-    li a0, STACK_S1_HAT
-    add a0, fp, a0
 
-    li a1, STACK_MAT
+    /* Load source pointers */
+    li  a0, STACK_S1_HAT
+    add a0, fp, a0
+    li  a1, STACK_MAT
     add a1, fp, a1
+
     /* Load destination pointer */
-    li a2, STACK_T1
+    li  a2, STACK_T1
     add a2, fp, a2
 
     /* Load offset for resetting pointer */
     li s1, 4096
 
     LOOPI 4, 7
-        jal x1, poly_pointwise_dilithium
+        jal  x1, poly_pointwise_dilithium
         addi a2, a2, -1024
+
         LOOPI 3, 2
-            jal x1, poly_pointwise_acc_dilithium
+            jal  x1, poly_pointwise_acc_dilithium
             addi a2, a2, -1024
-        /* Reset input vector pointer */
-        sub a0, a0, s1
-        addi a2, a2, 1024
+
+        sub  a0, a0, s1   /* Reset input vector pointer */
+        addi a2, a2, 1024 /* Write next output polynomial */
 
     /* TODO: Do we need reduce32? Do range analysis! */
 
     /* Inverse NTT on t1 */
-    li a0, STACK_T1
+    li  a0, STACK_T1
     add a0, fp, a0
-    la a1, twiddles_inv
-    /* Save caller-saved registers */
+    la  a1, twiddles_inv
+
+    /* Save caller-saved registers TODO: Check if necessary */
     .irp reg,t0,t1,t2,t3,t4,t5,t6,a0,a1,a2,a3,a4,a5,a6,a7
         push \reg
     .endr
+
     LOOPI 4, 3
-        jal x1, intt_dilithium
-        /* Reset the twiddle pointer */
-        addi a1, a1, -960
-        /* Go to next input polynomial */
-        addi a0, a0, 1024
+        jal  x1, intt_dilithium
+        addi a1, a1, -960 /* Reset the twiddle pointer */
+        addi a0, a0, 1024 /* Go to next input polynomial */
+
     /* Restore caller-saved registers */
     .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
         pop \reg
     .endr
 
     /* t1+s2 */
+
     /* Load source pointers */
-    li a0, STACK_S2
+    li  a0, STACK_S2
     add a0, fp, a0
-    li a1, STACK_T1
+    li  a1, STACK_T1
     add a1, fp, a1
+
     /* Load destination pointer */
-    li a2, STACK_T1
+    li  a2, STACK_T1
     add a2, fp, a2
 
-    /* TODO: Why cant the loop have only one instruction? */
     LOOPI 4, 2
         jal x1, poly_add_dilithium
         nop
 
     /* caddq(t1) */
+
     /* TODO: is this needed? */
-     /* Load source pointers */
+    /* Load source pointers */
     /* li a0, STACK_T1
     add a0, fp, a0
 
@@ -308,12 +321,15 @@ key_pair_dilithium:
         nop */
 
     /* power2round */
-    /* Load source pointers */
-    li a0, STACK_T1
+
+    /* Load source pointer */
+    li  a0, STACK_T1
     add a0, fp, a0
-    li a1, STACK_T0
+
+    /* Load destination pointer */
+    li  a1, STACK_T0
     add a1, fp, a1
-    li a2, STACK_T1
+    li  a2, STACK_T1
     add a2, fp, a2
 
     LOOPI 4, 2
@@ -325,111 +341,108 @@ key_pair_dilithium:
     /* Load rho pointer */
     li t1, STACK_RHO
     add t1, fp, t1
+
     /* w0 <= rho */
-    addi t0, zero, 0
+    addi   t0, zero, 0
     bn.lid t0, 0(t1)
     /* Load pk pointer */
-    li t1, STACK_PK_ADDR
-    add t1, fp, t1
-    lw a0, 0(t1)
+    li     t1, STACK_PK_ADDR
+    add    t1, fp, t1
+    lw     a0, 0(t1)
     /* Store rho */
-    bn.sid t0, 0(a0)
-    
-    /* Advance pk pointer */
-    addi a0, a0, 32
+    bn.sid t0, 0(a0++)
+
     /* Load pointer to t1 */
-    li a1, STACK_T1
+    li  a1, STACK_T1
     add a1, fp, a1
-    /* Store t1 */
+
+    /* Pack t1 */
     LOOPI 4, 2
         jal x1, polyt1_pack_dilithium
         nop
 
     /* Hash pk */
+
     /* Initialize a SHAKE256 operation. */
-    addi      t0, zero, SHAKE256_START_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, SHAKE256_START_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
 
     /* Send the message to the Keccak core. */
     addi a0, a0, -1312
-    addi a1, zero, 1312
+    li   a1, 1312
     jal  x1, keccak_send_message
 
     /* Squeeze into output buffer */
     /* load seedbuf address */
-    li t0, STACK_TR
+    li  t0, STACK_TR
     add t1, fp, t0
-    /* Read the digest from the KECCAK_DIGEST special register (index 8).
+
+    /* Read the digest.
        dmem[STACK_SEEDBUF] <= SHAKE256(zeta, 1024) */
-    li t0, 0
-    bn.wsrr  w0, 0x9 /* KECCAK_DIGEST */
-    bn.sid t0, 0(t1) /* Store into buffer */
+    li      t0, 0
+    bn.wsrr w0, 0x9 /* KECCAK_DIGEST */
+    bn.sid  t0, 0(t1) /* Store into buffer */
 
     /* Finish the SHAKE-256 operation. */
-    addi      t0, zero, KECCAK_DONE_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, KECCAK_DONE_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
 
     /* Pack sk */
 
     /* Load sk pointer */
-    li t1, STACK_SK_ADDR
+    li  t1, STACK_SK_ADDR
     add t1, fp, t1
-    lw a0, 0(t1)
+    lw  a0, 0(t1)
+
     /* Load rho pointer */
-    li t1, STACK_RHO
-    add t1, fp, t1
+    li     t1, STACK_RHO
+    add    t1, fp, t1
     /* w0 <= rho */
-    addi t0, zero, 0
+    li     t0, 0
     bn.lid t0, 0(t1)
     /* Store rho */
-    bn.sid t0, 0(a0)
-    
-    /* Advance sk pointer */
-    addi a0, a0, 32
+    bn.sid t0, 0(a0++)
     
     /* Load key pointer */
-    li t1, STACK_KEY
-    add t1, fp, t1
+    li     t1, STACK_KEY
+    add    t1, fp, t1
     /* w0 <= key */
-    addi t0, zero, 0
+    addi   t0, zero, 0
     bn.lid t0, 0(t1)
     /* Store key */
-    bn.sid t0, 0(a0)
-
-    /* Advance sk pointer */
-    addi a0, a0, 32
+    bn.sid t0, 0(a0++)
     
     /* Load tr pointer */
-    li t1, STACK_TR
-    add t1, fp, t1
+    li     t1, STACK_TR
+    add    t1, fp, t1
     /* w0 <= tr */
-    addi t0, zero, 0
+    addi   t0, zero, 0
     bn.lid t0, 0(t1)
     /* Store tr */
-    bn.sid t0, 0(a0)
-
-    /* Advance sk pointer */
-    addi a0, a0, 32
+    bn.sid t0, 0(a0++)
 
     /* Load pointer to s1 */
-    li a1, STACK_S1
+    li  a1, STACK_S1
     add a1, fp, a1
+
     /* Store s1 */
     LOOPI 4, 2
         jal x1, polyeta_pack_dilithium
         nop
 
     /* Load pointer to s2 */
-    li a1, STACK_S2
+    li  a1, STACK_S2
     add a1, fp, a1
+
     /* Store packed(s2) */
     LOOPI 4, 2
         jal x1, polyeta_pack_dilithium
         nop
 
     /* Load pointer to t0 */
-    li a1, STACK_T0
+    li  a1, STACK_T0
     add a1, fp, a1
+
     /* Store packed(t0) */
     LOOPI 4, 2
         jal x1, polyt0_pack_dilithium
