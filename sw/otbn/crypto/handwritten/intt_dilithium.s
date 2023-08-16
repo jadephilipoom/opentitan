@@ -64,7 +64,7 @@ intt_dilithium:
     li x29, 24
     li x30, 25
 
-    LOOPI 2, 209
+    LOOPI 2, 207
         /* Load input data */
         bn.lid x4, 0(x10)
         bn.lid x5, 32(x10)
@@ -123,14 +123,14 @@ intt_dilithium:
         /* Reverse Layer 8, stride 1 */
 
         /* Load twiddle factors */
-        bn.lid x23, 0(x11)
-        bn.lid x24, 32(x11)
-        bn.lid x25, 64(x11)
-        bn.lid x26, 96(x11)
-        bn.lid x31, 128(x11)
-        bn.lid x28, 160(x11)
-        bn.lid x29, 192(x11)
-        bn.lid x30, 224(x11)
+        bn.lid x23, 0(x11++)
+        bn.lid x24, 0(x11++)
+        bn.lid x25, 0(x11++)
+        bn.lid x26, 0(x11++)
+        bn.lid x31, 0(x11++)
+        bn.lid x28, 0(x11++)
+        bn.lid x29, 0(x11++)
+        bn.lid x30, 0(x11++)
 
         /* Butterflies */
         bn.subvm.8S w30, w2, w3
@@ -161,10 +161,10 @@ intt_dilithium:
         /* Reverse Layer 7, stride 2 */
 
         /* Load twiddle factors */
-        bn.lid x23, 256(x11)
-        bn.lid x24, 288(x11)
-        bn.lid x25, 320(x11)
-        bn.lid x26, 352(x11)
+        bn.lid x23, 0(x11++)
+        bn.lid x24, 0(x11++)
+        bn.lid x25, 0(x11++)
+        bn.lid x26, 0(x11++)
 
         /* Butterflies */
         bn.subvm.8S w30, w2, w4
@@ -195,8 +195,8 @@ intt_dilithium:
         /* Reverse Layer 6, stride 4 */
 
         /* Load twiddle factors */
-        bn.lid x23, 384(x11)
-        bn.lid x24, 416(x11)
+        bn.lid x23, 0(x11++)
+        bn.lid x24, 0(x11++)
 
         /* Butterflies */
         bn.subvm.8S w30, w2, w6
@@ -264,7 +264,7 @@ intt_dilithium:
         /* Reverse Layer 5, stride 8 */
 
         /* Load twiddle factors */
-        bn.lid x23, 448(x11)
+        bn.lid x23, 0(x11++)
         
         /* Butterflies */
         bn.subvm.8S   w30, w2, w3
@@ -292,25 +292,22 @@ intt_dilithium:
         bn.addvm.8S   w16, w16, w17
         bn.mulvm.l.8S w17, w30, w18, 7
 
-        bn.sid x4, 0(x10)
-        bn.sid x5, 32(x10)
-        bn.sid x6, 64(x10)
-        bn.sid x7, 96(x10)
-        bn.sid x8, 128(x10)
-        bn.sid x9, 160(x10)
-        bn.sid x13, 192(x10)
-        bn.sid x14, 224(x10)
-        bn.sid x15, 256(x10)
-        bn.sid x16, 288(x10)
-        bn.sid x17, 320(x10)
-        bn.sid x18, 352(x10)
-        bn.sid x19, 384(x10)
-        bn.sid x20, 416(x10)
-        bn.sid x21, 448(x10)
-        bn.sid x22, 480(x10)
-
-        addi x11, x11, 480
-        addi x10, x10, 512
+        bn.sid x4, 0(x10++)
+        bn.sid x5, 0(x10++)
+        bn.sid x6, 0(x10++)
+        bn.sid x7, 0(x10++)
+        bn.sid x8, 0(x10++)
+        bn.sid x9, 0(x10++)
+        bn.sid x13,0(x10++)
+        bn.sid x14,0(x10++)
+        bn.sid x15,0(x10++)
+        bn.sid x16,0(x10++)
+        bn.sid x17,0(x10++)
+        bn.sid x18,0(x10++)
+        bn.sid x19,0(x10++)
+        bn.sid x20,0(x10++)
+        bn.sid x21,0(x10++)
+        bn.sid x22,0(x10++)
 
     /* Restore input pointer */
     addi x10, x10, -1024
@@ -319,7 +316,7 @@ intt_dilithium:
     bn.lid x23, 0(x11)
     bn.lid x24, 32(x11)
 
-    LOOPI 2, 137
+    LOOPI 2, 136
         /* Load input data */
         bn.lid x4, 0(x10)
         bn.lid x5, 64(x10)
@@ -468,10 +465,8 @@ intt_dilithium:
         bn.sid x19, 768(x10)
         bn.sid x20, 832(x10)
         bn.sid x21, 896(x10)
-        bn.sid x22, 960(x10)
+        bn.sid x22, 960(x10++)
         
-        addi x10, x10, 32
-
     .irp reg,s11,s10,s9,s8,s7,s6,s5,s4,s3,s2,s1,s0
         pop \reg
     .endr

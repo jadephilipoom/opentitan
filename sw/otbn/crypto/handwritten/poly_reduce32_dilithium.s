@@ -37,8 +37,8 @@ poly_reduce32_dilithium:
     /* Set up constants for input/state */
     li x7, 2    
 
-    LOOPI 32, 8
-        bn.lid x7, 0(x10)
+    LOOPI 32, 6
+        bn.lid x7, 0(x10++)
         
         /* t = a + (1 << 22) */
         bn.addv.8S w5, w2, w4
@@ -49,9 +49,6 @@ poly_reduce32_dilithium:
         /* a - t */
         bn.subv.8S w2, w2, w5
 
-        bn.sid x7, 0(x11)
-
-        addi x10, x10, 32
-        addi x11, x11, 32
+        bn.sid x7, 0(x11++)
 
     ret

@@ -25,17 +25,13 @@ poly_pointwise_dilithium:
     li x5, 3
     li x6, 4
 
-    LOOPI 32, 7
-        bn.lid x4, 0(x10)
-        bn.lid x5, 0(x11)
+    LOOPI 32, 4
+        bn.lid x4, 0(x10++)
+        bn.lid x5, 0(x11++)
         
         bn.mulvm.8S w2, w2, w3, 0
         
-        bn.sid x4, 0(x12)
-
-        addi x10, x10, 32
-        addi x11, x11, 32
-        addi x12, x12, 32
+        bn.sid x4, 0(x12++)
 
     ret
 
@@ -65,9 +61,9 @@ poly_pointwise_acc_dilithium:
     li x5, 3
     li x6, 4
 
-    LOOPI 32, 9
-        bn.lid x4, 0(x10)
-        bn.lid x5, 0(x11)
+    LOOPI 32, 6
+        bn.lid x4, 0(x10++)
+        bn.lid x5, 0(x11++)
         
         bn.mulvm.8S w2, w2, w3
         
@@ -75,10 +71,6 @@ poly_pointwise_acc_dilithium:
         bn.lid x5, 0(x12)
         bn.addvm.8S w2, w2, w3
         
-        bn.sid x4, 0(x12)
-
-        addi x10, x10, 32
-        addi x11, x11, 32
-        addi x12, x12, 32
+        bn.sid x4, 0(x12++)
 
     ret
