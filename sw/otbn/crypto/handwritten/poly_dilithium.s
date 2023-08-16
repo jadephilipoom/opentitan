@@ -686,7 +686,7 @@ _aligned:
 
     /* WDR index */
     li t5, 8
-
+    li t6, 0xFFFF
     /* Loop until 256 coefficients have been written to the output */
 _rej_sample_loop:
     /* First squeeze */
@@ -766,7 +766,7 @@ _rej_sample_loop_p2:
         lw     t1, STACK_WDR2GPR(fp)
 
         /* Shift out the 3 bytes we read for the next potential coefficient */
-        bn.or  shake_reg, bn0, shake_reg >> 24
+        bn.or shake_reg, bn0, shake_reg >> 24
 
         and  t1, t2, t1             /* Mask the bytes from Shake */
         slt  t3, t1, a2             /* t3 <= 1, if t1 <? Q, else 0 */ 
@@ -788,14 +788,13 @@ _skip_store3:
     lw     t1, STACK_WDR2GPR(fp)
 
     /* Squeeze */
-    bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
+    bn.wsrr shake_reg, 0x9 /* KECCAK_DIGEST */
 
     /* Move 4 byte of the SHAKE output into GPR t3 */
     bn.sid t5, STACK_WDR2GPR(fp)
     lw     t3, STACK_WDR2GPR(fp)
     bn.or  shake_reg, bn0, shake_reg >> 16 /* Using 2 of 4 bytes, so shift 16 */
-    li     t4, 0xFFFF                      /* Only keep lower 2 bytes */
-    and    t3, t3, t4                      /* Mask */
+    and    t3, t3, t6                      /* Mask to only keep two lower bytes */
     slli   t3, t3, 8                       /* Shift to be bytes at index 2+3 */
     or     t1, t1, t3                      /* Merge with remaining byte */
     and    t1, t2, t1                      /* Mask the bytes from Shake */
@@ -817,7 +816,7 @@ _rej_sample_loop_p3:
         lw     t1, STACK_WDR2GPR(fp)
 
         /* Shift out the 3 bytes we read for the next potential coefficient */
-        bn.or  shake_reg, bn0, shake_reg >> 24
+        bn.or shake_reg, bn0, shake_reg >> 24
 
         and t1, t2, t1             /* Mask the bytes from Shake */
         slt t3, t1, a2             /* t3 <= 1, if t1 <? Q, else 0 */ 
@@ -831,7 +830,7 @@ _rej_sample_loop_p3:
 _skip_store5:
         /* Loop logic */
         addi t4, t4, -1
-        bne t4, zero, _rej_sample_loop_p3
+        bne  t4, zero, _rej_sample_loop_p3
 
     /* No remainder! Start all over again. */
     beq zero, zero, _rej_sample_loop
