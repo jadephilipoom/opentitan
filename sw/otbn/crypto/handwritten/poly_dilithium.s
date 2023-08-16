@@ -949,11 +949,11 @@ _rej_eta_sample_loop_inner:
         /* "t{0,1}" indicate the variable names from the reference code */ 
 
         /* Compute "t0" = "t0" - (205 * "t0" >> 10) * 5 from reference code */
-        bn.mulv.8S w13, w12, w9        /* 205 * "t0" */
-        bn.rshi    w13, bn0, w13 >> 10 /* (205 * "t0" >> 10) */
-        bn.mulv.8S w13, w0, w13        /* (205 * "t0" >> 10) * 5 */
-        bn.subv.8S w9, w9, w13         /* "t0" - (205 * "t0" >> 10) * 5 */
-        bn.subv.8S w9, w1, w9          /* 2 - ("t0" - (205 * "t0" >> 10) * 5) */
+        bn.mulqacc.wo.z w13, w12.0, w9.0, 0 /* 205 * "t0" */
+        bn.rshi         w13, bn0, w13 >> 10 /* (205 * "t0" >> 10) */
+        bn.mulqacc.wo.z w13, w0.0, w13.0, 0 /* (205 * "t0" >> 10) * 5 */
+        bn.subv.8S      w9, w9, w13         /* "t0" - (205 * "t0" >> 10) * 5 */
+        bn.subv.8S      w9, w1, w9          /* 2 - ("t0" - (205 * "t0" >> 10) * 5) */
 
         /* Store coefficient value from WDR into target polynomial */
         bn.sid t5, STACK_WDR2GPR(fp)
@@ -968,6 +968,7 @@ _rej_eta_sample_loop_inner_1:
         /* Process last 4 bits */
 
         /* Check "t1" != 15 */
+        /* TODO: maybe it's faster to go via GPRs? */
         bn.cmp  w10, w15
             /* Get the FG0.Z flag into a register.
             t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
@@ -978,11 +979,11 @@ _rej_eta_sample_loop_inner_1:
         bne t2, zero, _rej_eta_sample_loop_inner_none
 
         /* Compute "t1" = "t1" - (205 * "t1" >> 10) * 5 from reference code */
-        bn.mulv.8S w13, w12, w10       /* 205 * "t1" */
-        bn.rshi    w13, bn0, w13 >> 10 /* (205 * "t1" >> 10) */
-        bn.mulv.8S w13, w0, w13        /* (205 * "t1" >> 10) * 5 */
-        bn.subv.8S w10, w10, w13       /* "t1" - (205 * "t1" >> 10) * 5 */
-        bn.subv.8S w10, w1, w10        /* 2 - ("t1" - (205 * "t1" >> 10) * 5) */
+        bn.mulqacc.wo.z w13, w12.0, w10.0, 0 /* 205 * "w1" */
+        bn.rshi         w13, bn0, w13 >> 10  /* (205 * "t1" >> 10) */
+        bn.mulqacc.wo.z w13, w0.0, w13.0, 0  /* (205 * "t0" >> 10) * 5 */
+        bn.subv.8S      w10, w10, w13        /* "t1" - (205 * "t1" >> 10) * 5 */
+        bn.subv.8S      w10, w1, w10         /* 2 - ("t1" - (205 * "t1" >> 10) * 5) */
 
         /* Store coefficient value from WDR into target polynomial */
         bn.sid t6, STACK_WDR2GPR(fp)
