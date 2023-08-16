@@ -668,7 +668,7 @@ _aligned:
 
     /* Send the message to the Keccak core. */
     addi a4, a1, 0               /* save output pointer */
-    addi a1, zero, 32            /* set message length */
+    li a1, 32                    /* set message length */
     jal  x1, keccak_send_message /* a0 already contains the input buffer */
     addi a1, zero, 2             /* set message length */
     /* TODO: Have a separate keccak_send_message that can read from a reg, not
@@ -2636,8 +2636,8 @@ poly_make_hint_dilithium:
     li   a7, -94208
     addi a7, a7, -1024
 
-    /* Loop over every coefficient of input */
-    LOOPI 256, 18
+    /* Loop over every coefficient pair of the input */
+    LOOPI 256, 17
         lw t0, 0(a1)
         lw t1, 0(a2)
 
@@ -2655,8 +2655,7 @@ _L6_poly_make_hint_dilithium:
 
 _L3_poly_make_hint_dilithium:
         li  t0, 1
-        beq zero, zero, _loop_end_poly_make_hint_dilithium
-
+        /* Fall through to loop end */
 _loop_end_poly_make_hint_dilithium:
         sw   t0, 0(a0) /* Write to output polynomial */
         add  t2, t2, t0
