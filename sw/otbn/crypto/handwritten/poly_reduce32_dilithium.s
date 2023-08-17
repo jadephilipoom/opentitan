@@ -7,15 +7,13 @@
  *
  * This implements reduce32 for Dilithium, where n=256,q=8380417.
  *
- * Flags: Flags have no meaning beyond the scope of this subroutine.
+ * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
  *
- * 
  * @param[in]  x10: dptr_input1, dmem pointer to first word of input1 polynomial
  * @param[in]  w31: all-zero
  * @param[out] x11: dmem pointer to result
  *
- * clobbered registers: x4 to x7, x10-x11
- *                      w2 to w6
+ * clobbered registers: x4-x7, x10-x11, w2-w6
  */
 .globl poly_reduce32_dilithium
 poly_reduce32_dilithium:

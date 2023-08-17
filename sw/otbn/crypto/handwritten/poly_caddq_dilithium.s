@@ -7,14 +7,13 @@
  *
  * This implements caddq for Dilithium, where n=256,q=8380417.
  *
- * Flags: Flags have no meaning beyond the scope of this subroutine.
+ * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
  *
  * 
  * @param[in]  x10: dptr_input1, dmem pointer to first word of input1 polynomial
  * @param[in]  w31: all-zero
  *
- * clobbered registers: x5 to x7, x10
- *                      w2 to w6
+ * clobbered registers: x5-x7, x10, w2-w6
  */
 .globl poly_caddq_dilithium
 poly_caddq_dilithium:
@@ -26,7 +25,7 @@ poly_caddq_dilithium:
     la     x7, modulus
     bn.lid x6, 0(x7)
 
-    /* Set up constants for input/state */
+    /* Set up WDR constants for input/state */
     li x7, 2    
 
     LOOPI 32, 8

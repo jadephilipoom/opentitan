@@ -7,18 +7,16 @@
  *
  * This implements the polynomial addition for Dilithium, where n=256,q=8380417.
  *
- * Flags: Flags have no meaning beyond the scope of this subroutine.
+ * Flags: -
  *
- * 
  * @param[in]  x10:  a, dmem pointer to first word of input polynomial
  * @param[in]  x11: a0, dmem pointer to output polynomial with coefficients c0
  * @param[in]  x12: a1, dmem pointer to output polynomial with coefficients c1
  * @param[in]  w31: all-zero
  *
- * clobbered registers: x4 to x7
- *                      w2 to w4
+ * clobbered registers: x4-x7, w2-w4
  */
-.globl poly_power2round_dilithium
+.global poly_power2round_dilithium
 poly_power2round_dilithium:
     #define D 13
     /* Set up constants for input/state */

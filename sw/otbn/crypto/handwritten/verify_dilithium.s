@@ -259,7 +259,7 @@ verify_dilithium:
 
     jal x1, polyvec_decode_h_dilithium
     /* Raise error */
-    bne a0, zero, exit_err
+    bne a0, zero, _fail_verify_dilithium
 
     .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
         pop \reg
@@ -276,7 +276,7 @@ verify_dilithium:
         jal x1, poly_chknorm_dilithium
         nop
     /* Raise error */
-    bne a0, zero, exit_err
+    bne a0, zero, _fail_verify_dilithium
 
     /* Compute H(rho, t1) */
     /* Load pointer to pk */
@@ -543,7 +543,7 @@ verify_dilithium:
     jal x1, keccak_send_message
 
     /* Setup WDR for c2 */
-    li      t1, 8
+    li t1, 8
 
     bn.wsrr w8, 0x9 /* KECCAK_DIGEST */
 
@@ -558,6 +558,7 @@ verify_dilithium:
     add    t0, fp, t0
     bn.lid t2, 0(t0)
 
+    /* Check if c == c2 */
     bn.cmp w8, w9
 
     /* Get the FG0.Z flag into a register.
@@ -577,7 +578,6 @@ _success_verify_dilithium:
     li a0, 0
     ret
 
-exit_err:
 _fail_verify_dilithium:
     li a0, -1
     unimp

@@ -481,7 +481,7 @@ _ret1_poly_chknorm_dilithium:
  * 
  * Returns: -
  *
- * Flags: TODO
+ * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
  *
  * @param[in]  a1: mu byte array containing seed of length SEEDBYTES
  * @param[out] a0: pointer to output polynomial
@@ -625,7 +625,7 @@ _loop_inner_skip_load_poly_challenge:
  *
  * Returns: -
  *
- * Flags: TODO
+ * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
  *
  * @param[in]  a0: pointer to rho
  * @param[in]  a2: nonce
@@ -855,7 +855,7 @@ _end_rej_sample_loop:
  *
  * Returns: -
  *
- * Flags: TODO
+ * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
  *
  * @param[in]     a0: pointer to rho
  * @param[in]     a2: nonce

@@ -1,12 +1,12 @@
 .text
 /* Macros */
 .macro push reg
-    addi sp, sp, -4      /* Decrement stack pointer by 4 bytes */
+    addi sp, sp, -4     /* Decrement stack pointer by 4 bytes */
     sw \reg, 0(sp)      /* Store register value at the top of the stack */
 .endm
 
 .macro pop reg
-    lw \reg, 0(sp)      /* Load value from the top of the stack into register */
+    lw \reg, 0(sp)     /* Load value from the top of the stack into register */
     addi sp, sp, 4     /* Increment stack pointer by 4 bytes */
 .endm
 
@@ -17,7 +17,7 @@
  *
  * This implements the in-place INTT for Dilithium, where n=256, q=8380417.
  *
- * Flags: Flags have no meaning beyond the scope of this subroutine.
+ * Flags: -
  *
  * @param[in]  x10: dptr_input, dmem pointer to first word of input polynomial
  * @param[in]  x11: dptr_tw, dmem pointer to array of twiddle factors,
@@ -25,10 +25,9 @@
  * @param[in]  w31: all-zero
  * @param[out] x10: dmem pointer to result
  *
- * clobbered registers: x4 to x30
- *                      w2 to w25, w30
+ * clobbered registers: x4-x30, w2-w25, w30
  */
-.globl intt_dilithium
+.global intt_dilithium
 intt_dilithium:
 
     /* Save callee-saved registers */

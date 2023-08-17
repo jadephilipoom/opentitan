@@ -3,22 +3,20 @@
 /**
  * Constant Time Dilithium polynomial addition
  *
- * Returns: add(input1, input2) reduced mod q
+ * Returns: add(input1, input2) reduced mod q (taken from MOD WDR)
  *
- * This implements the polynomial addition for Dilithium, where n=256,q=8380417.
+ * This implements the polynomial addition for e.g. Dilithium, where n=256.
  *
- * Flags: Flags have no meaning beyond the scope of this subroutine.
+ * Flags: -
  *
- * 
  * @param[in]  x10: dptr_input1, dmem pointer to first word of input1 polynomial
  * @param[in]  x11: dptr_input2, dmem pointer to first word of input2 polynomial
  * @param[in]  w31: all-zero
  * @param[out] x12: dmem pointer to result
  *
- * clobbered registers: x4 to x6
- *                      w2 to w4
+ * clobbered registers: x4-x6, w2-w4
  */
-.globl poly_add_dilithium
+.global poly_add_dilithium
 poly_add_dilithium:
     /* Set up constants for input/state */
     li x6, 2
