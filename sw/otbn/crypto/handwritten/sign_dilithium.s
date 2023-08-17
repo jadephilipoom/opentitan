@@ -793,8 +793,10 @@ _rej_sign_dilithium:
     /* z */
     li   a1, STACK_Z
     add  a1, fp, a1
+    /* Load gamma1_vec_const to w0 */
     la   a2, gamma1_vec_const
-
+    li   t0, 0
+    bn.lid t0, 0(a2)
     LOOPI L, 2
         jal x1, polyz_pack_dilithium
         nop

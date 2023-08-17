@@ -389,7 +389,7 @@ polyz_unpack_dilithium:
  * 
  * Returns: 0 if norm is strictly smaller than B <= (Q-1)/8 and 1 otherwise.
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[in]     a1: norm bound
  * @param[in]     a0: pointer to polynomial
@@ -492,7 +492,7 @@ _ret1_poly_chknorm_dilithium:
 poly_challenge:
     /* save fp to stack */
     addi sp, sp, -32
-    sw fp, 0(sp)
+    sw   fp, 0(sp)
 
     addi fp, sp, 0
     
@@ -504,6 +504,7 @@ poly_challenge:
 
     /* Initialize output poly to 0 */
     add t1, zero, a0
+
     /* w31 contains all zeros by convention */ 
     li t0, 31
     LOOPI 32, 1
@@ -513,12 +514,13 @@ poly_challenge:
     addi a4, a0, 0
 
     /* Initialize a SHAKE256 operation. */
-    addi      t0, zero, SHAKE256_START_CMD
-    csrrw     zero, KECCAK_CMD_REG, t0
+    addi  t0, zero, SHAKE256_START_CMD
+    csrrw zero, KECCAK_CMD_REG, t0
+
     /* Send the message to the Keccak core. */
     addi a0, a1, 0 /* a0 <= *mu */
-    li a1, 32 /* a1 <= SEEDBYTES */
-    jal x1, keccak_send_message
+    li   a1, 32 /* a1 <= SEEDBYTES */
+    jal  x1, keccak_send_message
 
     /* Restore output pointer */
     addi a1, a0, 0
@@ -527,24 +529,26 @@ poly_challenge:
     /* Setup WDR */
     li t0, 0
     li a6, 3
+
     /* Read first SHAKE output */
-    bn.wsrr  w0, 0x9 /* KECCAK_DIGEST */
+    bn.wsrr w0, 0x9 /* KECCAK_DIGEST */
 
     /* fill signs */
 
     /* Load mask (2**64)-1 to w2 */
     bn.addi w1, bn0, 1
-    bn.or w2, bn0, w1 << 64
-    bn.sub w2, w2, w1
+    bn.or   w2, bn0, w1 << 64
+    bn.sub  w2, w2, w1
 
     /* w1 <= signs */
     /* Mask out the sign bits from the WDR containing the SHAKE output */
-    bn.or w1, bn0, w0
-    bn.and w1, w1, w2
+    bn.or   w1, bn0, w0
+    bn.and  w1, w1, w2
     /* w2 <= 1-bit mask */
     bn.addi w2, bn0, 1
     /* shift out sign bits from the register containing the SHAKE output */
     bn.rshi w0, bn0, w0 >> 64
+
     /* a2 <= number of remaining bits in buf */
     li a2, 192
     
@@ -555,6 +559,7 @@ poly_challenge:
     li t3, 1
 
     /* TODO: Check if we could use HW loop? */
+    LOOPI TAU, 24
 _loop_poly_challenge:
     /* get address of c->coeffs[i], the current coefficient */
     slli a5, a3, 2 /* i * 4 for byte position */
@@ -564,48 +569,46 @@ _loop_inner_poly_challenge:
         /* If the SHAKE output "buffer" register w0 is empty, squeeze again.
            Since all reads from w0 are equally large (8 bits) and 8 | 256, 
            we can just check for "zero" */
-        bne zero, a2, _loop_inner_skip_load_poly_challenge
-        bn.wsrr  w0, 0x9 /* KECCAK_DIGEST */
-        li a2, 256 /* reset the remaining bits counter */
+        bne     zero, a2, _loop_inner_skip_load_poly_challenge
+        bn.wsrr w0, 0x9 /* KECCAK_DIGEST */
+        li      a2, 256 /* reset the remaining bits counter */
 _loop_inner_skip_load_poly_challenge:
         /* Store w0 to the stack in order to read one word into a GPR */
-        bn.sid t0, STACK_WDR2GPR(fp)
+        bn.sid  t0, STACK_WDR2GPR(fp)
         bn.rshi w0, bn0, w0 >> 8 /* shift out used bits */
-        addi a2, a2, -8 /* decrease number of remaining bits */
+        addi    a2, a2, -8 /* decrease number of remaining bits */
         /* TODO: optimize this to use all bytes from this load */
-        lw t1, STACK_WDR2GPR(fp) /* get one word of SHAKE output into GPR */
+        lw      t1, STACK_WDR2GPR(fp) /* get one word of SHAKE output into GPR */
         /* t1 = b from the reference implementation */
-        andi t1, t1, 0xFF /* mask out one byte, because we only need one */
-        sltu t2, a3, t1 /* i <? b */
+        andi    t1, t1, 0xFF /* mask out one byte, because we only need one */
+        sltu    t2, a3, t1 /* i <? b */
         /* while(b > i); */
-        beq t3, t2, _loop_inner_poly_challenge
+        beq     t3, t2, _loop_inner_poly_challenge
 
+        /* Implements:
+        c->coeffs[i] = c->coeffs[b];
+        c->coeffs[b] = 1 - 2*(signs & 1);
+        signs >>= 1; */
+        /* get address of c->coeffs[b] */
+        slli t1, t1, 2  /* b * 4 for byte position */
+        add  t1, t1, a0 /* Add the array start address: c->coeffs + b * 4 */
 
-    /* Implements:
-       c->coeffs[i] = c->coeffs[b];
-       c->coeffs[b] = 1 - 2*(signs & 1);
-       signs >>= 1; */
-    /* get address of c->coeffs[b] */
-    slli t1, t1, 2  /* b * 4 for byte position */
-    add  t1, t1, a0 /* Add the array start address: c->coeffs + b * 4 */
+        /* "swap" */
+        lw t2, 0(t1) /* Load c->coeffs[b] */
+        sw t2, 0(a5) /* c->coeffs[i] = c->coeffs[b]; */
 
-    /* "swap" */
-    lw t2, 0(t1) /* Load c->coeffs[b] */
-    sw t2, 0(a5) /* c->coeffs[i] = c->coeffs[b]; */
+        /* TODO: accumulate result values in WDR and store once 32 bytes; avoid 
+        moving between WDR and GPR? */
+        bn.and  w3, w1, w2            /* signs & 1 */
+        bn.add  w3, w3, w3            /* 2 * (signs & 1) */
+        bn.sub  w3, w2, w3            /* 1 - 2 * (signs & 1) */
+        bn.sid  a6, STACK_WDR2GPR(fp) /* Store w3 to memory to move value to GPR */
+        lw      t2, STACK_WDR2GPR(fp)
+        sw      t2, 0(t1)             /* c->coeffs[b] = 1 - 2*(signs & 1); */
 
-    /* TODO: accumulate result values in WDR and store once 32 bytes; avoid 
-       moving between WDR and GPR? */
-    bn.and  w3, w1, w2            /* signs & 1 */
-    bn.add  w3, w3, w3            /* 2 * (signs & 1) */
-    bn.sub  w3, w2, w3            /* 1 - 2 * (signs & 1) */
-    bn.sid  a6, STACK_WDR2GPR(fp) /* Store w3 to memory to move value to GPR */
-    lw      t2, STACK_WDR2GPR(fp)
-    sw      t2, 0(t1)             /* c->coeffs[b] = 1 - 2*(signs & 1); */
+        bn.rshi w1, bn0, w1 >> 1 /* Discard the used bit: signs >>= 1 */
 
-    bn.rshi w1, bn0, w1 >> 1 /* Discard the used bit: signs >>= 1 */
-
-    addi a3, a3, 1 /* i++ */
-    bne  a3, a4, _loop_poly_challenge /* i != N */
+        addi a3, a3, 1 /* i++ */
 
     /* Finish the SHAKE-256 operation. */
     addi  t0, zero, KECCAK_DONE_CMD
@@ -615,7 +618,7 @@ _loop_inner_skip_load_poly_challenge:
     addi sp, fp, 0
 
     /* Pop ebp */
-    lw fp, 0(sp)
+    lw   fp, 0(sp)
     addi sp, sp, 32
 
     ret
@@ -635,7 +638,6 @@ _loop_inner_skip_load_poly_challenge:
  */
 .global poly_uniform
 poly_uniform:
-    /* TODO: Check if this is required */ 
     /* 32 byte align the sp */
     andi a5, sp, 31
     beq  a5, zero, _aligned
@@ -668,12 +670,10 @@ _aligned:
 
     /* Send the message to the Keccak core. */
     addi a4, a1, 0               /* save output pointer */
-    li a1, 32                    /* set message length */
+    li   a1, 32                  /* set message length */
     jal  x1, keccak_send_message /* a0 already contains the input buffer */
     addi a1, zero, 2             /* set message length */
-    /* TODO: Have a separate keccak_send_message that can read from a reg, not
-       mem? */
-    addi a0, fp, STACK_NONCE      /* Set a0 to point to the nonce in memory */
+    addi a0, fp, STACK_NONCE     /* Set a0 to point to the nonce in memory */
     jal  x1, keccak_send_message
 
     addi a1, a4, 0 /* move output pointer back to a1 */
@@ -911,6 +911,14 @@ _aligned_poly_uniform_eta:
     /* Initialize constants for WDR index */
     li t5, 9
     li t6, 10
+    li t3, 15
+
+    /* Initialize constants */
+    bn.addi w14, bn0, 0xFF
+    bn.addi w15, bn0, 15
+    bn.addi w12, bn0, 205
+    bn.addi w0, bn0, 5
+    bn.addi w1, bn0, 2
 _rej_eta_sample_loop:
     /* First squeeze */
     .equ w8, shake_reg
@@ -918,33 +926,22 @@ _rej_eta_sample_loop:
     
     /* Loop counter, we have 32B to read from shake */
     li t4, 32
-    /* Initialize constants */
-    bn.addi w14, bn0, 0xFF
-    bn.addi w15, bn0, 15
-    bn.addi w12, bn0, 205
-    bn.addi w0, bn0, 5
-    bn.addi w1, bn0, 2
+    
 
 _rej_eta_sample_loop_inner:
         /* Process first 4 bits */
         bn.and  w9, shake_reg, w14            /* Mask out all other bytes */
         bn.or  shake_reg, bn0, shake_reg >> 8 /* shift out the used byte */
 
-        
         bn.rshi w10, bn0, w9 >> 4 /* Prepare "t1" */
         bn.and  w9, w9, w15       /* Prepare "t0" */
 
         /* Check "t0" < 15 */
         /* Instead of < 15, != 15 can also be checked because we are
             operating on 4-bit values */
-        bn.cmp w9, w15
-            /* Get the FG0.Z flag into a register.
-            t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
-        csrrs  t2, 0x7c0, zero
-        srli   t2, t2, 3
-        andi   t2, t2, 1
-
-        bne t2, zero, _rej_eta_sample_loop_inner_1
+        bn.sid t5, STACK_WDR2GPR(fp)
+        lw     t2, STACK_WDR2GPR(fp)
+        beq    t2, t3, _rej_eta_sample_loop_inner_1
 
         /* "t{0,1}" indicate the variable names from the reference code */ 
 
@@ -968,15 +965,9 @@ _rej_eta_sample_loop_inner_1:
         /* Process last 4 bits */
 
         /* Check "t1" != 15 */
-        /* TODO: maybe it's faster to go via GPRs? */
-        bn.cmp  w10, w15
-            /* Get the FG0.Z flag into a register.
-            t2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
-        csrrs    t2, 0x7c0, zero
-        srli     t2, t2, 3
-        andi     t2, t2, 1
-
-        bne t2, zero, _rej_eta_sample_loop_inner_none
+        bn.sid t6, STACK_WDR2GPR(fp)
+        lw     t2, STACK_WDR2GPR(fp)
+        beq    t2, t3, _rej_eta_sample_loop_inner_none
 
         /* Compute "t1" = "t1" - (205 * "t1" >> 10) * 5 from reference code */
         bn.mulqacc.wo.z w13, w12.0, w10.0, 0 /* 205 * "w1" */
@@ -1024,7 +1015,7 @@ _end_rej_eta_sample_loop:
  * 
  * Returns: 
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[in]     a0: output poly pointer
  * @param[out]    a1: input poly pointer
@@ -1162,7 +1153,7 @@ _inner_loop_end_poly_use_hint_dilithium:
  * Bit-pack polynomial t1 with coefficients fitting in 10 bits. Input
  * coefficients are assumed to be standard representatives.
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[out] a0: pointer to output byte array with at least
                    POLYT1_PACKEDBYTES bytes
@@ -1271,7 +1262,7 @@ polyt1_pack_dilithium:
  * 
  * Returns: -
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[out] a0: pointer to output byte array with at least
                    POLYETA_PACKEDBYTES bytes
@@ -1484,7 +1475,7 @@ polyeta_pack_dilithium:
  *
  * Bit-pack polynomial t0 with coefficients in ]-2^{D-1}, 2^{D-1}].
  * 
- * Flags: TODO
+ * Flags: -
  *
  * @param[out] a0: pointer to output byte array with at least
                    POLYETA_PACKEDBYTES bytes
@@ -1735,7 +1726,7 @@ polyt0_pack_dilithium:
  * Bit-pack polynomial w1 with coefficients fitting in 6 bits. Input
  * coefficients are assumed to be standard representatives.
  * 
- * Flags: TODO
+ * Flags: -
  *
  * @param[out] a0: pointer to output byte array with at least
                    POLYW1_PACKEDBYTES bytes
@@ -1847,7 +1838,7 @@ polyw1_pack_dilithium:
  *
  * Unpack polynomial with coefficients fitting in [-ETA, ETA]. 
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[in]  a1: byte array with bit-packed polynomial
  * @param[out] a0: pointer to output polynomial
@@ -1997,7 +1988,7 @@ polyeta_unpack_dilithium:
  *
  * Decode h from signature into polyvec h. Check extra indices. 
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[in]  a1: pointer to input byte array signature
  * @param[out] a0: pointer to output polynomial h
@@ -2131,7 +2122,7 @@ _ret1_decode_h_dilithium:
  *
  * Bit-unpack polynomial t0 with coefficients in ]-2^{D-1}, 2^{D-1}].
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[out] a0: pointer to output byte array with at least
                    POLYETA_PACKEDBYTES bytes
@@ -2346,7 +2337,7 @@ polyt0_unpack_dilithium:
  *  Sample polynomial with uniformly random coefficients in [-(GAMMA1 - 1),
  *  GAMMA1] by unpacking output stream of SHAKE256(seed|nonce).
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[out] a0: pointer to output polynomial
  * @param[in]  a1: byte array with seed of length CRHBYTES
@@ -2549,7 +2540,7 @@ poly_uniform_gamma1_dilithium:
  *  = (Q-1)/ALPHA where we set c1 = 0 and -ALPHA/2 <= c0 = c mod Q - Q < 0.
  *  Assumes coefficients to be standard representatives.
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[out] a0: a0 pointer to output polynomial with coefficients c0
  * @param[out] a1: a1: pointer to output polynomial with coefficients c1
@@ -2629,6 +2620,7 @@ poly_make_hint_dilithium:
     li   t2, 0
     li   t4, 1
 
+    /* Constants for condition checking */ 
     li   t6, 94208
     addi t6, t6, 1024
     li   a6, 192512
@@ -2637,16 +2629,15 @@ poly_make_hint_dilithium:
     addi a7, a7, -1024
 
     /* Loop over every coefficient pair of the input */
-    LOOPI 256, 17
+    LOOPI 256, 16
         lw t0, 0(a1)
         lw t1, 0(a2)
 
         add  a4, t0, t6
-        addi a5, t0, 0
         sltu t5, a6, a4
         beq  t4, t5, _L3_poly_make_hint_dilithium
+        beq  t0, a7, _L6_poly_make_hint_dilithium
         li   t0, 0
-        beq  a5, a7, _L6_poly_make_hint_dilithium
         beq  zero, zero, _loop_end_poly_make_hint_dilithium
 
 _L6_poly_make_hint_dilithium:
@@ -2671,9 +2662,9 @@ _loop_end_poly_make_hint_dilithium:
  *
  * Pack polynomial z with coefficients fitting in 18 bits. 
  *
- * Flags: TODO
+ * Flags: -
  *
- * @param[in]  a2: address of gamma1_vec_const
+ * @param[in]  w0: gamma1_vec_const
  * @param[in]  a1: pointer to input polynomial
  * @param[out] a0: pointer to output byte array with at least
  *                 POLYZ_PACKEDBYTES bytes
@@ -2682,19 +2673,13 @@ _loop_end_poly_make_hint_dilithium:
  */
 .global polyz_pack_dilithium
 polyz_pack_dilithium:
-    /* TODO: are constant addresses as parameters desired? */
-
     /* Setup WDRs */
-    li t0, 0
     li t1, 1
 
-    /* Load vectorized GAMMA1 */
-    bn.lid t1, 0(a2)
-
     LOOPI 32, 3
-        bn.lid     t0, 0(a1)
-        bn.subv.8S w0, w1, w0
-        bn.sid     t0, 0(a1++)
+        bn.lid     t1, 0(a1)
+        bn.subv.8S w1, w0, w1
+        bn.sid     t1, 0(a1++)
     
     /* Reset input pointer */
     addi a1, a1, -1024
@@ -2825,7 +2810,7 @@ polyz_pack_dilithium:
  *
  * Encode h to signature from polyvec h.
  *
- * Flags: TODO
+ * Flags: -
  *
  * @param[in]  a1: pointer to input polynomial h
  * @param[out] a0: pointer to output byte array signature
