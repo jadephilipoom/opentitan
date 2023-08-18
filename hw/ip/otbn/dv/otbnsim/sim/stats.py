@@ -25,7 +25,7 @@ class ExecutionStats:
         self.insn_histo = Counter()  # type: typing.Counter[str]
         self.func_calls = []  # type: List[Dict[str, int]]
         self.loops = []  # type: List[Dict[str, int]]
-        self.func_cycles = {}
+        self.func_instrs = {}
 
         # Histogram indexed by the length of the (extended) basic block.
         self.basic_block_histo = Counter()  # type: typing.Counter[int]
@@ -42,10 +42,17 @@ class ExecutionStats:
         '''Record a single stall cycle.'''
         self.stall_count += 1
 
-        if state_bc.pc in self.func_cycles:
-            self.func_cycles[state_bc.pc][1] += 1
+        mnemonic = self._insn_at_addr(state_bc.pc).insn.mnemonic
+
+        # [instruction count, stall count]
+        if state_bc.pc in self.func_instrs:
+            if mnemonic in self.func_instrs[state_bc.pc]:
+                self.func_instrs[state_bc.pc][mnemonic][1] += 1
+            else:
+                self.func_instrs[state_bc.pc][mnemonic] = [0, 1]
         else:
-            self.func_cycles[state_bc.pc] = [0, 1]
+            self.func_instrs[state_bc.pc] = {}
+            self.func_instrs[state_bc.pc][mnemonic] = [0, 1]
 
     def _insn_at_addr(self, addr: int) -> Optional[OTBNInsn]:
         '''Get the instruction at a given address.'''
@@ -71,11 +78,15 @@ class ExecutionStats:
         # Instruction histogram
         self.insn_histo[insn.insn.mnemonic] += 1
 
-        # Record cycle for this function
-        if pc in self.func_cycles:
-            self.func_cycles[pc][0] += 1
+        # Record cycle for this function + instruction
+        if pc in self.func_instrs:
+            if insn.insn.mnemonic in self.func_instrs[pc]:
+                self.func_instrs[pc][insn.insn.mnemonic][0] += 1
+            else:
+                self.func_instrs[pc][insn.insn.mnemonic] = [1, 0]
         else:
-            self.func_cycles[pc] = [1, 0]
+            self.func_instrs[pc] = {}
+            self.func_instrs[pc][insn.insn.mnemonic] = [1, 0]
 
         # Function calls
         # - Direct function calls: jal x1, <offset>
@@ -234,6 +245,10 @@ class ExecutionStatAnalyzer:
         out += "Function cycle counts\n"
         out += "-----------------------\n"
         out += self._dump_func_cycles()
+        out += "\n\n"
+        out += "Function Instruction counts\n"
+        out += "-----------------------\n"
+        out += self._dump_func_instrs()
         out += "\n\n"
         out += "Basic block statistics\n"
         out += "----------------------\n"
@@ -398,16 +413,56 @@ class ExecutionStatAnalyzer:
 
     def _dump_func_cycles(self) -> str:
         accumulated = dict()
-        for func_addr, cycles in self._stats.func_cycles.items():
+        for func_addr, histdata in self._stats.func_instrs.items():
+            # find the next label that does not start with an "_". By
+            # convention, labels that do not start with an "_" are functions,
+            # labels that do are used inside functions.
             _func_addr = func_addr
             while self._describe_imem_addr(_func_addr, name_only=True).startswith("_"):
                 _func_addr -= 1
             func_name = self._describe_imem_addr(_func_addr, name_only=True)
-            if func_name in accumulated:
-                from operator import add
-                accumulated[func_name] = list(map(add, accumulated[func_name], cycles))
-            else:
-                accumulated[func_name] = cycles
-        print(accumulated.values())
+
+            for _, counts in histdata.items():
+                if func_name in accumulated:
+                    from operator import add
+                    accumulated[func_name] = list(map(add, accumulated[func_name], counts))
+                else:
+                    accumulated[func_name] = []
+                    accumulated[func_name] = counts
+
         assert sum(sum(accumulated.values(), [])) == (sum(self._stats.insn_histo.values()) + self._stats.stall_count)
-        return tabulate([[k, v] for k, v in sorted(accumulated.items(), key=lambda item: item[1], reverse=True)], headers=['function', 'cycles [instr, stall]']) + "\n"
+        return tabulate([[k, v] for k, v in sorted(accumulated.items(), key=lambda item: item[1], reverse=True)], headers=['function', '[instr., stall]']) + "\n"
+
+    def _dump_func_instrs(self) -> str:
+        out = ''
+        accumulated = dict()
+        for func_addr, histdata in self._stats.func_instrs.items():
+            # find the next label that does not start with an "_". By
+            # convention, labels that do not start with an "_" are functions,
+            # labels that do are used inside functions.
+            _func_addr = func_addr
+            while self._describe_imem_addr(_func_addr, name_only=True).startswith("_"):
+                _func_addr -= 1
+            func_name = self._describe_imem_addr(_func_addr, name_only=True)
+
+            for instr, counts in histdata.items():
+                if func_name in accumulated:
+                    if instr in accumulated[func_name]:
+                        from operator import add
+                        accumulated[func_name][instr] = list(map(add, accumulated[func_name][instr], counts))
+                    else:
+                        accumulated[func_name][instr] = counts
+                else:
+                    accumulated[func_name] = {}
+                    accumulated[func_name][instr] = counts
+
+        # The number of instructions counted for this stat must sum up to the
+        # total number of instructions executed. Flatten and sum up over all
+        # recorded stats. sum(l, []) can be used to flatten a list l by one
+        # level.
+        total_cycles_incl_stalls = sum(sum(sum([list(a.values()) for a in accumulated.values()], []), []))
+        assert (sum(self._stats.insn_histo.values()) + self._stats.stall_count) == total_cycles_incl_stalls
+        for func_name, data in accumulated.items():
+            out += f'\n{func_name}\n'
+            out += tabulate([[k, v] for k, v in sorted(data.items(), key=lambda item: item[1], reverse=True)], headers=['instruction', '[count, stalls]']) + "\n"
+        return out

@@ -97,14 +97,15 @@ class OTBNSim:
 
     def _on_stall(self,
                   verbose: bool,
-                  fetch_next: bool) -> List[Trace]:
+                  fetch_next: bool,
+                  no_count: bool = False) -> List[Trace]:
         '''This is run on a stall cycle'''
         self.state.stop_if_pending_halt()
         changes = self.state.changes()
         self.state.commit(sim_stalled=True)
         if fetch_next:
             self._next_insn = self._fetch(self.state.pc)
-        if self.stats is not None and not self.state.wiping():
+        if self.stats is not None and not self.state.wiping() and not no_count:
             self.stats.record_stall(self.state)
         if verbose:
             self._print_trace(self.state.pc, '(stall)', changes)
@@ -120,6 +121,9 @@ class OTBNSim:
 
         if self.stats is not None:
             self.stats.record_insn(insn, self.state)
+            if insn.has_fetch_stall:
+                # Count a stall towards the fetch stalling instruction
+                self.stats.record_stall(self.state)
 
         halting = self.state.stop_if_pending_halt()
         changes = self.state.changes()
@@ -223,7 +227,10 @@ class OTBNSim:
         insn = self._next_insn
         if insn is None:
             self.state.take_injected_err_bits()
-            return (None, self._on_stall(verbose, fetch_next=True))
+            # Don't count the stall for the stats here because fetch stalls are
+            # caused by the previous instruction. It has already been counted
+            # in `_on_retire`.
+            return (None, self._on_stall(verbose, fetch_next=True, no_count=True))
 
         # Whether or not we're currently executing an instruction, we fetched
         # an instruction on the previous cycle. If that fetch failed then
