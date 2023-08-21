@@ -41,7 +41,7 @@ poly_power2round_dilithium:
         bn.orv.8S w6, w31, w6 >> D
         /* a0 = (a1 << D) */
         bn.orv.8S w7, w31, w6 << D
-        /* a0 = (a1 << D) */
+        /* a0 = a - (a1 << D) */
         bn.subv.8S w7, w5, w7
 
         /* Store */

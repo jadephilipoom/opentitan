@@ -867,12 +867,12 @@ _end_rej_sample_loop:
 poly_uniform_eta:
 /* 32 byte align the sp */
     andi a5, sp, 31
-    beq a5, zero, _aligned_poly_uniform_eta
-    sub sp, sp, a5
+    beq  a5, zero, _aligned_poly_uniform_eta
+    sub  sp, sp, a5
 _aligned_poly_uniform_eta:
     /* save fp to stack, use 32 bytes to keep it 32-byte aligned */
     addi sp, sp, -32
-    sw fp, 0(sp)
+    sw   fp, 0(sp)
 
     addi fp, sp, 0
     
@@ -949,8 +949,8 @@ _rej_eta_sample_loop_inner:
         bn.mulqacc.wo.z w13, w12.0, w9.0, 0 /* 205 * "t0" */
         bn.rshi         w13, bn0, w13 >> 10 /* (205 * "t0" >> 10) */
         bn.mulqacc.wo.z w13, w0.0, w13.0, 0 /* (205 * "t0" >> 10) * 5 */
-        bn.subv.8S      w9, w9, w13         /* "t0" - (205 * "t0" >> 10) * 5 */
-        bn.subv.8S      w9, w1, w9          /* 2 - ("t0" - (205 * "t0" >> 10) * 5) */
+        bn.sub          w9, w9, w13         /* "t0" - (205 * "t0" >> 10) * 5 */
+        bn.sub          w9, w1, w9          /* 2 - ("t0" - (205 * "t0" >> 10) * 5) */
 
         /* Store coefficient value from WDR into target polynomial */
         bn.sid t5, STACK_WDR2GPR(fp)
@@ -973,8 +973,8 @@ _rej_eta_sample_loop_inner_1:
         bn.mulqacc.wo.z w13, w12.0, w10.0, 0 /* 205 * "w1" */
         bn.rshi         w13, bn0, w13 >> 10  /* (205 * "t1" >> 10) */
         bn.mulqacc.wo.z w13, w0.0, w13.0, 0  /* (205 * "t0" >> 10) * 5 */
-        bn.subv.8S      w10, w10, w13        /* "t1" - (205 * "t1" >> 10) * 5 */
-        bn.subv.8S      w10, w1, w10         /* 2 - ("t1" - (205 * "t1" >> 10) * 5) */
+        bn.sub          w10, w10, w13        /* "t1" - (205 * "t1" >> 10) * 5 */
+        bn.sub          w10, w1, w10         /* 2 - ("t1" - (205 * "t1" >> 10) * 5) */
 
         /* Store coefficient value from WDR into target polynomial */
         bn.sid t6, STACK_WDR2GPR(fp)
@@ -988,7 +988,7 @@ _rej_eta_sample_loop_inner_1:
 _rej_eta_sample_loop_inner_none:
     /* Check if there are still SHAKE bytes left for next iteration */
     addi t4, t4, -1
-    bne zero, t4, _rej_eta_sample_loop_inner
+    bne  zero, t4, _rej_eta_sample_loop_inner
 
     /* All SHAKE bytes used and not done, squeeze again */
     beq zero, zero, _rej_eta_sample_loop
@@ -1001,10 +1001,10 @@ _end_rej_eta_sample_loop:
     /* sp <- fp */
     addi sp, fp, 0
     /* Pop ebp */
-    lw fp, 0(sp)
+    lw   fp, 0(sp)
     addi sp, sp, 32
     /* Correct alignment offset (unalign) */
-    add sp, sp, a5
+    add  sp, sp, a5
 
     ret
 
