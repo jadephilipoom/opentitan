@@ -1848,138 +1848,85 @@ polyw1_pack_dilithium:
 
 .global polyeta_unpack_dilithium
 polyeta_unpack_dilithium:
-    /* Collect bytes in a2 */
-    LOOPI 8, 104
-        /* oooooooooooooooooooooooooooooooo */
-        lw t0, 0(a1)
-        andi t1, t0, 7
-        sw t1, 0(a0) /* coeff 0 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 4(a0) /* coeff 1 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 8(a0) /* coeff 2 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 12(a0) /* coeff 3 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 16(a0) /* coeff 4 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 20(a0) /* coeff 5 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 24(a0) /* coeff 6 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 28(a0) /* coeff 7 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 32(a0) /* coeff 8 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 36(a0) /* coeff 9 */
-        srli t0, t0, 3
-        /* Bits remaining in register: 2 */
-        lw t2, 4(a1)
-        andi t1, t2, 1
-        slli t1, t1, 2
-        or t1, t1, t0
-        sw t1, 40(a0)
-        srli t0, t2, 1
-        /* Bytes processed: 8 */
 
-        andi t1, t0, 7
-        sw t1, 44(a0) /* coeff 11 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 48(a0) /* coeff 12 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 52(a0) /* coeff 13 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 56(a0) /* coeff 14 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 60(a0) /* coeff 15 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 64(a0) /* coeff 16 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 68(a0) /* coeff 17 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 72(a0) /* coeff 18 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 76(a0) /* coeff 19 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 80(a0) /* coeff 20 */
-        srli t0, t0, 3
-        /* Bits remaining in register: 1 */
-        lw t2, 8(a1)
-        andi t1, t2, 3
-        slli t1, t1, 1
-        or t1, t1, t0
-        sw t1, 84(a0)
-        srli t0, t2, 2
-        /* Bytes processed: 12 */
+    /* save fp to stack */
+    addi sp, sp, -32
+    sw fp, 0(sp)
 
-        andi t1, t0, 7
-        sw t1, 88(a0) /* coeff 22 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 92(a0) /* coeff 23 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 96(a0) /* coeff 24 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 100(a0) /* coeff 25 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 104(a0) /* coeff 26 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 108(a0) /* coeff 27 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 112(a0) /* coeff 28 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 116(a0) /* coeff 29 */
-        srli t0, t0, 3
-        andi t1, t0, 7
-        sw t1, 120(a0) /* coeff 30 */
-        srli t0, t0, 3
-        /* Bits remaining in register: 3 */
-        andi t1, t0, 7
-        sw t1, 124(a0) /* coeff 31 */
-        /* Bytes processed: 12 */
+    addi fp, sp, 0
+    
+    /* Adjust sp to accomodate local variables */
+    addi sp, sp, -32
 
-        addi a1, a1, 12
-        addi a0, a0, 128
+    /* Reserve space for tmp buffer to hold a WDR */
+    #define STACK_WDR2GPR -32
 
-    /* reset output pointer */
-    addi a0, a0, -1024
 
-    /* Setup WDRs */
+    /* Setup WDR */ 
     li t1, 1
     li t2, 2
-
+    li t4, 4
     /* Load precomputed, vectorized eta */
     la t0, eta
-    bn.lid t1, 0(t0)
+    bn.lid t4, 0(t0)
 
-    LOOPI 32, 3
-        bn.lid     t2, 0(a0)   /* w2 <= coeffs[i:i+8] */
-        bn.subv.8S w2, w1, w2  /* w2 <= eta - w2 */
-        bn.sid     t2, 0(a0++) /* coeffs[i:i+8] <= w2 */
+    bn.addi w7, bn0, 7
+
+    LOOPI 8, 36
+        lw t0, 0(a1)
+        sw t0, STACK_WDR2GPR(fp)
+        lw t0, 4(a1)
+        sw t0, -28(fp) /* STACK_WDR2GPR + 4 */
+        lw t0, 8(a1)
+        sw t0, -24(fp) /* STACK_WDR2GPR + 8 */
+        
+        bn.lid t1, STACK_WDR2GPR(fp)
+        LOOPI 4, 27
+            bn.xor w2, w2, w2
+
+            bn.and  w3, w7, w1
+            bn.rshi w1, bn0, w1 >> 3
+            bn.or   w2, w2, w3 << 0
+
+            bn.and w3, w7, w1
+            bn.rshi w1, bn0, w1 >> 3
+            bn.or  w2, w2, w3 << 32
+
+            bn.and w3, w7, w1
+            bn.rshi w1, bn0, w1 >> 3
+            bn.or  w2, w2, w3 << 64
+
+            bn.and w3, w7, w1 
+            bn.rshi w1, bn0, w1 >> 3
+            bn.or  w2, w2, w3 << 96
+
+            bn.and w3, w7, w1
+            bn.rshi w1, bn0, w1 >> 3
+            bn.or  w2, w2, w3 << 128
+
+            bn.and w3, w7, w1
+            bn.rshi w1, bn0, w1 >> 3
+            bn.or  w2, w2, w3 << 160
+
+            bn.and w3, w7, w1
+            bn.rshi w1, bn0, w1 >> 3
+            bn.or  w2, w2, w3 << 192
+
+            bn.and w3, w7, w1
+            bn.rshi w1, bn0, w1 >> 3
+            bn.or  w2, w2, w3 << 224
+
+            bn.subv.8S w2, w4, w2  /* w2 <= eta - w2 */
+
+            bn.sid t2, 0(a0++)
+        /* Increment input pointer */
+        addi a1, a1, 12
+
+    /* sp <- fp */
+    addi sp, fp, 0
+    /* Pop ebp */
+    lw fp, 0(sp)
+    addi sp, sp, 32
 
     ret
 
