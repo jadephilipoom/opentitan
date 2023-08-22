@@ -711,3 +711,13 @@ decompose_43_const:
     .word 0x0000002b
     .word 0x0000002b
     .word 0x0000002b
+.global polyeta_unpack_mask
+polyeta_unpack_mask:
+    .word 0x07
+    .word 0x07
+    .word 0x07
+    .word 0x07
+    .word 0x07
+    .word 0x07
+    .word 0x07
+    .word 0x07

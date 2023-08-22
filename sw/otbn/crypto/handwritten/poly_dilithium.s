@@ -1861,71 +1861,61 @@ polyeta_unpack_dilithium:
     /* Reserve space for tmp buffer to hold a WDR */
     #define STACK_WDR2GPR -32
 
-
     /* Setup WDR */ 
     li t1, 1
     li t2, 2
     li t4, 4
+    li t5, 5
     /* Load precomputed, vectorized eta */
     la t0, eta
     bn.lid t4, 0(t0)
+    /* Load mask for zeroing the upper bits of the unpacked coefficients. */
+    la t6, polyeta_unpack_mask
+    bn.lid t5, 0(t6)
 
-    bn.addi w7, bn0, 7
-
-    LOOPI 8, 36
+    LOOPI 4, 21
+        /* Use 192 = 2*96 bits of the reserved space on the stack. This is the
+           most that can be used without causing edge cases in the loop below. */
         lw t0, 0(a1)
-        sw t0, STACK_WDR2GPR(fp)
+        sw t0, STACK_WDR2GPR(fp) /* STACK_WDR2GPR + 0 */
         lw t0, 4(a1)
         sw t0, -28(fp) /* STACK_WDR2GPR + 4 */
         lw t0, 8(a1)
         sw t0, -24(fp) /* STACK_WDR2GPR + 8 */
+        lw t0, 12(a1)
+        sw t0, -20(fp) /* STACK_WDR2GPR + 12 */
+        lw t0, 16(a1)
+        sw t0, -16(fp) /* STACK_WDR2GPR + 16 */
+        lw t0, 20(a1)
+        sw t0, -12(fp) /* STACK_WDR2GPR + 20 */
         
+        /* Load 192 bits of packed coefficients. 64 bits of this register are
+           left unused in order to avoid edge case handling in the loop below.
+           This could be improved for maximum performance (unrolling, etc.) but
+           for reasons of readabilty, we keep it this way. The total potential
+           of saving is 1 bn.lid per function call. */
         bn.lid t1, STACK_WDR2GPR(fp)
-        LOOPI 4, 27
-            bn.xor w2, w2, w2
+        LOOPI 8, 6
+            LOOPI 8, 2
+                /* Shift one coefficient into the output register, ignoring the
+                   upper 29 bits of other coefficient data */
+                bn.rshi w2, w1, w2 >> 32
+                /* Advance the input register such that the next coefficient is
+                   in the lower 3 bits */
+                bn.rshi w1, bn0, w1 >> 3
 
-            bn.and  w3, w7, w1
-            bn.rshi w1, bn0, w1 >> 3
-            bn.or   w2, w2, w3 << 0
-
-            bn.and w3, w7, w1
-            bn.rshi w1, bn0, w1 >> 3
-            bn.or  w2, w2, w3 << 32
-
-            bn.and w3, w7, w1
-            bn.rshi w1, bn0, w1 >> 3
-            bn.or  w2, w2, w3 << 64
-
-            bn.and w3, w7, w1 
-            bn.rshi w1, bn0, w1 >> 3
-            bn.or  w2, w2, w3 << 96
-
-            bn.and w3, w7, w1
-            bn.rshi w1, bn0, w1 >> 3
-            bn.or  w2, w2, w3 << 128
-
-            bn.and w3, w7, w1
-            bn.rshi w1, bn0, w1 >> 3
-            bn.or  w2, w2, w3 << 160
-
-            bn.and w3, w7, w1
-            bn.rshi w1, bn0, w1 >> 3
-            bn.or  w2, w2, w3 << 192
-
-            bn.and w3, w7, w1
-            bn.rshi w1, bn0, w1 >> 3
-            bn.or  w2, w2, w3 << 224
-
-            bn.subv.8S w2, w4, w2  /* w2 <= eta - w2 */
+            
+            bn.and     w2, w2, w5 /* Mask unpacked coeffs to 3 bit */
+            bn.subv.8S w2, w4, w2 /* Subtract coeffs from eta: w2 <= eta - w2 */
 
             bn.sid t2, 0(a0++)
         /* Increment input pointer */
-        addi a1, a1, 12
+        addi a1, a1, 24
 
     /* sp <- fp */
     addi sp, fp, 0
     /* Pop ebp */
-    lw fp, 0(sp)
+    lw   fp, 0(sp)
     addi sp, sp, 32
 
     ret
