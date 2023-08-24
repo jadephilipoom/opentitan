@@ -1665,3 +1665,13 @@ polyeta_unpack_mask:
     .word 0x07
     .word 0x07
     .word 0x07
+.global polyt1_unpack_dilithium_mask
+polyt1_unpack_dilithium_mask:
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
