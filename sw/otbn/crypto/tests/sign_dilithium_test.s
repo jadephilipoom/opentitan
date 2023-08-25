@@ -1978,3 +1978,13 @@ polyt1_unpack_dilithium_mask:
     .word 0x3ff
     .word 0x3ff
     .word 0x3ff
+.global polyt0_unpack_dilithium_mask
+polyt0_unpack_dilithium_mask:
+    .word 0x1fff
+    .word 0x1fff
+    .word 0x1fff
+    .word 0x1fff
+    .word 0x1fff
+    .word 0x1fff
+    .word 0x1fff
+    .word 0x1fff

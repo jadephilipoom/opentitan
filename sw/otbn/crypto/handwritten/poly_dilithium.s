@@ -163,12 +163,12 @@ polyt1_unpack_dilithium:
     li t3, 3
     li t4, 4
     li t5, 5
-    BN.MOVR t2, t3
+
     /* Load mask for zeroing the upper bits of the unpacked coefficients. */
     la t6, polyt1_unpack_dilithium_mask
     bn.lid t5, 0(t6)
     li t6, 6
-    .rept 2
+    .rept 2 /* TODO: LOOP */
     /* Start unpacking */
     bn.lid t1, 0(a1++)
     jal    x1, _inner_polyt1_unpack_dilithium
@@ -206,7 +206,7 @@ polyt1_unpack_dilithium:
     bn.or w1, bn0, w6 >> 96 /* w1 = w6[96:256] */
     jal   x1, _inner_polyt1_unpack_dilithium
     .endr
-    BN.MOVR t2, t3
+
     ret
 
 /**
@@ -2053,208 +2053,114 @@ _ret1_decode_h_dilithium:
                    POLYETA_PACKEDBYTES bytes
  * @param[in]  a1: pointer to input polynomial
  *
- * clobbered registers: a0-a1, t0-t4, w1-w2
+ * clobbered registers: a0-a1, t2, t3, t5, t6, w1-w2
  */
 .global polyt0_unpack_dilithium
 polyt0_unpack_dilithium:
-       
-    li t3, 8191
-    li t4, 4095
-    LOOPI 8, 134
-        lw t0, 0(a1)
-        and t1, t0, t3
-        sw t1, 0(a0) /* coeff 0 */
-        srli t0, t0, 13
-        and t1, t0, t3
-        sw t1, 4(a0) /* coeff 1 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 6 */
-        lw t2, 4(a1)
-        andi t1, t2, 127
-        slli t1, t1, 6
-        or t1, t1, t0
-        sw t1, 8(a0)
-        srli t0, t2, 7
-        /* Bytes processed: 8 */
+    /* Load (1 << (D-1)) as a vector into w4 */
+    li t2, 4
+    la t3, polyt0_pack_const
+    bn.lid t2, 0(t3)
 
-        and t1, t0, t3
-        sw t1, 12(a0) /* coeff 3 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 12 */
-        lw t2, 8(a1)
-        andi t1, t2, 1
-        slli t1, t1, 12
-        or t1, t1, t0
-        sw t1, 16(a0)
-        srli t0, t2, 1
-        /* Bytes processed: 12 */
+    /* Load mask for zeroing the upper bits of the unpacked coefficients. */
+    li t2, 5
+    la t3, polyt0_unpack_dilithium_mask
+    bn.lid t5, 0(t3)
 
-        and t1, t0, t3
-        sw t1, 20(a0) /* coeff 5 */
-        srli t0, t0, 13
-        and t1, t0, t3
-        sw t1, 24(a0) /* coeff 6 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 5 */
-        lw t2, 12(a1)
-        andi t1, t2, 255
-        slli t1, t1, 5
-        or t1, t1, t0
-        sw t1, 28(a0)
-        srli t0, t2, 8
-        /* Bytes processed: 16 */
+    /* Setup WDR */ 
+    li t2, 2
+    li t3, 3
+    li t6, 6
 
-        and t1, t0, t3
-        sw t1, 32(a0) /* coeff 8 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 11 */
-        lw t2, 16(a1)
-        andi t1, t2, 3
-        slli t1, t1, 11
-        or t1, t1, t0
-        sw t1, 36(a0)
-        srli t0, t2, 2
-        /* Bytes processed: 20 */
+    bn.lid  t6, 0(a1++)
+    bn.mov  w1, w6
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        and t1, t0, t3
-        sw t1, 40(a0) /* coeff 10 */
-        srli t0, t0, 13
-        and t1, t0, t3
-        sw t1, 44(a0) /* coeff 11 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 4 */
-        lw t2, 20(a1)
-        andi t1, t2, 511
-        slli t1, t1, 4
-        or t1, t1, t0
-        sw t1, 48(a0)
-        srli t0, t2, 9
-        /* Bytes processed: 24 */
+    bn.lid  t3, 0(a1++)
+    bn.rshi w1, w3, w6 >> 208
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        and t1, t0, t3
-        sw t1, 52(a0) /* coeff 13 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 10 */
-        lw t2, 24(a1)
-        andi t1, t2, 7
-        slli t1, t1, 10
-        or t1, t1, t0
-        sw t1, 56(a0)
-        srli t0, t2, 3
-        /* Bytes processed: 28 */
+    bn.lid  t6, 0(a1++)
+    bn.rshi w1, w6, w3 >> 160
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        and t1, t0, t3
-        sw t1, 60(a0) /* coeff 15 */
-        srli t0, t0, 13
-        and t1, t0, t3
-        sw t1, 64(a0) /* coeff 16 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 3 */
-        lw t2, 28(a1)
-        andi t1, t2, 1023
-        slli t1, t1, 3
-        or t1, t1, t0
-        sw t1, 68(a0)
-        srli t0, t2, 10
-        /* Bytes processed: 32 */
+    bn.lid  t3, 0(a1++)
+    bn.rshi w1, w3, w6 >> 112
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        and t1, t0, t3
-        sw t1, 72(a0) /* coeff 18 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 9 */
-        lw t2, 32(a1)
-        andi t1, t2, 15
-        slli t1, t1, 9
-        or t1, t1, t0
-        sw t1, 76(a0)
-        srli t0, t2, 4
-        /* Bytes processed: 36 */
+    bn.lid  t6, 0(a1++)
+    bn.rshi w1, w6, w3 >> 64
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        and t1, t0, t3
-        sw t1, 80(a0) /* coeff 20 */
-        srli t0, t0, 13
-        and t1, t0, t3
-        sw t1, 84(a0) /* coeff 21 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 2 */
-        lw t2, 36(a1)
-        andi t1, t2, 2047
-        slli t1, t1, 2
-        or t1, t1, t0
-        sw t1, 88(a0)
-        srli t0, t2, 11
-        /* Bytes processed: 40 */
+    bn.rshi w1, bn0, w6 >> 16
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        and t1, t0, t3
-        sw t1, 92(a0) /* coeff 23 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 8 */
-        lw t2, 40(a1)
-        andi t1, t2, 31
-        slli t1, t1, 8
-        or t1, t1, t0
-        sw t1, 96(a0)
-        srli t0, t2, 5
-        /* Bytes processed: 44 */
+    bn.lid  t3, 0(a1++)
+    bn.rshi w1, w3, w6 >> 224
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        and t1, t0, t3
-        sw t1, 100(a0) /* coeff 25 */
-        srli t0, t0, 13
-        and t1, t0, t3
-        sw t1, 104(a0) /* coeff 26 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 1 */
-        lw t2, 44(a1)
-        and t1, t2, t4
-        slli t1, t1, 1
-        or t1, t1, t0
-        sw t1, 108(a0)
-        srli t0, t2, 12
-        /* Bytes processed: 48 */
+    bn.lid  t6, 0(a1++)
+    bn.rshi w1, w6, w3 >> 176
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        and t1, t0, t3
-        sw t1, 112(a0) /* coeff 28 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 7 */
-        lw t2, 48(a1)
-        andi t1, t2, 63
-        slli t1, t1, 7
-        or t1, t1, t0
-        sw t1, 116(a0)
-        srli t0, t2, 6
-        /* Bytes processed: 52 */
+    bn.lid  t3, 0(a1++)
+    bn.rshi w1, w3, w6 >> 128
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        and t1, t0, t3
-        sw t1, 120(a0) /* coeff 30 */
-        srli t0, t0, 13
-        /* Bits remaining in register: 13 */
-        and t1, t0, t3
-        sw t1, 124(a0) /* coeff 31 */
-        /* Bytes processed: 52 */
+    bn.lid  t6, 0(a1++)
+    bn.rshi w1, w6, w3 >> 80
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-        addi a0, a0, 128
-        addi a1, a1, 52
-    
-    /* reset output pointer */ 
-    addi a0, a0, -1024
+    bn.rshi w1, bn0, w6 >> 32
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-    /* Compute (1 << (D-1)) - coeff */
-    /* Setup WDRs */
-    addi t1, zero, 1
-    addi t2, zero, 2
+    bn.lid  t3, 0(a1++)
+    bn.rshi w1, w3, w6 >> 240
+    jal     x1, _inner_polyt0_unpack_dilithium
 
-    /* Load precomputed, vectorized (1 << (D-1)) */
-    la t0, polyt0_pack_const
-    bn.lid t1, 0(t0)
-    /* This loop overwrites the original t0 */
-    LOOPI 32, 3
-        /* w2 <= coeffs[i:i+8] */
-        bn.lid t2, 0(a0)
-        /* w2 <= (1 << (D-1)) - coeffs */
-        bn.subv.8S w2, w1, w2
-        /* coeffs[i:i+8] <= w2 */
-        bn.sid t2, 0(a0++)
+    bn.lid  t6, 0(a1++)
+    bn.rshi w1, w6, w3 >> 192
+    jal     x1, _inner_polyt0_unpack_dilithium
+
+    bn.lid  t3, 0(a1++)
+    bn.rshi w1, w3, w6 >> 144
+    jal     x1, _inner_polyt0_unpack_dilithium
+
+    bn.lid  t6, 0(a1++)
+    bn.rshi w1, w6, w3 >> 96
+    jal     x1, _inner_polyt0_unpack_dilithium
+
+    bn.rshi w1, bn0, w6 >> 48
+    jal     x1, _inner_polyt0_unpack_dilithium
+   
     ret
+
+/**
+ * _inner_polyt0_unpack_dilithium
+ *
+ * Inner part of unpacking function to reduce the code size.
+ * Do not call from anywhere but polyt0_unpack_dilithium.
+ * Does not adhere to calling convention.
+ */
+_inner_polyt0_unpack_dilithium:
+    /* Unpack 16 coefficients in one go */
+    LOOPI 2, 19
+        /* This could also be done by a loop but it causes 64 cycles per
+           function call, which is a lot to save 14 instructions */
+        .rept 8
+            /* Shift one coefficient into the output register, ignoring the
+                upper 19 bits of other coefficient data */
+            bn.rshi w2, w1, w2 >> 32
+            /* Advance the input register such that the next coefficient is
+                in the lower 13 bits */
+            bn.rshi w1, bn0, w1 >> 13
+        .endr
+        
+        bn.and     w2, w2, w5 /* Mask unpacked coeffs to 13 bit */
+        bn.subv.8S w2, w4, w2 /* w2 <= (1 << (D-1)) - coeffs */
+        bn.sid     t2, 0(a0++)
+    ret
+
 
 /**
  * poly_uniform_gamma1_dilithium
