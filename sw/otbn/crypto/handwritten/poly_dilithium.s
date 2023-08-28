@@ -1242,199 +1242,77 @@ polyt1_pack_dilithium:
 polyeta_pack_dilithium:
     /* Compute ETA - coeff */
     /* Setup WDRs */
-    addi t1, zero, 1
-    addi t2, zero, 2
+    li t1, 1
+    li t2, 2
+    li t3, 3
 
     /* Load precomputed, vectorized eta */
     la t0, eta
-    bn.lid t1, 0(t0)
+    bn.lid t3, 0(t0)
 
-    LOOPI 32, 3
-        /* w2 <= coeffs[i:i+8] */
-        bn.lid t2, 0(a1)
-        /* w2 <= eta - w2 */
-        bn.subv.8S w2, w1, w2
-        /* coeffs[i:i+8] <= w2 */
-        bn.sid t2, 0(a1++)
+    /* 1 */
+    jal x1, _inner_polyeta_pack_dilithium
+    
+    bn.lid t1, 0(a1++)
+    /* w1 <= eta - w1 */
+    bn.subv.8S w1, w3, w1
+    .rept 5
+        bn.rshi w2, w1, w2 >> 3 /* Write one coefficient into the output WDR */
+        bn.rshi w1, bn0, w1 >> 32 /* Shift out used coefficient */
+    .endr
+    /* Handle split coefficient */
+    bn.rshi w2, w1, w2 >> 1 /* Get one more bit to fill w2 */
+    bn.sid t2, 0(a0++)
+    bn.rshi w2, w1, w2 >> 3 /* Use up two remaining bits */
+    bn.rshi w1, bn0, w1 >> 32 /* Coeff done, goto next */
+    /* Do the rest of the register */
+    .rept 2
+        bn.rshi w2, w1, w2 >> 3 /* Write one coefficient into the output WDR */
+        bn.rshi w1, bn0, w1 >> 32 /* Shift out used coefficient */
+    .endr
+    
+    /* 2 */
+    jal x1, _inner_polyeta_pack_dilithium
+    
+    bn.lid t1, 0(a1++)
+    /* w1 <= eta - w1 */
+    bn.subv.8S w1, w3, w1
+    .rept 2
+        bn.rshi w2, w1, w2 >> 3 /* Write one coefficient into the output WDR */
+        bn.rshi w1, bn0, w1 >> 32 /* Shift out used coefficient */
+    .endr
+    /* Handle split coefficient */
+    bn.rshi w2, w1, w2 >> 2 /* Get two more bits to fill w2 */
+    bn.sid t2, 0(a0++)
+    bn.rshi w2, w1, w2 >> 3 /* Use up one remaining bits */
+    bn.rshi w1, bn0, w1 >> 32 /* Coeff done, goto next */
+    /* Do the rest of the register */
+    .rept 5
+        bn.rshi w2, w1, w2 >> 3 /* Write one coefficient into the output WDR */
+        bn.rshi w1, bn0, w1 >> 32 /* Shift out used coefficient */
+    .endr
+    
+    /* 3 */
+    jal x1, _inner_polyeta_pack_dilithium
+    bn.sid t2, 0(a0++)
+    ret 
 
-    /* reset input pointer */
-    addi a1, a1, -1024
-
-    /* Collect bytes in t3, the visualization shows the current state of t3 */
-    LOOPI 8, 105
-        xor t3, t3, t3
-        /* oooooooooooooooooooooooooooooooo */
-        /* coefficient 0 */
-        lw t0, 0(a1)
-        or t3, t3, t0
-        /* ***ooooooooooooooooooooooooooooo| */
-        /* coefficient 1 */
-        lw t0, 4(a1)
-        slli t1, t0, 3
-        or t3, t3, t1
-        /* ******oooooooooooooooooooooooooo| */
-        /* coefficient 2 */
-        lw t0, 8(a1)
-        slli t1, t0, 6
-        or t3, t3, t1
-        /* *********ooooooooooooooooooooooo| */
-        /* coefficient 3 */
-        lw t0, 12(a1)
-        slli t1, t0, 9
-        or t3, t3, t1
-        /* ************oooooooooooooooooooo| */
-        /* coefficient 4 */
-        lw t0, 16(a1)
-        slli t1, t0, 12
-        or t3, t3, t1
-        /* ***************ooooooooooooooooo| */
-        /* coefficient 5 */
-        lw t0, 20(a1)
-        slli t1, t0, 15
-        or t3, t3, t1
-        /* ******************oooooooooooooo| */
-        /* coefficient 6 */
-        lw t0, 24(a1)
-        slli t1, t0, 18
-        or t3, t3, t1
-        /* *********************ooooooooooo| */
-        /* coefficient 7 */
-        lw t0, 28(a1)
-        slli t1, t0, 21
-        or t3, t3, t1
-        /* ************************oooooooo| */
-        /* coefficient 8 */
-        lw t0, 32(a1)
-        slli t1, t0, 24
-        or t3, t3, t1
-        /* ***************************ooooo| */
-        /* coefficient 9 */
-        lw t0, 36(a1)
-        slli t1, t0, 27
-        or t3, t3, t1
-        /* ******************************oo| */
-        /* coefficient 10 */
-        lw t0, 40(a1)
-        slli t1, t0, 30
-        or t3, t3, t1
-        /* ********************************|x */
-        sw t3, 0(a0)
-        srli t0, t0, 2
-        or t3, zero, t0
-        /* *ooooooooooooooooooooooooooooooo */
-        /* coefficient 11 */
-        lw t0, 44(a1)
-        slli t1, t0, 1
-        or t3, t3, t1
-        /* ****oooooooooooooooooooooooooooo| */
-        /* coefficient 12 */
-        lw t0, 48(a1)
-        slli t1, t0, 4
-        or t3, t3, t1
-        /* *******ooooooooooooooooooooooooo| */
-        /* coefficient 13 */
-        lw t0, 52(a1)
-        slli t1, t0, 7
-        or t3, t3, t1
-        /* **********oooooooooooooooooooooo| */
-        /* coefficient 14 */
-        lw t0, 56(a1)
-        slli t1, t0, 10
-        or t3, t3, t1
-        /* *************ooooooooooooooooooo| */
-        /* coefficient 15 */
-        lw t0, 60(a1)
-        slli t1, t0, 13
-        or t3, t3, t1
-        /* ****************oooooooooooooooo| */
-        /* coefficient 16 */
-        lw t0, 64(a1)
-        slli t1, t0, 16
-        or t3, t3, t1
-        /* *******************ooooooooooooo| */
-        /* coefficient 17 */
-        lw t0, 68(a1)
-        slli t1, t0, 19
-        or t3, t3, t1
-        /* **********************oooooooooo| */
-        /* coefficient 18 */
-        lw t0, 72(a1)
-        slli t1, t0, 22
-        or t3, t3, t1
-        /* *************************ooooooo| */
-        /* coefficient 19 */
-        lw t0, 76(a1)
-        slli t1, t0, 25
-        or t3, t3, t1
-        /* ****************************oooo| */
-        /* coefficient 20 */
-        lw t0, 80(a1)
-        slli t1, t0, 28
-        or t3, t3, t1
-        /* *******************************o| */
-        /* coefficient 21 */
-        lw t0, 84(a1)
-        slli t1, t0, 31
-        or t3, t3, t1
-        /* ********************************|xx */
-        sw t3, 4(a0)
-        srli t0, t0, 1
-        or t3, zero, t0
-        /* **oooooooooooooooooooooooooooooo */
-        /* coefficient 22 */
-        lw t0, 88(a1)
-        slli t1, t0, 2
-        or t3, t3, t1
-        /* *****ooooooooooooooooooooooooooo| */
-        /* coefficient 23 */
-        lw t0, 92(a1)
-        slli t1, t0, 5
-        or t3, t3, t1
-        /* ********oooooooooooooooooooooooo| */
-        /* coefficient 24 */
-        lw t0, 96(a1)
-        slli t1, t0, 8
-        or t3, t3, t1
-        /* ***********ooooooooooooooooooooo| */
-        /* coefficient 25 */
-        lw t0, 100(a1)
-        slli t1, t0, 11
-        or t3, t3, t1
-        /* **************oooooooooooooooooo| */
-        /* coefficient 26 */
-        lw t0, 104(a1)
-        slli t1, t0, 14
-        or t3, t3, t1
-        /* *****************ooooooooooooooo| */
-        /* coefficient 27 */
-        lw t0, 108(a1)
-        slli t1, t0, 17
-        or t3, t3, t1
-        /* ********************oooooooooooo| */
-        /* coefficient 28 */
-        lw t0, 112(a1)
-        slli t1, t0, 20
-        or t3, t3, t1
-        /* ***********************ooooooooo| */
-        /* coefficient 29 */
-        lw t0, 116(a1)
-        slli t1, t0, 23
-        or t3, t3, t1
-        /* **************************oooooo| */
-        /* coefficient 30 */
-        lw t0, 120(a1)
-        slli t1, t0, 26
-        or t3, t3, t1
-        /* *****************************ooo| */
-        /* coefficient 31 */
-        lw t0, 124(a1)
-        slli t1, t0, 29
-        or t3, t3, t1
-        /* ********************************| */
-        sw t3, 8(a0)
-
-        addi a1, a1, 128
-        addi a0, a0, 12
+/**
+ * _inner_polyeta_pack_dilithium
+ *
+ * Inner part of packing function to reduce the code size. Could be inlined.
+ * Do not call from anywhere but polyeta_pack_dilithium.
+ * Does not adhere to calling convention.
+ */
+_inner_polyeta_pack_dilithium:
+    LOOPI 10, 18
+        bn.lid t1, 0(a1++)
+        /* w1 <= eta - w1 */
+        bn.subv.8S w1, w3, w1
+        .rept 8
+            bn.rshi w2, w1, w2 >> 3 /* Write one coefficient into the output WDR */
+            bn.rshi w1, bn0, w1 >> 32 /* Shift out used coefficient */
+        .endr
 
     ret
 
@@ -1457,235 +1335,104 @@ polyt0_pack_dilithium:
     /* Setup WDRs */
     li t1, 1
     li t2, 2
-
+    li t3, 3
+    li t4, 4
+    bn.movr t2, t3
     /* Load precomputed (1 << (D-1)) */
     la     t0, polyt0_pack_const
-    bn.lid t1, 0(t0)
-
-    /* This loop overwrites the original t0 */
-    LOOPI 32, 3
-        bn.lid     t2, 0(a1)   /* w2 <= coeffs[i:i+8] */
-        bn.subv.8S w2, w1, w2  /* w2 <= (1 << (D-1)) - coeffs */
-        bn.sid     t2, 0(a1++) /* coeffs[i:i+8] <= w2 */
-
-    /* reset input pointer */
-    addi a1, a1, -1024
-
-    LOOPI 8, 135
-        xor t3, t3, t3
-        /* oooooooooooooooooooooooooooooooo */
-        /* coefficient 0 */
-        lw t0, 0(a1)
-        or t3, t3, t0
-        /* *************ooooooooooooooooooo| */
-        /* coefficient 1 */
-        lw t0, 4(a1)
-        slli t1, t0, 13
-        or t3, t3, t1
-        /* **************************oooooo| */
-        /* coefficient 2 */
-        lw t0, 8(a1)
-        slli t1, t0, 26
-        or t3, t3, t1
-        /* ********************************|xxxxxxx */
-        sw t3, 0(a0)
-        srli t0, t0, 6
-        or t3, zero, t0
-        /* *******ooooooooooooooooooooooooo */
-        /* coefficient 3 */
-        lw t0, 12(a1)
-        slli t1, t0, 7
-        or t3, t3, t1
-        /* ********************oooooooooooo| */
-        /* coefficient 4 */
-        lw t0, 16(a1)
-        slli t1, t0, 20
-        or t3, t3, t1
-        /* ********************************|x */
-        sw t3, 4(a0)
-        srli t0, t0, 12
-        or t3, zero, t0
-        /* *ooooooooooooooooooooooooooooooo */
-        /* coefficient 5 */
-        lw t0, 20(a1)
-        slli t1, t0, 1
-        or t3, t3, t1
-        /* **************oooooooooooooooooo| */
-        /* coefficient 6 */
-        lw t0, 24(a1)
-        slli t1, t0, 14
-        or t3, t3, t1
-        /* ***************************ooooo| */
-        /* coefficient 7 */
-        lw t0, 28(a1)
-        slli t1, t0, 27
-        or t3, t3, t1
-        /* ********************************|xxxxxxxx */
-        sw t3, 8(a0)
-        srli t0, t0, 5
-        or t3, zero, t0
-        /* ********oooooooooooooooooooooooo */
-        /* coefficient 8 */
-        lw t0, 32(a1)
-        slli t1, t0, 8
-        or t3, t3, t1
-        /* *********************ooooooooooo| */
-        /* coefficient 9 */
-        lw t0, 36(a1)
-        slli t1, t0, 21
-        or t3, t3, t1
-        /* ********************************|xx */
-        sw t3, 12(a0)
-        srli t0, t0, 11
-        or t3, zero, t0
-        /* **oooooooooooooooooooooooooooooo */
-        /* coefficient 10 */
-        lw t0, 40(a1)
-        slli t1, t0, 2
-        or t3, t3, t1
-        /* ***************ooooooooooooooooo| */
-        /* coefficient 11 */
-        lw t0, 44(a1)
-        slli t1, t0, 15
-        or t3, t3, t1
-        /* ****************************oooo| */
-        /* coefficient 12 */
-        lw t0, 48(a1)
-        slli t1, t0, 28
-        or t3, t3, t1
-        /* ********************************|xxxxxxxxx */
-        sw t3, 16(a0)
-        srli t0, t0, 4
-        or t3, zero, t0
-        /* *********ooooooooooooooooooooooo */
-        /* coefficient 13 */
-        lw t0, 52(a1)
-        slli t1, t0, 9
-        or t3, t3, t1
-        /* **********************oooooooooo| */
-        /* coefficient 14 */
-        lw t0, 56(a1)
-        slli t1, t0, 22
-        or t3, t3, t1
-        /* ********************************|xxx */
-        sw t3, 20(a0)
-        srli t0, t0, 10
-        or t3, zero, t0
-        /* ***ooooooooooooooooooooooooooooo */
-        /* coefficient 15 */
-        lw t0, 60(a1)
-        slli t1, t0, 3
-        or t3, t3, t1
-        /* ****************oooooooooooooooo| */
-        /* coefficient 16 */
-        lw t0, 64(a1)
-        slli t1, t0, 16
-        or t3, t3, t1
-        /* *****************************ooo| */
-        /* coefficient 17 */
-        lw t0, 68(a1)
-        slli t1, t0, 29
-        or t3, t3, t1
-        /* ********************************|xxxxxxxxxx */
-        sw t3, 24(a0)
-        srli t0, t0, 3
-        or t3, zero, t0
-        /* **********oooooooooooooooooooooo */
-        /* coefficient 18 */
-        lw t0, 72(a1)
-        slli t1, t0, 10
-        or t3, t3, t1
-        /* ***********************ooooooooo| */
-        /* coefficient 19 */
-        lw t0, 76(a1)
-        slli t1, t0, 23
-        or t3, t3, t1
-        /* ********************************|xxxx */
-        sw t3, 28(a0)
-        srli t0, t0, 9
-        or t3, zero, t0
-        /* ****oooooooooooooooooooooooooooo */
-        /* coefficient 20 */
-        lw t0, 80(a1)
-        slli t1, t0, 4
-        or t3, t3, t1
-        /* *****************ooooooooooooooo| */
-        /* coefficient 21 */
-        lw t0, 84(a1)
-        slli t1, t0, 17
-        or t3, t3, t1 /* 17 */
-        /* ******************************oo| */
-        /* coefficient 22 */
-        lw t0, 88(a1)
-        slli t1, t0, 30
-        or t3, t3, t1
-        /* ********************************|xxxxxxxxxxx */
-        sw t3, 32(a0)
-        srli t0, t0, 2
-        or t3, zero, t0
-        /* ***********ooooooooooooooooooooo */
-        /* coefficient 23 */
-        lw t0, 92(a1)
-        slli t1, t0, 11
-        or t3, t3, t1
-        /* ************************oooooooo| */
-        /* coefficient 24 */
-        lw t0, 96(a1)
-        slli t1, t0, 24
-        or t3, t3, t1
-        /* ********************************|xxxxx */
-        sw t3, 36(a0)
-        srli t0, t0, 8
-        or t3, zero, t0
-        /* *****ooooooooooooooooooooooooooo */
-        /* coefficient 25 */
-        lw t0, 100(a1)
-        slli t1, t0, 5
-        or t3, t3, t1
-        /* ******************oooooooooooooo| */
-        /* coefficient 26 */
-        lw t0, 104(a1)
-        slli t1, t0, 18
-        or t3, t3, t1
-        /* *******************************o| */
-        /* coefficient 27 */
-        lw t0, 108(a1)
-        slli t1, t0, 31
-        or t3, t3, t1
-        /* ********************************|xxxxxxxxxxxx */
-        sw t3, 40(a0)
-        srli t0, t0, 1
-        or t3, zero, t0
-        /* ************oooooooooooooooooooo */
-        /* coefficient 28 */
-        lw t0, 112(a1)
-        slli t1, t0, 12
-        or t3, t3, t1
-        /* *************************ooooooo| */
-        /* coefficient 29 */
-        lw t0, 116(a1)
-        slli t1, t0, 25
-        or t3, t3, t1
-        /* ********************************|xxxxxx */
-        sw t3, 44(a0)
-        srli t0, t0, 7
-        or t3, zero, t0
-        /* ******oooooooooooooooooooooooooo */
-        /* coefficient 30 */
-        lw t0, 120(a1)
-        slli t1, t0, 6
-        or t3, t3, t1
-        /* *******************ooooooooooooo| */
-        /* coefficient 31 */
-        lw t0, 124(a1)
-        slli t1, t0, 19
-        or t3, t3, t1
-        /* ********************************| */
-        sw t3, 48(a0)
-
-        addi a1, a1, 128
-        addi a0, a0, 52
+    bn.lid t3, 0(t0)
     
+    /* Start packing */
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 48 /* Fill up accumulator register to be 256 bits */
+    /*bn.rshi w2, bn0, w2 >> 48*/ /* Remove used up bits */
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208 /* Initialize the accumulator register again,
+                                  shifting 48 bits more than the rest in the
+                                  register actually is to discard the bits used
+                                  to fill the accumulator before the store */
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 96
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 192
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 32
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 80
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 128
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 176
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 16
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 64
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 112
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 160
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 208
+
+    jal     x1, _inner_polyt0_pack_dilithium
+    bn.rshi w4, w2, w4 >> 208
+    bn.sid  t4, 0(a0++)
+    
+    ret
+
+_inner_polyt0_pack_dilithium:
+    LOOPI 2, 18
+        bn.lid t1, 0(a1++)
+        /* w1 <= eta - w1 */
+        bn.subv.8S w1, w3, w1
+        .rept 8
+            bn.rshi w2, w1, w2 >> 13 /* Write one coefficient into the output WDR */
+            bn.rshi w1, bn0, w1 >> 32 /* Shift out used coefficient */
+        .endr
+    bn.rshi w2, bn0, w2 >> 48 /* Shift the 208 bits of data to the bottom of the 
+                                 WDR */
     ret
 
 /**
