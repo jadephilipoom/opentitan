@@ -1131,97 +1131,104 @@ _inner_loop_end_poly_use_hint_dilithium:
  */
 .global polyt1_pack_dilithium
 polyt1_pack_dilithium:
-    LOOPI 16, 63
-        xor t2, t2, t2
-        /* coefficient 1 */
-        lw t0, 0(a1)
-        or t2, t2, t0 /* 10 bits in t2 */
-        /* coefficient 2 */
-        lw t0, 4(a1)
-        slli t1, t0, 10
-        or t2, t2, t1 /* 20 bits in t2 */
-        /* coefficient 3 */
-        lw t0, 8(a1)
-        slli t1, t0, 20
-        or t2, t2, t1 /* 30 bits in t2 */
-        /* coefficient 4 - first 2 bits */
-        lw t0, 12(a1)
-        slli t1, t0, 30
-        or t2, t2, t1 /* 32 bits in t2 */
-        sw t2, 0(a0)
-        /* coefficient 4 - remaining 8 bits */
-        srli t0, t0, 2
-        or t2, zero, t0 /* 8 bits in t2 */
+    li t1, 1
+    li t4, 4
+    
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 160
 
-        /* coefficient 5 */
-        lw t0, 16(a1)
-        slli t1, t0, 8
-        or t2, t2, t1 /* 18 bits in t2 */
-        /* coefficient 6 */
-        lw t0, 20(a1)
-        slli t1, t0, 18
-        or t2, t2, t1 /* 28 bits in t2 */
-        /* coefficient 7 - first 4 bits */
-        lw t0, 24(a1)
-        slli t1, t0, 28
-        or t2, t2, t1
-        sw t2, 4(a0)
-        /* coefficient 7 - remaining 6 bits */
-        srli t0, t0, 4
-        or t2, zero, t0 /* 6 bits in t2 */
 
-        /* coefficient 8 */
-        lw t0, 28(a1)
-        slli t1, t0, 6
-        or t2, t2, t1 /* 16 bits in t2 */
-        /* coefficient 9 */
-        lw t0, 32(a1)
-        slli t1, t0, 16
-        or t2, t2, t1 /* 26 bits in t2 */
-        /* coefficient 10 - first 6 bits */
-        lw t0, 36(a1)
-        slli t1, t0, 26
-        or t2, t2, t1
-        sw t2, 8(a0)
-        /* coefficient 10 - remaining 4 bits */
-        srli t0, t0, 6
-        or t2, zero, t0 /* 4 bits in t2 */
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 96
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 160
 
-        /* coefficient 11 */
-        lw t0, 40(a1)
-        slli t1, t0, 4
-        or t2, t2, t1 /* 14 bits in t2 */
-        /* coefficient 12 */
-        lw t0, 44(a1)
-        slli t1, t0, 14
-        or t2, t2, t1 /* 24 bits in t2 */
-        /* coefficient 13 - first 8 bits */
-        lw t0, 48(a1)
-        slli t1, t0, 24
-        or t2, t2, t1
-        sw t2, 12(a0)
-        /* coefficient 13 - remaining 2 bits */
-        srli t0, t0, 8
-        or t2, zero, t0 /* 2 bits in t2 */
 
-        /* coefficient 14 */
-        lw t0, 52(a1)
-        slli t1, t0, 2
-        or t2, t2, t1 /* 12 bits in t2 */
-        /* coefficient 15 */
-        lw t0, 56(a1)
-        slli t1, t0, 12
-        or t2, t2, t1 /* 22 bits in t2 */
-        /* coefficient 16 */
-        lw t0, 60(a1)
-        slli t0, t0, 22
-        or t2, t2, t0 /* 32 bits in t2 */
-        sw t2, 16(a0)
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 160
 
-        addi a1, a1, 64
-        addi a0, a0, 20
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 32
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 128
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 64
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 160
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 0
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 96
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 32
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 128
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 64
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 160
+
+
+    jal     x1, _inner_polyt1_pack_dilithium
+    bn.rshi w4, w2, w4 >> 160
+    bn.sid  t4, 0(a0++)
 
     ret
+
+_inner_polyt1_pack_dilithium:
+    LOOPI 2, 17
+        bn.lid t1, 0(a1++)
+        .rept 8
+            bn.rshi w2, w1, w2 >> 10 /* Write one coefficient into the output WDR */
+            bn.rshi w1, bn0, w1 >> 32 /* Shift out used coefficient */
+        .endr
+    bn.rshi w2, bn0, w2 >> 96 /* Shift the 160 bits of data to the bottom of the 
+                                 WDR */
+    ret
+
 
 /**
  * polyeta_pack_dilithium
@@ -1337,7 +1344,7 @@ polyt0_pack_dilithium:
     li t2, 2
     li t3, 3
     li t4, 4
-    bn.movr t2, t3
+
     /* Load precomputed (1 << (D-1)) */
     la     t0, polyt0_pack_const
     bn.lid t3, 0(t0)
@@ -1451,103 +1458,44 @@ _inner_polyt0_pack_dilithium:
  */
 .global polyw1_pack_dilithium
 polyw1_pack_dilithium:
-    LOOPI 16, 57
-        xor t2, t2, t2
-    
-        /* oooooooooooooooooooooooooooooooo */
-        /* coefficient 0 */
-        lw t0, 0(a1)
-        or t2, t2, t0
-        /* ******oooooooooooooooooooooooooo| */
-        /* coefficient 1 */
-        lw t0, 4(a1)
-        slli t1, t0, 6
-        or t2, t2, t1
-        /* ************oooooooooooooooooooo| */
-        /* coefficient 2 */
-        lw t0, 8(a1)
-        slli t1, t0, 12
-        or t2, t2, t1
-        /* ******************oooooooooooooo| */
-        /* coefficient 3 */
-        lw t0, 12(a1)
-        slli t1, t0, 18
-        or t2, t2, t1
-        /* ************************oooooooo| */
-        /* coefficient 4 */
-        lw t0, 16(a1)
-        slli t1, t0, 24
-        or t2, t2, t1
-        /* ******************************oo| */
-        /* coefficient 5 */
-        lw t0, 20(a1)
-        slli t1, t0, 30
-        or t2, t2, t1
-        /* ********************************|xxxx */
-        sw t2, 0(a0)
-        srli t0, t0, 2
-        or t2, zero, t0
-        /* ****oooooooooooooooooooooooooooo */
-        /* coefficient 6 */
-        lw t0, 24(a1)
-        slli t1, t0, 4
-        or t2, t2, t1
-        /* **********oooooooooooooooooooooo| */
-        /* coefficient 7 */
-        lw t0, 28(a1)
-        slli t1, t0, 10
-        or t2, t2, t1
-        /* ****************oooooooooooooooo| */
-        /* coefficient 8 */
-        lw t0, 32(a1)
-        slli t1, t0, 16
-        or t2, t2, t1
-        /* **********************oooooooooo| */
-        /* coefficient 9 */
-        lw t0, 36(a1)
-        slli t1, t0, 22
-        or t2, t2, t1
-        /* ****************************oooo| */
-        /* coefficient 10 */
-        lw t0, 40(a1)
-        slli t1, t0, 28
-        or t2, t2, t1
-        /* ********************************|xx */
-        sw t2, 4(a0)
-        srli t0, t0, 4
-        or t2, zero, t0
-        /* **oooooooooooooooooooooooooooooo */
-        /* coefficient 11 */
-        lw t0, 44(a1)
-        slli t1, t0, 2
-        or t2, t2, t1
-        /* ********oooooooooooooooooooooooo| */
-        /* coefficient 12 */
-        lw t0, 48(a1)
-        slli t1, t0, 8
-        or t2, t2, t1
-        /* **************oooooooooooooooooo| */
-        /* coefficient 13 */
-        lw t0, 52(a1)
-        slli t1, t0, 14
-        or t2, t2, t1
-        /* ********************oooooooooooo| */
-        /* coefficient 14 */
-        lw t0, 56(a1)
-        slli t1, t0, 20
-        or t2, t2, t1
-        /* **************************oooooo| */
-        /* coefficient 15 */
-        lw t0, 60(a1)
-        slli t1, t0, 26
-        or t2, t2, t1
-        /* ********************************| */
-        sw t2, 8(a0)
 
-        addi a1, a1, 64
-        addi a0, a0, 12
+    /* Setup WDRs */
+    li t1, 1
+    li t4, 4
+
+    LOOPI 2, 13
+        jal     x1, _inner_polyw1_pack_dilithium
+        bn.rshi w4, w2, w4 >> 192
+
+
+        jal     x1, _inner_polyw1_pack_dilithium
+        bn.rshi w4, w2, w4 >> 64
+        bn.sid  t4, 0(a0++)
+        bn.rshi w4, w2, bn0 >> 192
+
+
+        jal     x1, _inner_polyw1_pack_dilithium
+        bn.rshi w4, w2, w4 >> 128
+        bn.sid  t4, 0(a0++)
+        bn.rshi w4, w2, bn0 >> 192
+
+
+        jal     x1, _inner_polyw1_pack_dilithium
+        bn.rshi w4, w2, w4 >> 192
+        bn.sid  t4, 0(a0++)
+
     ret
 
+_inner_polyw1_pack_dilithium:
+    LOOPI 4, 17
+        bn.lid t1, 0(a1++)
+        .rept 8
+            bn.rshi w2, w1, w2 >> 6 /* Write one coefficient into the output WDR */
+            bn.rshi w1, bn0, w1 >> 32 /* Shift out used coefficient */
+        .endr
+    bn.rshi w2, bn0, w2 >> 64 /* Shift the 192 bits of data to the bottom of the 
+                                 WDR */
+    ret
 /**
  * polyeta_unpack_dilithium
  *
@@ -2222,136 +2170,190 @@ _loop_end_poly_make_hint_dilithium:
  */
 .global polyz_pack_dilithium
 polyz_pack_dilithium:
+    
+    la t1, gamma1_vec_const
+    li t3, 3
+    bn.lid t3, 0(t1)
+
     /* Setup WDRs */
     li t1, 1
+    li t4, 4
 
-    LOOPI 32, 3
-        bn.lid     t1, 0(a1)
-        bn.subv.8S w1, w0, w1
-        bn.sid     t1, 0(a1++)
-    
-    /* Reset input pointer */
-    addi a1, a1, -1024
+    /* Start packing */
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
 
-    LOOPI 16, 75
-        xor   t2, t2, t2
-        /* oooooooooooooooooooooooooooooooo */
-        /* coefficient 0 */
-        lw   t0, 0(a1)
-        or   t2, t2, t0
-        /* ******************oooooooooooooo| */
-        /* coefficient 1 */
-        lw   t0, 4(a1)
-        slli t1, t0, 18
-        or   t2, t2, t1
-        /* ********************************|xxxx */
-        sw   t2, 0(a0)
-        srli t0, t0, 14
-        or   t2, zero, t0
-        /* ****oooooooooooooooooooooooooooo */
-        /* coefficient 2 */
-        lw   t0, 8(a1)
-        slli t1, t0, 4
-        or   t2, t2, t1
-        /* **********************oooooooooo| */
-        /* coefficient 3 */
-        lw   t0, 12(a1)
-        slli t1, t0, 22
-        or   t2, t2, t1
-        /* ********************************|xxxxxxxx */
-        sw   t2, 4(a0)
-        srli t0, t0, 10
-        or   t2, zero, t0
-        /* ********oooooooooooooooooooooooo */
-        /* coefficient 4 */
-        lw   t0, 16(a1)
-        slli t1, t0, 8
-        or   t2, t2, t1
-        /* **************************oooooo| */
-        /* coefficient 5 */
-        lw   t0, 20(a1)
-        slli t1, t0, 26
-        or   t2, t2, t1
-        /* ********************************|xxxxxxxxxxxx */
-        sw   t2, 8(a0)
-        srli t0, t0, 6
-        or   t2, zero, t0
-        /* ************oooooooooooooooooooo */
-        /* coefficient 6 */
-        lw   t0, 24(a1)
-        slli t1, t0, 12
-        or   t2, t2, t1
-        /* ******************************oo| */
-        /* coefficient 7 */
-        lw   t0, 28(a1)
-        slli t1, t0, 30
-        or   t2, t2, t1
-        /* ********************************|xxxxxxxxxxxxxxxx */
-        sw   t2, 12(a0)
-        srli t0, t0, 2
-        or   t2, zero, t0
-        /* ****************oooooooooooooooo */
-        /* coefficient 8 */
-        lw   t0, 32(a1)
-        slli t1, t0, 16
-        or   t2, t2, t1
-        /* ********************************|xx */
-        sw   t2, 16(a0)
-        srli t0, t0, 16
-        or   t2, zero, t0
-        /* **oooooooooooooooooooooooooooooo */
-        /* coefficient 9 */
-        lw   t0, 36(a1)
-        slli t1, t0, 2
-        or   t2, t2, t1
-        /* ********************oooooooooooo| */
-        /* coefficient 10 */
-        lw   t0, 40(a1)
-        slli t1, t0, 20
-        or   t2, t2, t1
-        /* ********************************|xxxxxx */
-        sw   t2, 20(a0)
-        srli t0, t0, 12
-        or   t2, zero, t0
-        /* ******oooooooooooooooooooooooooo */
-        /* coefficient 11 */
-        lw   t0, 44(a1)
-        slli t1, t0, 6
-        or   t2, t2, t1
-        /* ************************oooooooo| */
-        /* coefficient 12 */
-        lw   t0, 48(a1)
-        slli t1, t0, 24
-        or   t2, t2, t1
-        /* ********************************|xxxxxxxxxx */
-        sw   t2, 24(a0)
-        srli t0, t0, 8
-        or   t2, zero, t0
-        /* **********oooooooooooooooooooooo */
-        /* coefficient 13 */
-        lw   t0, 52(a1)
-        slli t1, t0, 10
-        or   t2, t2, t1
-        /* ****************************oooo| */
-        /* coefficient 14 */
-        lw   t0, 56(a1)
-        slli t1, t0, 28
-        or   t2, t2, t1
-        /* ********************************|xxxxxxxxxxxxxx */
-        sw   t2, 28(a0)
-        srli t0, t0, 4
-        or   t2, zero, t0
-        /* **************oooooooooooooooooo */
-        /* coefficient 15 */
-        lw   t0, 60(a1)
-        slli t1, t0, 14
-        or   t2, t2, t1
-        /* ********************************| */
-        sw   t2, 32(a0)
 
-        addi a1, a1, 64
-        addi a0, a0, 36
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 112
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
 
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 80
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 48
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 16
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 128
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 96
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 64
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 32
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 112
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 80
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 48
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 16
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 128
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 96
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 64
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 32
+    bn.sid  t4, 0(a0++)
+    bn.rshi w4, w2, bn0 >> 144
+
+
+    jal     x1, _inner_polyz_pack_dilithium
+    bn.rshi w4, w2, w4 >> 144
+    bn.sid  t4, 0(a0++)
+
+    ret
+
+_inner_polyz_pack_dilithium:
+    bn.lid t1, 0(a1++)
+    /* w1 <= eta - w1 */
+    bn.subv.8S w1, w3, w1
+    .rept 8
+        bn.rshi w2, w1, w2 >> 18 /* Write one coefficient into the output WDR */
+        bn.rshi w1, bn0, w1 >> 32 /* Shift out used coefficient */
+    .endr
+    bn.rshi w2, bn0, w2 >> 112 /* Shift the 144 bits of data to the bottom of the 
+                                 WDR */
     ret
 
 /**
