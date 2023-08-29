@@ -1852,11 +1852,10 @@ poly_uniform_gamma1_dilithium:
     addi fp, sp, 0
     
     /* Adjust sp to accomodate local variables */
-    addi sp, sp, -320
+    addi sp, sp, -32
 
     /* Reserve space for tmp buffer to hold a WDR */
     #define STACK_WDR2GPR -32
-    #define STACK_BUF -320
 
     push a0
     push a1
@@ -1879,147 +1878,80 @@ poly_uniform_gamma1_dilithium:
     pop a1
     pop a0
 
-    /* Constants for masking */
-    /* {262143: 't3', 4095: 't4', 65535: 't5', 16383: 't6'} */
-    li t3, 262143
-    li t4, 4095
-    li t5, 65535
-    li t6, 16383
+    /* Load gamma1 as a vector into w4 */
+    li t2, 4
+    la t3, gamma1_vec_const
+    bn.lid t2, 0(t3)
 
-    LOOPI 2, 82
-        /* fill buf */
-        addi t0, fp, STACK_BUF
-        li t1, 8
-        LOOPI 9, 2
-            /* Write SHAKE output to dmem */
-            bn.wsrr  w8, 0x9 /* KECCAK_DIGEST */
-            bn.sid t1, 0(t0++)
+    /* Load mask for zeroing the upper bits of the unpacked coefficients to w5 */
+    li t2, 5
+    la t3, polyz_unpack_dilithium_mask
+    bn.lid t2, 0(t3)
 
-        /* Load pointer to shake output */
-        addi a4, fp, STACK_BUF
+    /* Setup WDR */ 
+    li t2, 2
+    LOOPI 2, 42
+        bn.wsrr w6, 0x9 /* KECCAK_DIGEST */
+        bn.mov  w1, w6
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-        LOOPI 8, 74
-            lw t0, 0(a4)
-            and t1, t0, t3
-            sw t1, 0(a0) /* coeff 0 */
-            srli t0, t0, 18
-            /* Bits remaining in register: 14 */
-            lw t2, 4(a4)
-            andi t1, t2, 15
-            slli t1, t1, 14
-            or t1, t1, t0
-            sw t1, 4(a0)
-            srli t0, t2, 4
-            /* Bytes processed: 8 */
+        bn.wsrr w3, 0x9 /* KECCAK_DIGEST */
+        bn.rshi w1, w3, w6 >> 144
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-            and t1, t0, t3
-            sw t1, 8(a0) /* coeff 2 */
-            srli t0, t0, 18
-            /* Bits remaining in register: 10 */
-            lw t2, 8(a4)
-            andi t1, t2, 255
-            slli t1, t1, 10
-            or t1, t1, t0
-            sw t1, 12(a0)
-            srli t0, t2, 8
-            /* Bytes processed: 12 */
+        bn.rshi w1, bn0, w3 >> 32
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-            and t1, t0, t3
-            sw t1, 16(a0) /* coeff 4 */
-            srli t0, t0, 18
-            /* Bits remaining in register: 6 */
-            lw t2, 12(a4)
-            and t1, t2, t4
-            slli t1, t1, 6
-            or t1, t1, t0
-            sw t1, 20(a0)
-            srli t0, t2, 12
-            /* Bytes processed: 16 */
+        bn.wsrr w6, 0x9 /* KECCAK_DIGEST */
+        bn.rshi w1, w6, w3 >> 176
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-            and t1, t0, t3
-            sw t1, 24(a0) /* coeff 6 */
-            srli t0, t0, 18
-            /* Bits remaining in register: 2 */
-            lw t2, 16(a4)
-            and t1, t2, t5
-            slli t1, t1, 2
-            or t1, t1, t0
-            sw t1, 28(a0)
-            srli t0, t2, 16
-            /* Bytes processed: 20 */
+        bn.rshi w1, bn0, w6 >> 64
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-            /* Bits remaining in register: 16 */
-            lw t2, 20(a4)
-            andi t1, t2, 3
-            slli t1, t1, 16
-            or t1, t1, t0
-            sw t1, 32(a0)
-            srli t0, t2, 2
-            /* Bytes processed: 24 */
+        bn.wsrr w3, 0x9 /* KECCAK_DIGEST */
+        bn.rshi w1, w3, w6 >> 208
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-            and t1, t0, t3
-            sw t1, 36(a0) /* coeff 9 */
-            srli t0, t0, 18
-            /* Bits remaining in register: 12 */
-            lw t2, 24(a4)
-            andi t1, t2, 63
-            slli t1, t1, 12
-            or t1, t1, t0
-            sw t1, 40(a0)
-            srli t0, t2, 6
-            /* Bytes processed: 28 */
+        bn.rshi w1, bn0, w3 >> 96
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-            and t1, t0, t3
-            sw t1, 44(a0) /* coeff 11 */
-            srli t0, t0, 18
-            /* Bits remaining in register: 8 */
-            lw t2, 28(a4)
-            andi t1, t2, 1023
-            slli t1, t1, 8
-            or t1, t1, t0
-            sw t1, 48(a0)
-            srli t0, t2, 10
-            /* Bytes processed: 32 */
+        bn.wsrr w6, 0x9 /* KECCAK_DIGEST */
+        bn.rshi w1, w6, w3 >> 240
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-            and t1, t0, t3
-            sw t1, 52(a0) /* coeff 13 */
-            srli t0, t0, 18
-            /* Bits remaining in register: 4 */
-            lw t2, 32(a4)
-            and t1, t2, t6
-            slli t1, t1, 4
-            or t1, t1, t0
-            sw t1, 56(a0)
-            srli t0, t2, 14
-            /* Bytes processed: 36 */
+        bn.wsrr w3, 0x9 /* KECCAK_DIGEST */
+        bn.rshi w1, w3, w6 >> 128
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-            /* Bits remaining in register: 18 */
-            and t1, t0, t3
-            sw t1, 60(a0) /* coeff 15 */
-            /* Bytes processed: 36 */
+        bn.rshi w1, bn0, w3 >> 16
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
 
-            addi a0, a0, 64
-            addi a4, a4, 36
-        nop /* Nested loops must not end on the same instruction */
-   
+        bn.wsrr w6, 0x9 /* KECCAK_DIGEST */
+        bn.rshi w1, w6, w3 >> 160
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
+
+        bn.rshi w1, bn0, w6 >> 48
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
+
+        bn.wsrr w3, 0x9 /* KECCAK_DIGEST */
+        bn.rshi w1, w3, w6 >> 192
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
+
+        bn.rshi w1, bn0, w3 >> 80
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
+
+        bn.wsrr w6, 0x9 /* KECCAK_DIGEST */
+        bn.rshi w1, w6, w3 >> 224
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
+
+        bn.rshi w1, bn0, w6 >> 112
+        jal     x1, _inner_poly_uniform_gamma1_dilithium
+        nop /* Loop must not end on jump */
+
     /* Finish the SHAKE-256 operation. */
     addi  t0, zero, KECCAK_DONE_CMD
     csrrw zero, KECCAK_CMD_REG, t0
-
-    /* Reset output pointer */
-    addi a0, a0, -1024
-
-    /* Setup WDRs */
-    li t1, 1
-    li t2, 2
-
-    /* Load precomputed, vectorized eta */
-    bn.lid t1, 0(a3)
-
-    LOOPI 32, 3
-        bn.lid     t2, 0(a0)   /* w2 <= coeffs[i:i+8] */
-        bn.subv.8S w2, w1, w2  /* w2 <= eta - w2 */
-        bn.sid     t2, 0(a0++) /* coeffs[i:i+8] <= w2 */
 
     /* sp <- fp */
     addi sp, fp, 0
@@ -2027,6 +1959,22 @@ poly_uniform_gamma1_dilithium:
     lw fp, 0(sp)
     addi sp, sp, 32
 
+    ret
+
+_inner_poly_uniform_gamma1_dilithium:
+    /* Unpack 8 coefficients in one go */
+    .rept 8
+        /* Shift one coefficient into the output register, ignoring the
+            upper 14 bits of other coefficient data */
+        bn.rshi w2, w1, w2 >> 32
+        /* Advance the input register such that the next coefficient is
+            in the lower 18 bits */
+        bn.rshi w1, bn0, w1 >> 18
+    .endr
+    
+    bn.and     w2, w2, w5 /* Mask unpacked coeffs to 18 bit */
+    bn.subv.8S w2, w4, w2 /* w2 <= gamma1_eta_const - w2 */
+    bn.sid     t2, 0(a0++)
     ret
 
 /**
