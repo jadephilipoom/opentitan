@@ -1695,3 +1695,33 @@ polyz_unpack_dilithium_mask:
     .word 0x3ffff
     .word 0x3ffff
     .word 0x3ffff
+.global poly_uniform_eta_205
+poly_uniform_eta_205:
+    .word 205
+    .word 205
+    .word 205
+    .word 205
+    .word 205
+    .word 205
+    .word 205
+    .word 205
+.global poly_uniform_eta_2
+poly_uniform_eta_2:
+    .word 2
+    .word 2
+    .word 2
+    .word 2
+    .word 2
+    .word 2
+    .word 2
+    .word 2
+.global poly_uniform_eta_5
+poly_uniform_eta_5:
+    .word 5
+    .word 5
+    .word 5
+    .word 5
+    .word 5
+    .word 5
+    .word 5
+    .word 5

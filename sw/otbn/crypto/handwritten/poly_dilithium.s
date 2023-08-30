@@ -829,7 +829,7 @@ _end_rej_sample_loop:
  * @param[in]     a2: nonce
  * @param[in]     a1: dmem pointer to polynomial
  *
- * clobbered registers: a1, a3-a5, w8-w15, t0-t6
+ * clobbered registers: a1, a3-a5, w8-w15, w20, t0-t6
  */
 .global poly_uniform_eta
 poly_uniform_eta:
@@ -881,85 +881,79 @@ _aligned_poly_uniform_eta:
     li t6, 10
     li t3, 15
 
+    bn.movr t5, t6 /* DEBUG */
+
     /* Initialize constants */
-    bn.addi w14, bn0, 0xFF
-    bn.addi w15, bn0, 15
-    bn.addi w12, bn0, 205
-    bn.addi w0, bn0, 5
-    bn.addi w1, bn0, 2
-_rej_eta_sample_loop:
+    bn.addi w14, bn0, 0x0F
+    bn.addi w16, bn0, 15
+    li a5, 8
+
+    la t6, poly_uniform_eta_205
+    li t4, 12
+    bn.lid t4, 0(t6)
+
+    la t6, poly_uniform_eta_5/* Merge into one const for lane use */
+    li t4, 0
+    bn.lid t4, 0(t6)
+
+    la t6, poly_uniform_eta_2 
+    li t4, 1
+    bn.lid t4, 0(t6)
+    
+    li t6, 8 /* coeffs to be collected in register */
+    
     /* First squeeze */
     .equ w8, shake_reg
     bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
     
-    /* Loop counter, we have 32B to read from shake */
-    li t4, 32
-    
+    /* Loop counter, we have 64 nibbles to read from shake */
+    li t4, 65 /* 64 + 1 because decrement at beginning */
 
 _rej_eta_sample_loop_inner:
-        /* Process first 4 bits */
-        bn.and  w9, shake_reg, w14            /* Mask out all other bytes */
-        bn.or  shake_reg, bn0, shake_reg >> 8 /* shift out the used byte */
+        addi t4, t4, -1
+        bne  zero, t4, _rej_eta_sample_loop_skip_squeeze
+        bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
+        li t4, 64
+_rej_eta_sample_loop_skip_squeeze:
 
-        bn.rshi w10, bn0, w9 >> 4 /* Prepare "t1" */
-        bn.and  w9, w9, w15       /* Prepare "t0" */
-
+        /* Process 4 bits */
+        bn.and  w9, shake_reg, w14            /* Mask out all other bits */
+        bn.rshi shake_reg, bn0, shake_reg >> 4 /* shift out the used nibble */
+        
         /* Check "t0" < 15 */
         /* Instead of < 15, != 15 can also be checked because we are
-            operating on 4-bit values */
-        bn.sid t5, STACK_WDR2GPR(fp)
-        lw     t2, STACK_WDR2GPR(fp)
-        beq    t2, t3, _rej_eta_sample_loop_inner_1
+           operating on 4-bit values */
+        bn.cmp w16, w9
+        csrrs a4, 0x7C0, zero
+        /* The FG does not need to be masked because if the FG0.Z is set, then
+           the result of the operation was zero, meaning neither L nor M will be
+           set. A carry can not occur in this instance, so C is also of no
+           relevance. */
+        beq a4, a5, _rej_eta_sample_loop_inner
+
+        addi t6, t6, -1 /* Found one more valid 4-bit value */
+
+        /* Put each 4-bit value into one of 32-bit words in the WDR */
+        bn.rshi w20, w9, w20 >> 32
+
+        bne zero, t6, _rej_eta_sample_loop_inner
+
+        /* Vectorized part for arithmetic */
 
         /* "t{0,1}" indicate the variable names from the reference code */ 
-
         /* Compute "t0" = "t0" - (205 * "t0" >> 10) * 5 from reference code */
-        bn.mulqacc.wo.z w13, w12.0, w9.0, 0 /* 205 * "t0" */
-        bn.rshi         w13, bn0, w13 >> 10 /* (205 * "t0" >> 10) */
-        bn.mulqacc.wo.z w13, w0.0, w13.0, 0 /* (205 * "t0" >> 10) * 5 */
-        bn.sub          w9, w9, w13         /* "t0" - (205 * "t0" >> 10) * 5 */
-        bn.sub          w9, w1, w9          /* 2 - ("t0" - (205 * "t0" >> 10) * 5) */
+        bn.mulv.8S w13, w12, w20
+        bn.orv.8S  w13, w31, w13 >> 10
+        bn.mulv.8S w13, w0, w13
+        bn.subv.8S w20, w20, w13
+        bn.subv.8S w9, w1, w20
 
         /* Store coefficient value from WDR into target polynomial */
-        bn.sid t5, STACK_WDR2GPR(fp)
-        lw     t2, STACK_WDR2GPR(fp)
-        sw     t2, 0(a1)
+        bn.sid t5, 0(a1++)
+        li t6, 8
 
         /* Loop logic */
-        addi a1, a1, 4
-        beq  a1, t0, _end_rej_eta_sample_loop
-
-_rej_eta_sample_loop_inner_1:
-        /* Process last 4 bits */
-
-        /* Check "t1" != 15 */
-        bn.sid t6, STACK_WDR2GPR(fp)
-        lw     t2, STACK_WDR2GPR(fp)
-        beq    t2, t3, _rej_eta_sample_loop_inner_none
-
-        /* Compute "t1" = "t1" - (205 * "t1" >> 10) * 5 from reference code */
-        bn.mulqacc.wo.z w13, w12.0, w10.0, 0 /* 205 * "w1" */
-        bn.rshi         w13, bn0, w13 >> 10  /* (205 * "t1" >> 10) */
-        bn.mulqacc.wo.z w13, w0.0, w13.0, 0  /* (205 * "t0" >> 10) * 5 */
-        bn.sub          w10, w10, w13        /* "t1" - (205 * "t1" >> 10) * 5 */
-        bn.sub          w10, w1, w10         /* 2 - ("t1" - (205 * "t1" >> 10) * 5) */
-
-        /* Store coefficient value from WDR into target polynomial */
-        bn.sid t6, STACK_WDR2GPR(fp)
-        lw     t2, STACK_WDR2GPR(fp)
-        sw     t2, 0(a1)
-
-        /* Loop logic */
-        addi a1, a1, 4
-        beq  a1, t0, _end_rej_eta_sample_loop
-
-_rej_eta_sample_loop_inner_none:
-    /* Check if there are still SHAKE bytes left for next iteration */
-    addi t4, t4, -1
-    bne  zero, t4, _rej_eta_sample_loop_inner
-
-    /* All SHAKE bytes used and not done, squeeze again */
-    beq zero, zero, _rej_eta_sample_loop
+        bne  a1, t0, _rej_eta_sample_loop_inner
 
 _end_rej_eta_sample_loop:
     /* Finish the SHAKE-256 operation. */
