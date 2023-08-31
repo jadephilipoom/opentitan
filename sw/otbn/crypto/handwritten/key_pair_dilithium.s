@@ -182,14 +182,13 @@ key_pair_dilithium:
 
     li a1, STACK_MAT
     add a1, fp, a1
-    LOOPI 4, 10
-        LOOPI 4, 8
+    LOOPI 4, 9
+        LOOPI 4, 7
             /* Load parameters */
             addi a0, fp, STACK_RHO
             push a2 /* TODO: What needs to be pushed here? */
             jal  x1, poly_uniform
             pop  a2
-            addi a1, a1, 4
             addi a2, a2, 1
         addi a2, a2, 252
 

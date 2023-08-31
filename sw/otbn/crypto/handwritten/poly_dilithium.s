@@ -647,7 +647,7 @@ _aligned:
     addi a1, a4, 0 /* move output pointer back to a1 */
     
     /* t0 = 1020, a1 + 1020 is the last valid address */
-    addi t0, a1, 1020
+    addi t0, a1, 1024
 
     /* Load mask for coefficient */
     li t2, 0x7FFFFF
@@ -655,7 +655,42 @@ _aligned:
     /* WDR index */
     li t5, 8
     li t6, 0xFFFF
+    li a6, 3 /* Compare for flag bits */
+    bn.movr t5, a6
+
+    #define cmp_mask w9
+    bn.addi cmp_mask, bn0, 3
+
+    #define coeff_mask w10
+    bn.addi coeff_mask, bn0, 1
+    bn.rshi coeff_mask, coeff_mask, bn0 >> 233
+    bn.subi coeff_mask, coeff_mask, 1
+    /* bn.addi coeff_mask, bn0, 0x7FFFFF */
+
+    #define cand w11
+
+    #define mod w12
+    li t3, 12
+    la t1, modulus
+    bn.lid t3, 0(t1)
+    bn.rshi mod, bn0, mod >> 224 /* Only keep mod in lowest word */
+    /* bn.subi mod, mod, -1*/ /* mod - 1 */
+
+    #define accumulator w13
+    li t5, 13
+    li t3, 8
+    #define accumulator_count t6
+    li t6, 0
+
+    /* bn.rshi mod, mod, bn0 >> 255 */ /* (mod - 1) << 1 */
+
+    #define coeff_mask_shl1 w14
+    bn.rshi coeff_mask_shl1, coeff_mask, bn0 >> 255
+
+    #define mod_shl1 w15
+    bn.orv.8S mod_shl1, bn0, mod << 1
     /* Loop until 256 coefficients have been written to the output */
+
 _rej_sample_loop:
     /* First squeeze */
     .equ w8, shake_reg
@@ -675,130 +710,86 @@ _rej_sample_loop:
        */
 
     /* Process floor(32 bytes / 3 bytes) * 3 bytes = 30 bytes */
-    /* Init loop counter because we cannot early exit hw loops */
-    li t4, 10
-_rej_sample_loop_p1:
-        /* Get least significant word of shake output into GPR */
-        bn.sid t5, STACK_WDR2GPR(fp)
-        lw     t1, STACK_WDR2GPR(fp)
+    jal x1, _poly_uniform_inner_loop
 
-        /* Shift out the 3 bytes we read for the next potential coefficient */
-        bn.or shake_reg, bn0, shake_reg >> 24
-
-        and  t1, t2, t1             /* Mask the bytes from Shake */
-        slt  t3, t1, a2             /* t3 <= 1, if t1 <? Q, else 0 */ 
-        beq  t3, zero, _skip_store1 /* Reject */
-        sw   t1, 0(a1)
-
-        /* if we have written the last coefficient, exit */
-        beq  a1, t0, _end_rej_sample_loop
-        addi a1, a1, 4 /* increment output pointer */
-
-_skip_store1:
-        /* Loop logic */
-        addi t4, t4, -1
-        bne  t4, zero, _rej_sample_loop_p1
+    /* Check if we have finished in the previous loop */
+    beq t4, zero, _end_rej_sample_loop
 
     /* Process remaining 2 bytes */
-    /* Get last two bytes of shake output in shake_reg into GPR t1 */
-    bn.sid t5, STACK_WDR2GPR(fp)
-    lw     t1, STACK_WDR2GPR(fp)
 
+    /* Get last two bytes of shake output in shake_reg into cand */
+    bn.rshi cand, shake_reg, bn0 >> 16 /* move remaining 2 bytes to the top of cand */
     /* Squeeze */
     bn.wsrr shake_reg, 0x9 /* KECCAK_DIGEST */
 
-    /* Move 4 byte of the SHAKE output into GPR t3 */
-    bn.sid t5, STACK_WDR2GPR(fp)
-    lw     t3, STACK_WDR2GPR(fp)
+    /* Get one more byte from new shake data*/
+    bn.rshi cand, shake_reg, cand >> 240
     /* We use only 1 byte of the 4, so shift by 8 */
-    bn.or  shake_reg, bn0, shake_reg >> 8
-    andi   t3, t3, 0xFF                   /* Only keep lowest byte */
-    slli   t3, t3, 16                     /* Shift it to be byte at index 3 */
-    or     t1, t3, t1                     /* Merge with remaining bytes */
-    and    t1, t2, t1                     /* Mask the bytes from Shake */
-    slt    t3, t1, a2                     /* t3 <= 1, if t1 <? Q, else 0 */ 
-    beq    t3, zero, _skip_store2         /* reject */
-    sw     t1, 0(a1)                      /* Store fitting coefficient */
+    bn.or   shake_reg, bn0, shake_reg >> 8
+
+    /* mask candidate */
+    bn.andv.8S cand, coeff_mask_shl1, cand << 1
+
+    bn.cmp cand, mod_shl1
+    csrrs  a4, 0x7C0, zero      /* Read flags */
+    bne    a4, a6, _skip_store2 /* Reject if M, C are NOT set to 1, meaning
+                                    NOT (q > cand) = (q <= cand) */
+    
+    bn.rshi accumulator, cand, accumulator >> 32
+    addi accumulator_count, accumulator_count, 1
+
+    bne accumulator_count, t3, _skip_store2
+    
+    bn.orv.8S accumulator, bn0, accumulator >> 1
+    bn.sid    t5, 0(a1++) /* Store to memory */
+    li        accumulator_count, 0
 
     /* if we have written the last coefficient, exit */
     beq  a1, t0, _end_rej_sample_loop
-    addi a1, a1, 4 /* increment output pointer */
 _skip_store2:
 
     /* Process floor(31/3)*3 = 30 bytes */
-    /* Init loop counter because we cannot early exit hw loops */
-    addi t4, zero, 10
-_rej_sample_loop_p2:
-        /* Get least significant word of shake output into GPR */
-        bn.sid t5, STACK_WDR2GPR(fp)
-        lw     t1, STACK_WDR2GPR(fp)
+    jal x1, _poly_uniform_inner_loop
 
-        /* Shift out the 3 bytes we read for the next potential coefficient */
-        bn.or shake_reg, bn0, shake_reg >> 24
-
-        and  t1, t2, t1             /* Mask the bytes from Shake */
-        slt  t3, t1, a2             /* t3 <= 1, if t1 <? Q, else 0 */ 
-        beq  t3, zero, _skip_store3 /* reject */ 
-        sw   t1, 0(a1)              /* Store fitting coefficient */
-
-        /* if we have written the last coefficient, exit */
-        beq  a1, t0, _end_rej_sample_loop
-        addi a1, a1, 4 /* increment output pointer */
-
-_skip_store3:
-        /* Loop logic */
-        addi t4, t4, -1
-        bne  t4, zero, _rej_sample_loop_p2
+    /* Check if we have finished in the previous loop */
+    beq t4, zero, _end_rej_sample_loop
 
     /* Process remaining 1 byte */
-    /* Get last byte of shake output in shake_reg into GPR */
-    bn.sid t5, STACK_WDR2GPR(fp)
-    lw     t1, STACK_WDR2GPR(fp)
-
+    /* Get last two bytes of shake output in shake_reg into cand */
+    bn.rshi cand, shake_reg, bn0 >> 8 /* move remaining 1 byte to the top of cand */
     /* Squeeze */
     bn.wsrr shake_reg, 0x9 /* KECCAK_DIGEST */
 
-    /* Move 4 byte of the SHAKE output into GPR t3 */
-    bn.sid t5, STACK_WDR2GPR(fp)
-    lw     t3, STACK_WDR2GPR(fp)
-    bn.or  shake_reg, bn0, shake_reg >> 16 /* Using 2 of 4 bytes, so shift 16 */
-    and    t3, t3, t6                      /* Mask to only keep two lower bytes */
-    slli   t3, t3, 8                       /* Shift to be bytes at index 2+3 */
-    or     t1, t1, t3                      /* Merge with remaining byte */
-    and    t1, t2, t1                      /* Mask the bytes from Shake */
-    slt    t3, t1, a2                      /* t3 <= 1, if t1 <? Q, else 0 */ 
-    beq    t3, zero, _skip_store4          /* Reject */
-    sw     t1, 0(a1)                       /* Store fitting coefficient */
+    /* Get one more byte from new shake data*/
+    bn.rshi cand, shake_reg, cand >> 248
+    /* We use only 1 byte of the 4, so shift by 8 */
+    bn.or  shake_reg, bn0, shake_reg >> 16
 
+    /* mask candidate */
+    bn.andv.8S cand, coeff_mask_shl1, cand << 1
+
+    bn.cmp cand, mod_shl1
+    csrrs a4, 0x7C0, zero /* Read flags */
+    bne  a4, a6, _skip_store4 /* Reject if M, C are NOT set to 1, meaning
+                                    NOT (q > cand) = (q <= cand) */
+    
+    bn.rshi accumulator, cand, accumulator >> 32
+    addi accumulator_count, accumulator_count, 1
+
+    bne accumulator_count, t3, _skip_store4
+    
+    bn.orv.8S accumulator, bn0, accumulator >> 1
+    bn.sid t5, 0(a1++) /* Store to memory */
+    li accumulator_count, 0
     /* if we have written the last coefficient, exit */
     beq  a1, t0, _end_rej_sample_loop
-    addi a1, a1, 4 /* increment output pointer */
 _skip_store4:
 
     /* Process floor(30/3)*3 = 30 bytes */
-    /* Init loop counter because we cannot early exit hw loops */
-    li t4, 10
-_rej_sample_loop_p3:
-        /* Get least significant word of shake output into GPR */
-        bn.sid t5, STACK_WDR2GPR(fp)
-        lw     t1, STACK_WDR2GPR(fp)
+    jal x1, _poly_uniform_inner_loop
 
-        /* Shift out the 3 bytes we read for the next potential coefficient */
-        bn.or shake_reg, bn0, shake_reg >> 24
-
-        and t1, t2, t1             /* Mask the bytes from Shake */
-        slt t3, t1, a2             /* t3 <= 1, if t1 <? Q, else 0 */ 
-        beq t3, zero, _skip_store5 /* Reject */
-        sw  t1, 0(a1)
-
-        /* if we have written the last coefficient, exit */
-        beq  a1, t0, _end_rej_sample_loop
-        addi a1, a1, 4
-
-_skip_store5:
-        /* Loop logic */
-        addi t4, t4, -1
-        bne  t4, zero, _rej_sample_loop_p3
+    /* Check if we have finished in the previous loop */
+    beq t4, zero, _end_rej_sample_loop
 
     /* No remainder! Start all over again. */
     beq zero, zero, _rej_sample_loop
@@ -816,6 +807,45 @@ _end_rej_sample_loop:
     /* Correct alignment offset (unalign) */
     add sp, sp, a5
 
+    ret
+
+_poly_uniform_inner_loop:
+    li t4, 1
+    LOOPI 10, 14
+        beq t4, zero, _skip_store1
+        /* Mask shake output */
+        /* bn.and cand, shake_reg, coeff_mask */
+        /* Get the candidate coefficient, multiplied by 2 (see below) */
+        bn.andv.8S cand, coeff_mask_shl1, shake_reg << 1
+        
+        bn.cmp cand, mod_shl1
+        csrrs  a4, 0x7C0, zero /* Read flags */
+
+        /* Z L M C */
+        /* andi a4, a4, 3 */ /* Mask flags */
+        /* In this comparison, the L flag will never be set. We avoid this by
+           multiplying the coefficient and q by 2 before the comparison. This
+           assures that both numbers will be even and thus, after a subtraction
+           the LSB will never be set. Therefore, we do not need to mask the
+           flags. */
+        bne  a4, a6, _skip_store1 /* Reject if M, C are NOT set to 1, meaning
+                                     NOT (q > cand) = (q <= cand) */
+        
+        bn.rshi accumulator, cand, accumulator >> 32
+        addi    accumulator_count, accumulator_count, 1
+
+        bne accumulator_count, t3, _skip_store1 /* Accumulator not full yet */
+        
+        /* Shift out the artificial zero bit used to avoid LSB flag */
+        bn.orv.8S accumulator, bn0, accumulator >> 1
+        bn.sid    t5, 0(a1++) /* Store to memory */
+        li        accumulator_count, 0
+        /* if we have written the last coefficient, goto dummy-state */
+        bne  a1, t0, _skip_store1
+        li t4, 0
+_skip_store1:
+        /* Shift out the 3 bytes we have read for the next potential coefficient */
+        bn.or shake_reg, bn0, shake_reg >> 24
     ret
 
 /**
