@@ -117,7 +117,7 @@ OT_WARN_UNUSED_RESULT
 static status_t encrypt_rma_unlock_token(
     crypto_blinded_key_t *aes_key, wrapped_rma_unlock_token_t *wrapped_token) {
   // Construct IV, which since we are using ECB mode, is empty.
-  crypto_byte_buf_t iv = {
+  crypto_word_buf_t iv = {
       .data = NULL,
       .len = 0,
   };
@@ -151,17 +151,17 @@ static status_t encrypt_rma_unlock_token(
  *
  * @param share0 Share 0 buffer.
  * @param share1 Share 1 buffer.
- * @param len Number of 64bit words to sanity check.
+ * @param len Number of 32bit words to sanity check.
  * @return OK_STATUS if share0 ^ share1 is not zero and if both shares don't
  * contain non-zero and non-all-FFs 64bit words.
  */
 OT_WARN_UNUSED_RESULT
-static status_t shares_check(uint64_t *share0, uint64_t *share1, size_t len) {
+static status_t shares_check(uint32_t *share0, uint32_t *share1, size_t len) {
   bool found_error = false;
   for (size_t i = 0; i < len; ++i) {
     found_error |= share0[i] == share1[i];
-    found_error |= share0[i] == UINT64_MAX || share0[i] == 0;
-    found_error |= share1[i] == UINT64_MAX || share1[0] == 0;
+    found_error |= share0[i] == UINT32_MAX || share0[i] == 0;
+    found_error |= share1[i] == UINT32_MAX || share1[0] == 0;
   }
   return found_error ? INTERNAL() : OK_STATUS();
 }
@@ -251,37 +251,37 @@ static status_t otp_partition_secret2_configure(
                              /*fips_check*/ kHardenedBoolTrue));
   TRY(entropy_csrng_reseed(/*disable_trng_input=*/kHardenedBoolFalse,
                            /*seed_material=*/NULL));
-  uint64_t hashed_rma_unlock_token[kRmaUnlockTokenSizeIn64BitWords];
+  uint32_t hashed_rma_unlock_token[kRmaUnlockTokenSizeIn32BitWords];
   TRY(manuf_util_hash_lc_transition_token(rma_unlock_token->data,
-                                          kRmaUnlockTokenSizeInBytes,
+                                          kRmaUnlockTokenSizeIn32BitWords,
                                           hashed_rma_unlock_token));
 
   // Generate RootKey shares.
-  uint64_t share0[kRootKeyShareSizeIn64BitWords];
-  TRY(entropy_csrng_generate(/*seed_material=*/NULL, (uint32_t *)share0,
+  uint32_t share0[kRootKeyShareSizeIn32BitWords];
+  TRY(entropy_csrng_generate(/*seed_material=*/NULL, share0,
                              kRootKeyShareSizeIn32BitWords,
                              /*fips_check*/ kHardenedBoolTrue));
   TRY(entropy_csrng_reseed(/*disable_trng_input=*/kHardenedBoolFalse,
                            /*seed_material=*/NULL));
 
-  uint64_t share1[kRootKeyShareSizeIn64BitWords];
-  TRY(entropy_csrng_generate(/*seed_material=*/NULL, (uint32_t *)share1,
+  uint32_t share1[kRootKeyShareSizeIn32BitWords];
+  TRY(entropy_csrng_generate(/*seed_material=*/NULL, share1,
                              kRootKeyShareSizeIn32BitWords,
                              /*fips_check*/ kHardenedBoolTrue));
   TRY(entropy_csrng_uninstantiate());
 
-  TRY(shares_check(share0, share1, kRootKeyShareSizeIn64BitWords));
+  TRY(shares_check(share0, share1, kRootKeyShareSizeIn32BitWords));
 
   // Provision RMA unlock token and RootKey shares into OTP.
-  TRY(otp_ctrl_testutils_dai_write64(
+  TRY(otp_ctrl_testutils_dai_write32(
       otp_ctrl, kDifOtpCtrlPartitionSecret2, kRmaUnlockTokenOffset,
-      hashed_rma_unlock_token, kRmaUnlockTokenSizeIn64BitWords));
-  TRY(otp_ctrl_testutils_dai_write64(otp_ctrl, kDifOtpCtrlPartitionSecret2,
+      hashed_rma_unlock_token, kRmaUnlockTokenSizeIn32BitWords));
+  TRY(otp_ctrl_testutils_dai_write32(otp_ctrl, kDifOtpCtrlPartitionSecret2,
                                      kRootKeyOffsetShare0, share0,
-                                     kRootKeyShareSizeIn64BitWords));
-  TRY(otp_ctrl_testutils_dai_write64(otp_ctrl, kDifOtpCtrlPartitionSecret2,
+                                     kRootKeyShareSizeIn32BitWords));
+  TRY(otp_ctrl_testutils_dai_write32(otp_ctrl, kDifOtpCtrlPartitionSecret2,
                                      kRootKeyOffsetShare1, share1,
-                                     kRootKeyShareSizeIn64BitWords));
+                                     kRootKeyShareSizeIn32BitWords));
 
   TRY(otp_ctrl_testutils_lock_partition(otp_ctrl, kDifOtpCtrlPartitionSecret2,
                                         /*digest=*/0));

@@ -11,27 +11,28 @@
 #include "sw/device/lib/crypto/include/hash.h"
 
 status_t manuf_util_hash_lc_transition_token(const uint32_t *raw_token,
-                                             size_t token_size,
-                                             uint64_t *hashed_token) {
+                                             size_t token_num_words,
+                                             uint32_t *hashed_token) {
   crypto_const_byte_buf_t input = {
-      .data = (uint8_t *)raw_token,
-      .len = token_size,
+      .data = (unsigned char *)raw_token,
+      .len = token_num_words * sizeof(uint32_t),
   };
   crypto_const_byte_buf_t function_name_string = {
-      .data = (uint8_t *)"",
+      .data = (unsigned char *)"",
       .len = 0,
   };
   crypto_const_byte_buf_t customization_string = {
-      .data = (uint8_t *)"LC_CTRL",
+      .data = (unsigned char *)"LC_CTRL",
       .len = 7,
   };
-  crypto_byte_buf_t output = {
-      .data = (uint8_t *)hashed_token,
-      .len = token_size,
+  crypto_word_buf_t output = {
+      .data = hashed_token,
+      .len = token_num_words,
   };
 
   TRY(otcrypto_xof(input, kXofModeSha3Cshake128, function_name_string,
-                   customization_string, token_size, &output));
+                   customization_string, token_num_words * sizeof(uint32_t),
+                   &output));
 
   return OK_STATUS();
 }
