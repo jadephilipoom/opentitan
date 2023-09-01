@@ -79,6 +79,8 @@ class SUB(RV32RegReg):
             return
 
         result = (val1 - val2) & ((1 << 32) - 1)
+        if DEBUG_ARITH:
+            eprint(f"sub {val1} - {val2} = {result}")
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
 
@@ -573,42 +575,6 @@ class LOOPI(OTBNInsn):
             state.stop_at_end_of_cycle(ErrBits.LOOP)
         else:
             state.loop_start(self.iterations, self.bodysize)
-
-
-class SLT(RV32RegReg):
-    insn = insn_for_mnemonic('slt', 3)
-
-    def execute(self, state: OTBNState) -> None:
-        val1 = state.gprs.get_reg(self.grs1).read_signed()
-        val2 = state.gprs.get_reg(self.grs2).read_signed()
-        # eprint(f"{val1} <? {val2}")
-
-        if state.gprs.call_stack_err:
-            state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
-            return
-        if DEBUG_ARITH:
-            eprint(f"slt {val1} <s? {val2}")
-        result = 1 if val1 < val2 else 0
-        state.gprs.get_reg(self.grd).write_unsigned(result)
-
-
-class SLTU(RV32RegReg):
-    insn = insn_for_mnemonic('sltu', 3)
-
-    def execute(self, state: OTBNState) -> None:
-        val1 = state.gprs.get_reg(self.grs1).read_unsigned()
-        val2 = state.gprs.get_reg(self.grs2).read_unsigned()
-        # eprint(f"{val1} <? {val2}")
-
-        if state.gprs.call_stack_err:
-            state.stop_at_end_of_cycle(ErrBits.CALL_STACK)
-            return
-
-        if DEBUG_ARITH:
-            eprint(f"sltu {val1} <u? {val2}")
-
-        result = 1 if val1 < val2 else 0
-        state.gprs.get_reg(self.grd).write_unsigned(result)
 
 
 class BNADD(OTBNInsn):
@@ -1286,7 +1252,7 @@ class BNRSHI(OTBNInsn):
 
         result = (((a << 256) | b) >> self.imm) & ((1 << 256) - 1)
         if DEBUG_ARITH:
-            eprint(f"bn.rshi {a}, {b} = {result}")
+            eprint(f"bn.rshi {format(a, '064x')}, {format(b, '064x')} = {format(result, '064x')}")
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
 
 
@@ -1329,6 +1295,10 @@ class BNCMP(OTBNInsn):
         masked_result = full_result & mask256
         carry_flag = bool((full_result >> 256) & 1)
         flags = FlagReg.mlz_for_result(carry_flag, masked_result)
+
+        if DEBUG_ARITH:
+            eprint(f"bn.cmp {format(a, '064x')}, {format(b_shifted, '064x')} = {format(full_result, '064x')}")
+            eprint(f"\tCarry: {carry_flag}")
 
         state.set_flags(self.flag_group, flags)
 
@@ -1479,7 +1449,8 @@ class BNSID(OTBNInsn):
 
         wrs = grs2_val & 0x1f
         wrs_val = state.wdrs.get_reg(wrs).read_unsigned()
-
+        if DEBUG_MEM:
+            print(f"\t {format(wrs_val, '064x')}", file=sys.stderr)
         state.dmem.store_u256(addr, wrs_val)
 
 
@@ -1555,6 +1526,8 @@ class BNMOVR(OTBNInsn):
         self.grs_inc = op_vals['grs_inc']
 
     def execute(self, state: OTBNState) -> Optional[Iterator[None]]:
+        if DEBUG_ARITH:
+            eprint("MOVR")
         if self.grs_inc and self.grd_inc:
             state.stop_at_end_of_cycle(ErrBits.ILLEGAL_INSN)
             return
@@ -1662,7 +1635,6 @@ class BNWSRW(OTBNInsn):
 INSN_CLASSES = [
     ADD, ADDI, LUI, SUB, SLL, SLLI, SRL, SRLI, SRA, SRAI,
     AND, ANDI, OR, ORI, XOR, XORI,
-    SLT, SLTU,
     LW, SW,
     BEQ, BNE, JAL, JALR,
     CSRRS, CSRRW,

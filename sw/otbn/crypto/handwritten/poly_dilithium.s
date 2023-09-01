@@ -386,9 +386,9 @@ poly_chknorm_dilithium:
     srli t1, t1, 3 /* /8 */
 
     /* (Q-1)/8 <? B  */
-    slt t2, t1, a1
-    li  t0, 1
-    beq t0, t2, _ret1_poly_chknorm_dilithium
+    sub t2, t1, a1
+    srli t2, t2, 31
+    bne zero, t2, _ret1_poly_chknorm_dilithium
 
     /* Set end address */
     addi t0, a0, 1024
@@ -415,7 +415,8 @@ _loop_poly_chknorm_dilithium:
     .irp    offset,0,4,8,12,16,20,24,28
         lw  t3, \offset(t4)
         /* t5 <= 1, if t3 <? a1, else 0 with a1 the bound */
-        slt t5, t3, a1
+        sub t5, t3, a1
+        srli t5, t5, 31
         beq t5, zero, _ret1_poly_chknorm_dilithium
     .endr
 
@@ -527,8 +528,7 @@ poly_challenge:
     li t3, 1
 
     /* TODO: Check if we could use HW loop? */
-    LOOPI TAU, 24
-_loop_poly_challenge:
+    LOOPI TAU, 25
     /* get address of c->coeffs[i], the current coefficient */
     slli a5, a3, 2 /* i * 4 for byte position */
     add  a5, a5, a0 /* Add the array start address: c->coeffs + i * 4 */
@@ -549,7 +549,8 @@ _loop_inner_skip_load_poly_challenge:
         lw      t1, STACK_WDR2GPR(fp) /* get one word of SHAKE output into GPR */
         /* t1 = b from the reference implementation */
         andi    t1, t1, 0xFF /* mask out one byte, because we only need one */
-        sltu    t2, a3, t1 /* i <? b */
+        sub     t2, a3, t1 /* i <? b */
+        srli    t2, t2, 31
         /* while(b > i); */
         beq     t3, t2, _loop_inner_poly_challenge
 
@@ -674,7 +675,6 @@ _aligned:
     la t1, modulus
     bn.lid t3, 0(t1)
     bn.rshi mod, bn0, mod >> 224 /* Only keep mod in lowest word */
-    /* bn.subi mod, mod, -1*/ /* mod - 1 */
 
     #define accumulator w13
     li t5, 13
@@ -713,7 +713,7 @@ _rej_sample_loop:
     jal x1, _poly_uniform_inner_loop
 
     /* Check if we have finished in the previous loop */
-    beq t4, zero, _end_rej_sample_loop
+    beq a1, t0, _end_rej_sample_loop
 
     /* Process remaining 2 bytes */
 
@@ -752,7 +752,7 @@ _skip_store2:
     jal x1, _poly_uniform_inner_loop
 
     /* Check if we have finished in the previous loop */
-    beq t4, zero, _end_rej_sample_loop
+    beq a1, t0, _end_rej_sample_loop
 
     /* Process remaining 1 byte */
     /* Get last two bytes of shake output in shake_reg into cand */
@@ -789,7 +789,7 @@ _skip_store4:
     jal x1, _poly_uniform_inner_loop
 
     /* Check if we have finished in the previous loop */
-    beq t4, zero, _end_rej_sample_loop
+    beq a1, t0, _end_rej_sample_loop
 
     /* No remainder! Start all over again. */
     beq zero, zero, _rej_sample_loop
@@ -811,8 +811,8 @@ _end_rej_sample_loop:
 
 _poly_uniform_inner_loop:
     li t4, 1
-    LOOPI 10, 14
-        beq t4, zero, _skip_store1
+    LOOPI 10, 12
+        beq a1, t0, _skip_store1
         /* Mask shake output */
         /* bn.and cand, shake_reg, coeff_mask */
         /* Get the candidate coefficient, multiplied by 2 (see below) */
@@ -840,9 +840,6 @@ _poly_uniform_inner_loop:
         bn.orv.8S accumulator, bn0, accumulator >> 1
         bn.sid    t5, 0(a1++) /* Store to memory */
         li        accumulator_count, 0
-        /* if we have written the last coefficient, goto dummy-state */
-        bne  a1, t0, _skip_store1
-        li t4, 0
 _skip_store1:
         /* Shift out the 3 bytes we have read for the next potential coefficient */
         bn.or shake_reg, bn0, shake_reg >> 24
@@ -1089,7 +1086,7 @@ _loop_poly_use_hint_dilithium:
     addi t4, a0, 32             /* stop address */
 
     /* scalar part starts here */
-    LOOPI 8, 23
+    LOOPI 8, 24
         lw  t1, 0(t3) /* Load "a1" */
         /* Check if hint is 0 */
         lw  t5, 0(a2)
@@ -1099,7 +1096,8 @@ _loop_poly_use_hint_dilithium:
 _inner_loop_skip_store1_poly_use_hint_dilithium:
         /* if(0 < "a0") */
         lw t5, 0(t2)
-        slt t5, zero, t5
+        sub t5, zero, t5
+        srli t5, t5, 31
         bne t5, a5, _inner_loop_else_poly_use_hint_dilithium /* go to else-branch */
         /* if("a1" == 43) */
         bne t1, a4, _inner_loop_aplus1_poly_use_hint_dilithium /* go to else-branch */
@@ -1637,11 +1635,15 @@ _loop_decode_h_dilithium:
     srl  t6, t6, a4    /* extract the respective byte */
     andi t2, t6, 0xFF
 
+    /* Note: sig, k, OMEGA are all unsigned. Can also compare by subtracting and
+       checking the MSB */
     /* sig[OMEGA + i] <? k  */
-    slt t3, t2, t0
+    sub t3, t2, t0
+    srli t3, t3, 31
     bne t3, zero, _ret1_decode_h_dilithium
     /* || sig[OMEGA + i] >? OMEGA */
-    slt t3, t4, t2
+    sub t3, t4, t2
+    srli t3, t3, 31
     bne t3, zero, _ret1_decode_h_dilithium
 
     addi t5, t0, 0 /* j = k */
@@ -1679,7 +1681,8 @@ _loop_inner_decode_h_dilithium:
 
         /* sig[j] ==? sig[j-1] */
         beq  a3, a6, _ret1_decode_h_dilithium
-        sltu t6, a3, a6
+        sub t6, a3, a6
+        srli t6, t6, 31
 
         /* sig[j] <? sig[j-1] */
         li  a4, 1
@@ -2091,34 +2094,35 @@ poly_make_hint_dilithium:
 
     /* Constants for condition checking */ 
     li   t6, 94208
-    addi t6, t6, 1024
+    addi t6, t6, 1024 /* gamma */
     li   a6, 192512
-    addi a6, a6, -2048
-    li   a7, -94208
+    addi a6, a6, -2048 /* 2*gamma */
+    li   a7, -94208 /* -gamma */
     addi a7, a7, -1024
 
     /* Loop over every coefficient pair of the input */
-    LOOPI 256, 16
+    LOOPI 256, 18
         lw t0, 0(a1)
         lw t1, 0(a2)
 
-        add  a4, t0, t6
-        sltu t5, a6, a4
-        beq  t4, t5, _L3_poly_make_hint_dilithium
-        beq  t0, a7, _L6_poly_make_hint_dilithium
-        li   t0, 0
-        beq  zero, zero, _loop_end_poly_make_hint_dilithium
+        sub t5, t6, t0
+        srli t3, t5, 31
+        beq t3, t4, _loop_end_poly_make_hint_dilithium
 
-_L6_poly_make_hint_dilithium:
-        sltu t0, zero, t1
-        beq  zero, zero, _loop_end_poly_make_hint_dilithium
+        sub t5, t0, a7
+        srli t3, t5, 31
+        beq t3, t4, _loop_end_poly_make_hint_dilithium
 
-_L3_poly_make_hint_dilithium:
-        li  t0, 1
+        bne t5, zero, _return0
+        beq a1, zero, _return0
+        li t3, 1
+        beq zero, zero, _loop_end_poly_make_hint_dilithium
+_return0:
+        li t3, 0
         /* Fall through to loop end */
 _loop_end_poly_make_hint_dilithium:
-        sw   t0, 0(a0) /* Write to output polynomial */
-        add  t2, t2, t0
+        sw   t3, 0(a0) /* Write to output polynomial */
+        add  t2, t2, t3
         addi a1, a1, 4
         addi a2, a2, 4
         addi a0, a0, 4

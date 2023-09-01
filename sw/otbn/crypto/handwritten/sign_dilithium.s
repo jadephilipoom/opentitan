@@ -779,7 +779,9 @@ _rej_sign_dilithium:
 
     li   t0, OMEGA
     li   t1, 1
-    sltu t2, t0, s0
+    /* This checks t0 < s0. Writes 1 if true, 0 else */
+    sub t2, t0, s0
+    srli t2, t2, 31
     /* reject */
     beq  t1, t2, _rej_sign_dilithium
 
