@@ -698,6 +698,26 @@ otbn_sim_test(
 )
 
 otbn_sim_test(
+    name = "key_pair_base_dilithium_test",
+    srcs = [
+        "key_pair_base_dilithium_test.s",
+    ],
+    exp = "key_pair_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:key_pair_base_dilithium",
+        "//sw/otbn/crypto/handwritten:ntt_dilithium",
+        "//sw/otbn/crypto/handwritten:intt_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_pointwise_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_reduce32_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_add_base_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_caddq_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_power2round_dilithium",
+        "//sw/otbn/crypto/handwritten:poly_dilithium",
+        "//sw/otbn/crypto/handwritten:rounding_dilithium",
+    ],
+)
+
+otbn_sim_test(
     name = "verify_dilithium_test",
     srcs = [
         "verify_dilithium_test.s",
@@ -913,6 +933,18 @@ otbn_sim_py_test(
     ],
     deps = [
         ":key_pair_dilithium_test",
+        ":verify_dilithium_test",
+        ":sign_dilithium_test"
+        ],
+    sim_test_wrapper = "dilithiumpy_otbn/run_dilithium.py",
+)
+
+otbn_sim_py_test(
+    name = "dilithium_base",
+    srcs = [
+    ],
+    deps = [
+        ":key_pair_base_dilithium_test",
         ":verify_dilithium_test",
         ":sign_dilithium_test"
         ],

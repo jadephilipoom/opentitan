@@ -49,6 +49,13 @@ otbn_library(
 )
 
 otbn_library(
+    name = "poly_add_base_dilithium",
+    srcs = [
+        "poly_add_base_dilithium.s",
+    ],
+)
+
+otbn_library(
     name = "poly_sub_dilithium",
     srcs = [
         "poly_sub_dilithium.s",
@@ -80,6 +87,13 @@ otbn_library(
     name = "key_pair_dilithium",
     srcs = [
         "key_pair_dilithium.s",
+    ],
+)
+
+otbn_library(
+    name = "key_pair_base_dilithium",
+    srcs = [
+        "key_pair_base_dilithium.s",
     ],
 )
 
