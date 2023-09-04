@@ -931,21 +931,13 @@ _aligned_poly_uniform_eta:
     
     /* First squeeze */
     .equ w8, shake_reg
-    bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
-    
-    /* Loop counter, we have 64 nibbles to read from shake */
-    li t4, 65 /* 64 + 1 because decrement at beginning */
 
-_rej_eta_sample_loop_inner:
-        addi t4, t4, -1
-        bne  zero, t4, _rej_eta_sample_loop_skip_squeeze
+_rej_eta_sample_loop:
         bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
-        li t4, 64
-_rej_eta_sample_loop_skip_squeeze:
-
+LOOPI 64, 16
+        beq a1, t0, _rej_eta_sample_loop_continue
         /* Process 4 bits */
         bn.and  w9, shake_reg, w14            /* Mask out all other bits */
-        bn.rshi shake_reg, bn0, shake_reg >> 4 /* shift out the used nibble */
         
         /* Check "t0" < 15 */
         /* Instead of < 15, != 15 can also be checked because we are
@@ -956,14 +948,14 @@ _rej_eta_sample_loop_skip_squeeze:
            the result of the operation was zero, meaning neither L nor M will be
            set. A carry can not occur in this instance, so C is also of no
            relevance. */
-        beq a4, a5, _rej_eta_sample_loop_inner
+        beq a4, a5, _rej_eta_sample_loop_continue
 
         addi t6, t6, -1 /* Found one more valid 4-bit value */
 
         /* Put each 4-bit value into one of 32-bit words in the WDR */
         bn.rshi w20, w9, w20 >> 32
 
-        bne zero, t6, _rej_eta_sample_loop_inner
+        bne zero, t6, _rej_eta_sample_loop_continue
 
         /* Vectorized part for arithmetic */
 
@@ -978,9 +970,11 @@ _rej_eta_sample_loop_skip_squeeze:
         /* Store coefficient value from WDR into target polynomial */
         bn.sid t5, 0(a1++)
         li t6, 8
-
-        /* Loop logic */
-        bne  a1, t0, _rej_eta_sample_loop_inner
+_rej_eta_sample_loop_continue:
+    bn.rshi shake_reg, bn0, shake_reg >> 4 /* shift out the used nibble */
+        
+/* Loop logic */
+    bne  a1, t0, _rej_eta_sample_loop /* Continue sampling */
 
 _end_rej_eta_sample_loop:
     /* Finish the SHAKE-256 operation. */
