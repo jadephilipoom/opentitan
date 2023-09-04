@@ -273,7 +273,7 @@ verify_base_dilithium:
     add a0, fp, a0
 
     LOOPI 4, 2
-        jal x1, poly_chknorm_dilithium
+        jal x1, poly_chknorm_base_dilithium
         nop
     /* Raise error */
     bne a0, zero, _fail_verify_dilithium

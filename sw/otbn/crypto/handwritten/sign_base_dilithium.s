@@ -613,7 +613,7 @@ _rej_sign_dilithium:
 
     LOOPI L, 5
         addi a0, s0, 0
-        jal x1, poly_chknorm_dilithium
+        jal x1, poly_chknorm_base_dilithium
         addi s0, s0, 1024
         
         /* Reject */
@@ -681,7 +681,7 @@ _rej_sign_dilithium:
 
     LOOPI K, 4
         addi a0, s0, 0
-        jal  x1, poly_chknorm_dilithium
+        jal  x1, poly_chknorm_base_dilithium
         /* reject */
         bne  a0, zero, _rej_sign_dilithium
         addi s0, s0, 1024
@@ -734,7 +734,7 @@ _rej_sign_dilithium:
 
     LOOPI K, 4
         addi a0, s0, 0
-        jal  x1, poly_chknorm_dilithium
+        jal  x1, poly_chknorm_base_dilithium
         /* reject */
         bne  a0, zero, _rej_sign_dilithium
         addi s0, s0, 1024

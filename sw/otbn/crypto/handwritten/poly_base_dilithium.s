@@ -351,7 +351,7 @@ _inner_polyz_unpack_base_dilithium:
     ret
 
 /**
- * poly_chknorm_dilithium
+ * poly_chknorm_base_dilithium
  *
  * Check infinity norm of polynomial against given bound.
  * Assumes input coefficients were reduced by reduce32().
@@ -365,8 +365,8 @@ _inner_polyz_unpack_base_dilithium:
  *
  * clobbered registers: a0-a1, t0-t5, w1-w2
  */
- .global poly_chknorm_dilithium
-poly_chknorm_dilithium:
+ .global poly_chknorm_base_dilithium
+poly_chknorm_base_dilithium:
     /* save fp to stack */
     addi sp, sp, -32
     sw   fp, 0(sp)
@@ -389,14 +389,14 @@ poly_chknorm_dilithium:
     /* (Q-1)/8 <? B  */
     sub t2, t1, a1
     srli t2, t2, 31
-    bne zero, t2, _ret1_poly_chknorm_dilithium
+    bne zero, t2, _ret1_poly_chknorm_base_dilithium
 
     /* Set end address */
     addi t0, a0, 1024
     /* Setup WDRs */
     li t1, 1
     li t2, 2
-_loop_poly_chknorm_dilithium:
+_loop_poly_chknorm_base_dilithium:
     /* bn.lid      t1, 0(a0) */
     lw t1, 0(a0)
 
@@ -412,12 +412,12 @@ _loop_poly_chknorm_dilithium:
     /* t5 <= 1, if t2 <? a1, else 0 with a1 the bound */
     sub  t5, t2, a1
     srli t5, t5, 31
-    beq  t5, zero, _ret1_poly_chknorm_dilithium
+    beq  t5, zero, _ret1_poly_chknorm_base_dilithium
 
     addi a0, a0, 4
-    bne a0, t0, _loop_poly_chknorm_dilithium
+    bne a0, t0, _loop_poly_chknorm_base_dilithium
 
-_ret0_poly_chknorm_dilithium:
+_ret0_poly_chknorm_base_dilithium:
     /* sp <- fp */
     addi sp, fp, 0
     /* Pop ebp */
@@ -426,7 +426,7 @@ _ret0_poly_chknorm_dilithium:
     /* return success */
     li a0, 0
     ret
-_ret1_poly_chknorm_dilithium:
+_ret1_poly_chknorm_base_dilithium:
     /* sp <- fp */
     addi sp, fp, 0
     /* Pop ebp */
@@ -834,7 +834,7 @@ _skip_store1:
     ret
 
 /**
- * poly_uniform_eta
+ * poly_uniform_eta_base_dilithium
  *
  * Returns: -
  *
@@ -846,13 +846,13 @@ _skip_store1:
  *
  * clobbered registers: a1, a3-a5, w8-w15, w20, t0-t6
  */
-.global poly_uniform_eta
-poly_uniform_eta:
+.global poly_uniform_eta_base_dilithium
+poly_uniform_eta_base_dilithium:
 /* 32 byte align the sp */
     andi a5, sp, 31
-    beq  a5, zero, _aligned_poly_uniform_eta
+    beq  a5, zero, _aligned_poly_uniform_eta_base
     sub  sp, sp, a5
-_aligned_poly_uniform_eta:
+_aligned_poly_uniform_eta_base:
     /* save fp to stack, use 32 bytes to keep it 32-byte aligned */
     addi sp, sp, -32
     sw   fp, 0(sp)
@@ -912,10 +912,10 @@ _aligned_poly_uniform_eta:
     
     li t6, 8
 
-_rej_eta_sample_loop:    
+_rej_eta_base_sample_loop:    
     bn.wsrr  shake_reg, 0x9 /* KECCAK_DIGEST */
 LOOPI 64, 16
-    beq a1, t0, _rej_eta_sample_loop_continue
+    beq a1, t0, _rej_eta_base_sample_loop_continue
     /* Process 4 bits */
     bn.and  w9, shake_reg, w14            /* Mask out all other bits */
     
@@ -928,7 +928,7 @@ LOOPI 64, 16
         the result of the operation was zero, meaning neither L nor M will be
         set. A carry can not occur in this instance, so C is also of no
         relevance. */
-    beq a4, a5, _rej_eta_sample_loop_continue
+    beq a4, a5, _rej_eta_base_sample_loop_continue
 
     addi t6, t6, -1
 
@@ -944,16 +944,15 @@ LOOPI 64, 16
     /* Store coefficient value from WDR into target polynomial */
     bn.rshi w20, w9, w20 >> 32
 
-    bne t6, zero, _rej_eta_sample_loop_continue
+    bne t6, zero, _rej_eta_base_sample_loop_continue
     bn.sid t3, 0(a1++)
     li t6, 8
         
-_rej_eta_sample_loop_continue:
+_rej_eta_base_sample_loop_continue:
     bn.rshi shake_reg, bn0, shake_reg >> 4 /* shift out the used nibble */
     
-bne a1, t0, _rej_eta_sample_loop /* Continue sampling */
+bne a1, t0, _rej_eta_base_sample_loop /* Continue sampling */
 
-_end_rej_eta_sample_loop:
     /* Finish the SHAKE-256 operation. */
     addi  t0, zero, KECCAK_DONE_CMD
     csrrw zero, KECCAK_CMD_REG, t0
@@ -966,6 +965,59 @@ _end_rej_eta_sample_loop:
     /* Correct alignment offset (unalign) */
     add  sp, sp, a5
 
+    ret
+
+/**
+ * decompose_base_dilithium
+ *
+ * For finite field element a, compute high and low bits a0, a1 such that a
+ * mod^+ Q = a1*ALPHA + a0 with -ALPHA/2 < a0 <= ALPHA/2 except if a1 =
+ * (Q-1)/ALPHA where we set a1 = 0 and -ALPHA/2 <= a0 = a mod^+ Q - Q < 0.
+ * Assumes a to be standard representative.
+ * 
+ * Returns: output element vector "a0" in w1, output element vector "a1" in w2
+ *
+ * @param[in] w0: input element vector
+ * @param[in] w5-w11: constants in the following order: 1<<23,
+ * decompose_const_base, qm1half_base_const, 43, gamma2x2_vec_base_const,
+ * modulus_base, 0xFFFFFFFF
+ *
+ * clobbered registers: w1-w4, t0, t3-t4
+ */
+.global decompose_base_dilithium
+decompose_base_dilithium:
+    /* "a", "a{0,1}" refer to the variable names from the reference code */ 
+
+    LOOPI 8, 19
+        bn.and w12, w0, w11 /* Mask 32-bit coefficient */
+        bn.rshi w0, bn0, w0 >> 32 /* Discard used coefficient */
+
+        /* Compute "a1" */
+        bn.addi w3, w12, 127 /* a1  = (a + 127) */
+        bn.rshi w3, bn0, w3 >> 7 /* a1  = (a + 127) >> 7 */
+
+        bn.mulqacc.wo.z w3, w3.0, w6.0, 0 /* a1*11275 */
+        bn.add          w3, w3, w5        /* a1*11275 + (1 << 23) */
+        bn.rshi         w3, bn0, w3 >> 24 /* (a1*11275 + (1 << 23)) >> 24 */
+
+        bn.sub w4, w8, w3 /* (43 - a1) */
+        bn.rshi w4, bn0, w4 >> 255 /* (43 - a1) >> 31) get sign bit */
+        bn.mulqacc.wo.z w4, w4.0, w3.0, 0 /* ((43 - a1) >> 31) & a1 */
+        bn.xor w3, w3, w4 /* a1 ^= ((43 - a1) >> 31) & a1 */
+
+        bn.rshi w2, w3, w2 >> 32 /* Accumulate output */
+
+        /* Compute "a0" */
+        bn.mulqacc.wo.z w4, w3.0, w9.0, 0 /* a1*2*GAMMA2 */
+        bn.sub w4, w12, w4 /* a - a1*2*GAMMA2 */
+
+        bn.sub          w12, w7, w4 /* ((Q-1)/2 - *a0) */
+        bn.rshi         w12, bn0, w12 >> 255 /* Get the sign bit */
+        bn.mulqacc.wo.z w12, w12.0, w10.0, 0 /* Subtract Q if sign is 1 */
+        bn.sub          w4, w4, w12 /* *a0 -= (((Q-1)/2 - *a0) >> 31) & Q; */
+
+        bn.rshi w1, w4, w1 >> 32 /* Accumulate output */
+    
     ret
 
 /**
@@ -1005,46 +1057,46 @@ poly_use_hint_dilithium:
     li a6, 2
 
     /* WDR constants for decompose */
-    la t0, decompose_127_const
-    li t1, 5
-    /* w5 <= decompose_127_const */
-    bn.lid t1, 0(t0)
+    /* w5 <= 1<<23 */
+    bn.addi w5, bn0, 1
+    bn.rshi w5, w5, bn0 >> 233
 
-    la t0, decompose_const
+    la t0, decompose_const_base
     li t1, 6
-    /* w6 <= decompose_const */
+    /* w6 <= decompose_const_base */
     bn.lid t1, 0(t0)
 
-    la t0, reduce32_const
+    la t0, qm1half_base_const
     li t1, 7
-    /* w7 <= reduce32_const */
+    /* w7 <= qm1half_base_const */
     bn.lid t1, 0(t0)
 
-    la t0, decompose_43_const
-    li t1, 8
     /* w8 <= decompose_43_const */
-    bn.lid t1, 0(t0)
+    bn.addi w8, bn0, 43
 
-    la t0, gamma2_vec_const
+    la t0, gamma2x2_vec_base_const
     li t1, 9
-    /* w9 <= gamma2_vec_const */
+    /* w9 <= gamma2x2_vec_base_const */
     bn.lid t1, 0(t0)
 
-    la t0, qm1half_const
+    la t0, modulus_base
     li t1, 10
-    /* w10 <= qm1half_const */
+    /* w10 <= modulus_base */
     bn.lid t1, 0(t0)
 
-    la t0, modulus
-    li t1, 11
-    /* w11 <= modulus */
-    bn.lid t1, 0(t0)
+    /* w11 <= 0xFFFFFFFF */
+    bn.addi w11, bn0, 1
+    bn.rshi w11, w11, bn0 >> 224
+    bn.subi w11, w11, 1 
 
-_loop_poly_use_hint_dilithium:
-    /* vectorized part: decompose */
-    li     t0, 0
+    li t0, 0
+    
+    addi t4, a0, 32 /* stop address */
+LOOPI 32, 32
+    /* decompose */
     bn.lid t0, 0(a1++)
-    jal    x1, decompose_dilithium
+    jal x1, decompose_base_dilithium
+
 
     /* Store result form decomposition do dmem */
     bn.sid a5, STACK_WDR2GPR1(fp)
@@ -1054,7 +1106,6 @@ _loop_poly_use_hint_dilithium:
 
     addi t2, fp, STACK_WDR2GPR1 /* "a0" */
     addi t3, fp, STACK_WDR2GPR2 /* "a1" */
-    addi t4, a0, 32             /* stop address */
 
     /* scalar part starts here */
     LOOPI 8, 24
@@ -1097,9 +1148,9 @@ _inner_loop_end_poly_use_hint_dilithium:
         addi a0, a0, 4 /* increment output */
         addi t2, t2, 4 /* increment "a0" pointer */
         addi a2, a2, 4 /* increment *hint */
-        /* LOOP END */
-
-    bne a3, a0, _loop_poly_use_hint_dilithium
+        
+    addi t4, a0, 32             /* stop address */
+    /* LOOP END */
 
     /* sp <- fp */
     addi sp, fp, 0
@@ -1987,40 +2038,37 @@ _inner_poly_uniform_gamma1_base_dilithium:
 .global poly_decompose_dilithium
 poly_decompose_dilithium:
     /* WDR constants for decompose */
-    la t0, decompose_127_const
-    li t1, 5
-    /* w5 <= decompose_127_const */
-    bn.lid t1, 0(t0)
+    /* w5 <= 1<<23 */
+    bn.addi w5, bn0, 1
+    bn.rshi w5, w5, bn0 >> 233
 
-    la t0, decompose_const
+    la t0, decompose_const_base
     li t1, 6
-    /* w6 <= decompose_const */
+    /* w6 <= decompose_const_base */
     bn.lid t1, 0(t0)
 
-    la t0, reduce32_const
+    la t0, qm1half_base_const
     li t1, 7
-    /* w7 <= reduce32_const */
+    /* w7 <= qm1half_base_const */
     bn.lid t1, 0(t0)
 
-    la t0, decompose_43_const
-    li t1, 8
     /* w8 <= decompose_43_const */
-    bn.lid t1, 0(t0)
+    bn.addi w8, bn0, 43
 
-    la t0, gamma2_vec_const
+    la t0, gamma2x2_vec_base_const
     li t1, 9
-    /* w9 <= gamma2_vec_const */
+    /* w9 <= gamma2x2_vec_base_const */
     bn.lid t1, 0(t0)
 
-    la t0, qm1half_const
+    la t0, modulus_base
     li t1, 10
-    /* w10 <= qm1half_const */
+    /* w10 <= modulus_base */
     bn.lid t1, 0(t0)
 
-    la t0, modulus
-    li t1, 11
-    /* w11 <= modulus */
-    bn.lid t1, 0(t0)
+    /* w11 <= 0xFFFFFFFF */
+    bn.addi w11, bn0, 1
+    bn.rshi w11, w11, bn0 >> 224
+    bn.subi w11, w11, 1 
 
     /* Setup constants for WDRs */
     li t0, 0
@@ -2029,7 +2077,7 @@ poly_decompose_dilithium:
 
     LOOPI 32, 4
         bn.lid t0, 0(a2++)
-        jal x1, decompose_dilithium
+        jal x1, decompose_base_dilithium
         bn.sid t1, 0(a0++)
         bn.sid t2, 0(a1++)
 

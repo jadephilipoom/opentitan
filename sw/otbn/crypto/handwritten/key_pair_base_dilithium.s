@@ -203,7 +203,7 @@ key_pair_base_dilithium:
     LOOPI 4, 3
         /* Load pointer to input */
         addi a0, fp, STACK_RHOPRIME
-        jal  x1, poly_uniform_eta
+        jal  x1, poly_uniform_eta_base_dilithium
         addi a2, a2, 1
     
     /* Sample s2 */
@@ -218,7 +218,7 @@ key_pair_base_dilithium:
     LOOPI 4, 3
         /* Load pointer to input */
         addi a0, fp, STACK_RHOPRIME
-        jal  x1, poly_uniform_eta /* Implicit increment of output pointer */
+        jal  x1, poly_uniform_eta_base_dilithium /* Implicit increment of output pointer */
         addi a2, a2, 1
     
     /* NTT(s1) */

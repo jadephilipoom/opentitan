@@ -61,6 +61,16 @@ modulus:
   .word 0x007fe001
   .word 0x007fe001
   .word 0x007fe001
+.global modulus_base
+modulus_base:
+  .word 0x007fe001
+  .word 0x0
+  .word 0x0
+  .word 0x0
+  .word 0x0
+  .word 0x0
+  .word 0x0
+  .word 0x0
 .global twiddles_fwd
 twiddles_fwd:
   /* Layers 1-4 */
@@ -681,6 +691,16 @@ decompose_const:
     .word 0x00002c0b
     .word 0x00002c0b
     .word 0x00002c0b
+.global decompose_const_base
+decompose_const_base:
+    .word 0x00002c0b
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
 .global gamma1_vec_const
 gamma1_vec_const:
     .word 0x00020000
@@ -711,6 +731,16 @@ gamma2_vec_const:
     .word 0x00017400
     .word 0x00017400
     .word 0x00017400
+.global gamma2x2_vec_base_const
+gamma2x2_vec_base_const:
+    .word 0x0002e800
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
 .global qm1half_const
 qm1half_const:
     .word 0x003ff000
@@ -721,6 +751,16 @@ qm1half_const:
     .word 0x003ff000
     .word 0x003ff000
     .word 0x003ff000
+.global qm1half_base_const
+qm1half_base_const:
+    .word 0x003ff000
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
 .global decompose_127_const
 decompose_127_const:
     .word 0x0000007f
