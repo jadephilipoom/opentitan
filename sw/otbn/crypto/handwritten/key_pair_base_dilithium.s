@@ -332,7 +332,7 @@ key_pair_base_dilithium:
     add a2, fp, a2
 
     LOOPI 4, 2
-        jal x1, poly_power2round_dilithium
+        jal x1, poly_power2round_base_dilithium
         nop
 
     /* Pack pk */

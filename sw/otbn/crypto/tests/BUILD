@@ -711,7 +711,6 @@ otbn_sim_test(
         "//sw/otbn/crypto/handwritten:poly_reduce32_dilithium",
         "//sw/otbn/crypto/handwritten:poly_add_base_dilithium",
         "//sw/otbn/crypto/handwritten:poly_caddq_dilithium",
-        "//sw/otbn/crypto/handwritten:poly_power2round_dilithium",
         "//sw/otbn/crypto/handwritten:poly_base_dilithium",
         "//sw/otbn/crypto/handwritten:rounding_dilithium",
     ],
@@ -754,7 +753,6 @@ otbn_sim_test(
         "//sw/otbn/crypto/handwritten:poly_add_base_dilithium",
         "//sw/otbn/crypto/handwritten:poly_sub_dilithium",
         "//sw/otbn/crypto/handwritten:poly_caddq_dilithium",
-        "//sw/otbn/crypto/handwritten:poly_power2round_dilithium",
         "//sw/otbn/crypto/handwritten:poly_base_dilithium",
         "//sw/otbn/crypto/handwritten:rounding_dilithium",
 
@@ -798,7 +796,6 @@ otbn_sim_test(
         "//sw/otbn/crypto/handwritten:poly_add_base_dilithium",
         "//sw/otbn/crypto/handwritten:poly_sub_dilithium",
         "//sw/otbn/crypto/handwritten:poly_caddq_dilithium",
-        "//sw/otbn/crypto/handwritten:poly_power2round_dilithium",
         "//sw/otbn/crypto/handwritten:poly_base_dilithium",
         "//sw/otbn/crypto/handwritten:rounding_dilithium",
 

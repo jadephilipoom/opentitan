@@ -1888,6 +1888,16 @@ power2round_D_preprocessed:
     .word 0xfff
     .word 0xfff
     .word 0xfff
+.global power2round_D_preprocessed_base
+power2round_D_preprocessed_base:
+    .word 0xfff
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
 .global eta
 eta:
     .word 0x2

@@ -2402,3 +2402,63 @@ _skip_store_polyvec_encode_h_dilithium:
         addi t1, t1, 1
 
     ret
+
+/**
+ * Constant Time Dilithium polynomial power2round
+ *
+ * Returns: power2round(output2, output1, input) reduced mod q
+ *
+ * This implements the polynomial addition for Dilithium, where n=256,q=8380417.
+ *
+ * Flags: -
+ *
+ * @param[in]  a0:  a, dmem pointer to first word of input polynomial
+ * @param[in]  a1: a0, dmem pointer to output polynomial with coefficients c0
+ * @param[in]  a2: a1, dmem pointer to output polynomial with coefficients c1
+ * @param[in]  w31: all-zero
+ *
+ * clobbered registers: x4-x7, w2-w4
+ */
+.global poly_power2round_base_dilithium
+poly_power2round_base_dilithium:
+    #define D 13
+    #define Dinv 243
+
+    /* Load (1 << (D-1)) - 1 to w10 */
+    li t0, 10
+    la t1, power2round_D_preprocessed_base
+    bn.lid t0, 0(t1)
+
+    /* Set up constants for input/state */
+    li t0, 0
+    li t1, 1
+    li t2, 2
+
+    /* w11 <= 0xFFFFFFFF for masking */
+    bn.addi w11, bn0, 1
+    bn.rshi w11, w11, bn0 >> 224
+    bn.subi w11, w11, 1 
+
+    LOOPI 32, 12
+        /* Load input */
+        bn.lid t0, 0(a0++)
+
+        LOOPI 8, 8
+            bn.and w3, w0, w11 /* Mask out one coefficient */
+            bn.rshi w0, bn0, w0 >> 32 /* Remove from input */
+
+            bn.add w4, w3, w10
+            bn.rshi w4, bn0, w4 >> D
+
+            bn.rshi w2, w4, w2 >> 32 /* Accumulate to output register */
+
+            bn.rshi w4, w4, bn0 >> Dinv /* << by D */
+            bn.sub w4, w3, w4
+
+            bn.rshi w1, w4, w1 >> 32 /* Accumulate to output register */
+
+        /* Store */
+        bn.sid t2, 0(a2++)
+        bn.sid t1, 0(a1++)
+
+    ret
