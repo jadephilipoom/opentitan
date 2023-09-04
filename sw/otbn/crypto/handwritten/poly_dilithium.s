@@ -2375,3 +2375,103 @@ _skip_store_polyvec_encode_h_dilithium:
         addi t1, t1, 1
 
     ret
+
+/**
+ * Constant Time Dilithium reduce32
+ *
+ * Returns: reduce32(input1)
+ *
+ * This implements reduce32 for Dilithium, where n=256,q=8380417.
+ *
+ * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
+ *
+ * @param[in]  a0: dptr_input1, dmem pointer to first word of input1 polynomial
+ * @param[in]  w31: all-zero
+ * @param[out] a1: dmem pointer to result
+ *
+ * clobbered registers: x4-x7, x10-x11, w2-w6
+ */
+.globl poly_reduce32_dilithium
+poly_reduce32_dilithium:
+    /* Set up constants for input/state */
+    li t1, 3
+    li t0, 4
+    li t2, 6
+
+    /* Setup constant 1 << 22 */
+    la        t1, reduce32_const
+    bn.lid    t0, 0(t1)
+    bn.orv.8S w4, bn0, w4 << 22 
+    
+    /* Load q */
+    la     t3, modulus
+    bn.lid t2, 0(t3)
+
+    /* Set up constants for input/state */
+    li t3, 2    
+
+    LOOPI 32, 6
+        bn.lid t3, 0(a0++)
+        
+        /* t = a + (1 << 22) */
+        bn.addv.8S w5, w2, w4
+        /* t = (a + (1 << 22)) >> 23 */
+        bn.orv.8S   w5, bn0, w5 a >> 23
+        /* t = t * q */
+        bn.mulv.8S  w5, w5, w6
+        /* a - t */
+        bn.subv.8S w2, w2, w5
+
+        bn.sid t3, 0(a1++)
+
+    ret
+
+/**
+ * Constant Time Dilithium polynomial power2round
+ *
+ * Returns: power2round(output2, output1, input) reduced mod q
+ *
+ * This implements the polynomial addition for Dilithium, where n=256,q=8380417.
+ *
+ * Flags: -
+ *
+ * @param[in]  a0:  a, dmem pointer to first word of input polynomial
+ * @param[in]  a1: a0, dmem pointer to output polynomial with coefficients c0
+ * @param[in]  a2: a1, dmem pointer to output polynomial with coefficients c1
+ * @param[in]  w31: all-zero
+ *
+ * clobbered registers: x4-x7, w2-w4
+ */
+.global poly_power2round_dilithium
+poly_power2round_dilithium:
+    #define D 13
+    /* Set up constants for input/state */
+    li t0, 4
+    li t2, 6
+    li t3, 7
+
+    /* Load (1 << (D-1)) - 1 as vector */
+    la t1, power2round_D_preprocessed
+    bn.lid t0, 0(t1)
+
+    li t1, 5
+
+    LOOPI 32, 7
+        /* Load input */
+        bn.lid t1, 0(a0++)
+        
+        /* Compute */
+        /* (a + (1 << (D-1)) - 1) */
+        bn.addv.8S w6, w4, w5
+        /* a1 = (a + (1 << (D-1)) - 1) >> D */
+        bn.orv.8S w6, w31, w6 >> D
+        /* a0 = (a1 << D) */
+        bn.orv.8S w7, w31, w6 << D
+        /* a0 = a - (a1 << D) */
+        bn.subv.8S w7, w5, w7
+
+        /* Store */
+        bn.sid t2, 0(a2++)
+        bn.sid t3, 0(a1++)
+
+    ret

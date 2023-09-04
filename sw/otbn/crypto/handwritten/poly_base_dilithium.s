@@ -2462,3 +2462,70 @@ poly_power2round_base_dilithium:
         bn.sid t1, 0(a1++)
 
     ret
+
+/**
+ * Constant Time Dilithium reduce32
+ *
+ * Returns: reduce32(input1)
+ *
+ * This implements reduce32 for Dilithium, where n=256,q=8380417.
+ *
+ * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
+ *
+ * @param[in]  a0: dptr_input1, dmem pointer to first word of input1 polynomial
+ * @param[in]  w31: all-zero
+ * @param[out] a1: dmem pointer to result
+ *
+ * clobbered registers: x4-x7, x10-x11, w2-w6
+ */
+.globl poly_reduce32_dilithium
+poly_reduce32_dilithium:
+    /* Set up constants for input/state */
+    li t0, 0
+    li t1, 1
+    li t2, 2
+
+    /* Setup constant 1 << 22 */
+    bn.addi w10, bn0, 1
+    bn.rshi w10, w10, bn0 >> 234
+
+    /* w11 <= 0xFFFFFFFF for masking */
+    bn.addi w11, bn0, 1
+    bn.rshi w11, w11, bn0 >> 224
+    bn.subi w11, w11, 1 
+
+    /* Load q */
+    li     t4, 12
+    la     t3, modulus
+    bn.lid t4, 0(t3)
+    bn.and w12, w12, w11 /* Only keep one word */
+
+    bn.subi w13, bn0, 1 /* All ones */
+    
+    bn.addi w14, bn0, 1
+    bn.rshi w14, w14, bn0 >> 225 /* MSB is 1 */
+
+    LOOPI 32, 13
+        bn.lid t0, 0(a0++)
+
+        LOOPI 8, 10
+            bn.and w3, w0, w11 /* Mask out one coefficient */
+            bn.rshi w0, bn0, w0 >> 32 /* Remove from input */
+
+            /* TODO: Use addm with 0xFFFFFF as modulus */
+            bn.add w2, w3, w10 /* (a + (1 << 22)) */
+            bn.and w2, w2, w11 /* Truncate */
+            
+            /* Imitate arithmetic shift */
+            bn.and w4, w14, w2 /* FG0.Z <= 1, if w2 >= 0, else 0 */
+            bn.sel w4, bn0, w13, FG0.Z
+            bn.rshi w2, w4, w2 >> 23 /* (a + (1 << 22)) >> 23 */
+
+            bn.mulqacc.wo.z w2, w2.0, w12.0, 0 /* t*Q */
+            bn.sub w2, w3, w2 /* a - t*Q */
+
+            bn.rshi w1, w2, w1 >> 32
+
+        bn.sid t1, 0(a1++)
+
+    ret
