@@ -396,7 +396,7 @@ poly_chknorm_dilithium:
     li t1, 1
     li t2, 2
 _loop_poly_chknorm_dilithium:
-    bn.lid      t1, 0(a0)
+    bn.lid      t1, 0(a0++)
     /* constant time absolute value 
        t = a->coeffs[i] >> 31;
        t = a->coeffs[i] - (t & 2*a->coeffs[i]);
@@ -420,7 +420,6 @@ _loop_poly_chknorm_dilithium:
         beq t5, zero, _ret1_poly_chknorm_dilithium
     .endr
 
-    addi a0, a0, 32
     bne a0, t0, _loop_poly_chknorm_dilithium
 
 _ret0_poly_chknorm_dilithium:
