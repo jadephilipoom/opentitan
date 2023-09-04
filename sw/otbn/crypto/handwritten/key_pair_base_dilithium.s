@@ -187,7 +187,7 @@ key_pair_base_dilithium:
             /* Load parameters */
             addi a0, fp, STACK_RHO
             push a2 /* TODO: What needs to be pushed here? */
-            jal  x1, poly_uniform
+            jal  x1, poly_uniform_base_dilithium
             pop  a2
             addi a2, a2, 1
         addi a2, a2, 252
@@ -444,7 +444,7 @@ key_pair_base_dilithium:
 
     /* Store packed(t0) */
     LOOPI 4, 2
-        jal x1, polyt0_pack_dilithium
+        jal x1, polyt0_pack_base_dilithium
         nop
 
     /* Free space on the stack */

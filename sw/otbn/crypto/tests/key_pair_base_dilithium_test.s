@@ -641,6 +641,16 @@ eta:
     .word 0x2
     .word 0x2
     .word 0x2
+.global eta_vec_base_const
+eta_vec_base_const:
+    .word 0x2
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
 .global polyt0_pack_const
 polyt0_pack_const:
     .word 0x1000
@@ -651,6 +661,16 @@ polyt0_pack_const:
     .word 0x1000
     .word 0x1000
     .word 0x1000
+.global polyt0_pack_base_const
+polyt0_pack_base_const:
+    .word 0x1000
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
 .global decompose_const
 decompose_const:
     .word 0x00002c0b
@@ -671,6 +691,16 @@ gamma1_vec_const:
     .word 0x00020000
     .word 0x00020000
     .word 0x00020000
+.global gamma1_vec_base_const
+gamma1_vec_base_const:
+    .word 0x00020000
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
 .global gamma2_vec_const
 gamma2_vec_const:
     .word 0x00017400
@@ -724,13 +754,13 @@ polyeta_unpack_mask:
 .global polyt1_unpack_dilithium_mask
 polyt1_unpack_dilithium_mask:
     .word 0x3ff
-    .word 0x0
-    .word 0x0
-    .word 0x0
-    .word 0x0
-    .word 0x0
-    .word 0x0
-    .word 0x0
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
+    .word 0x3ff
 .global polyt0_unpack_dilithium_mask
 polyt0_unpack_dilithium_mask:
     .word 0x1fff
@@ -751,6 +781,16 @@ polyz_unpack_dilithium_mask:
     .word 0x3ffff
     .word 0x3ffff
     .word 0x3ffff
+.global polyz_unpack_base_dilithium_mask
+polyz_unpack_base_dilithium_mask:
+    .word 0x3ffff
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
+    .word 0x0
 .global poly_uniform_eta_205
 poly_uniform_eta_205:
     .word 205

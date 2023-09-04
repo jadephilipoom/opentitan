@@ -1,5 +1,4 @@
 .text
-
 /**
  * Constant Time Dilithium polynomial addition
  *

@@ -105,11 +105,26 @@ otbn_library(
 )
 
 otbn_library(
+    name = "verify_base_dilithium",
+    srcs = [
+        "verify_base_dilithium.s",
+    ],
+)
+
+otbn_library(
     name = "poly_dilithium",
     srcs = [
         "poly_dilithium.s",
     ],
 )
+
+otbn_library(
+    name = "poly_base_dilithium",
+    srcs = [
+        "poly_base_dilithium.s",
+    ],
+)
+
 
 otbn_library(
     name = "rounding_dilithium",
@@ -122,5 +137,12 @@ otbn_library(
     name = "sign_dilithium",
     srcs = [
         "sign_dilithium.s",
+    ],
+)
+
+otbn_library(
+    name = "sign_base_dilithium",
+    srcs = [
+        "sign_base_dilithium.s",
     ],
 )
