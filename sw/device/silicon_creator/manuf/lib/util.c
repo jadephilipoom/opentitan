@@ -25,7 +25,7 @@ status_t manuf_util_hash_lc_transition_token(const uint32_t *raw_token,
       .data = (unsigned char *)"LC_CTRL",
       .len = 7,
   };
-  crypto_word_buf_t output = {
+  crypto_word32_buf_t output = {
       .data = hashed_token,
       .len = token_num_words,
   };
