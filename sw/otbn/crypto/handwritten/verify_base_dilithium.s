@@ -408,11 +408,20 @@ verify_base_dilithium:
     li t0, 0
     li t1, 1
 
-    LOOPI 4, 5
-        LOOPI 32, 3
+    LOOPI 4, 8
+        LOOPI 32, 6
             bn.lid    t0, 0(a0)
-            bn.orv.8S w0, bn0, w0 << D
-            bn.sid    t0, 0(a0++)
+            LOOPI 8, 3
+                /* Move the coefficient to target register */ 
+                /* Clear lower 13 bits of next coefficient */
+                bn.rshi w1, bn0, w1 >> 13
+                /* Omit the upper 13 bits when shifting it into the target to 
+                   mimic the left shift by D */
+                bn.rshi w1, w0, w1 >> 19 /* 32 - D = 19 */
+                
+                /* Advance the input register */ 
+                bn.rshi w0, bn0, w0 >> 32
+            bn.sid    t1, 0(a0++)
         nop /* Nested loops must not end on the same instruciton  */
 
     /* NTT(t1) */
