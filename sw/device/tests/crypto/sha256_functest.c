@@ -6,8 +6,10 @@
 #include "sw/device/lib/crypto/include/datatypes.h"
 #include "sw/device/lib/crypto/include/hash.h"
 #include "sw/device/lib/runtime/log.h"
+#include "sw/device/lib/testing/profile.h"
 #include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
+#include "sw/device/tests/crypto/testvectors/random_data.h"
 
 /**
  * Two-block test data.
@@ -60,7 +62,9 @@ static status_t run_test(crypto_const_byte_buf_t msg,
       .data = act_digest,
       .len = kHmacDigestNumWords,
   };
+  uint64_t t_start = profile_start();
   TRY(otcrypto_hash(msg, kHashModeSha256, &digest_buf));
+  profile_end_and_print(t_start, "sha256");
   TRY_CHECK_ARRAYS_EQ(act_digest, exp_digest, kHmacDigestNumWords);
   return OK_STATUS();
 }
@@ -163,6 +167,66 @@ static status_t multiple_update_streaming_test(void) {
   return OK_STATUS();
 }
 
+/**
+ * Test with a long message.
+ *
+ * SHA256(kRandomDataOneKilobyte)
+ *   = 0x655dd1aaf27aa5f252d767704a873338be66aca295c0bf8c204b7255be9af9cd
+ */
+static_assert(sizeof(kRandomDataOneKilobyte) == 1000,
+              "Data length is unexpected");
+static status_t long_test(void) {
+  const uint32_t exp_digest[] = {
+      0xaad15d65, 0xf2a57af2, 0x7067d752, 0x3833874a,
+      0xa2ac66be, 0x8cbfc095, 0x55724b20, 0xcdf99abe,
+  };
+  crypto_const_byte_buf_t msg_buf = {
+      .data = (unsigned char *)kRandomDataOneKilobyte,
+      .len = sizeof(kRandomDataOneKilobyte),
+  };
+  return run_test(msg_buf, exp_digest);
+}
+
+/**
+ * Test streaming API with a long message.
+ *
+ * SHA256(kRandomDataOneKilobyte || kRandomDataOneKilobyte || kRandomDataOneKilobyte)
+ *   = 0x655dd1aaf27aa5f252d767704a873338be66aca295c0bf8c204b7255be9af9cd
+ */
+/*
+static status_t multiple_update_streaming_test(void) {
+  hash_context_t ctx;
+  TRY(otcrypto_hash_init(&ctx, kHashModeSha256));
+
+  // Send 0 bytes, then 1, then 2, etc. until message is done.
+  const unsigned char *next = kTwoBlockMessage;
+  size_t len = kTwoBlockMessageLen;
+  size_t update_size = 0;
+  while (len > 0) {
+    update_size = len <= update_size ? len : update_size;
+    crypto_const_byte_buf_t msg_buf = {
+        .data = next,
+        .len = update_size,
+    };
+    next += update_size;
+    len -= update_size;
+    update_size++;
+    TRY(otcrypto_hash_update(&ctx, msg_buf));
+  }
+  size_t digest_num_words =
+      (sizeof(kTwoBlockExpDigest) + sizeof(uint32_t) - 1) / sizeof(uint32_t);
+  uint32_t act_digest[digest_num_words];
+  crypto_word32_buf_t digest_buf = {
+      .data = act_digest,
+      .len = digest_num_words,
+  };
+  TRY(otcrypto_hash_final(&ctx, &digest_buf));
+  TRY_CHECK_ARRAYS_EQ((unsigned char *)act_digest, kTwoBlockExpDigest,
+                      sizeof(kTwoBlockExpDigest));
+  return OK_STATUS();
+}
+*/
+
 OTTF_DEFINE_TEST_CONFIG();
 
 bool test_main(void) {
@@ -171,5 +235,7 @@ bool test_main(void) {
   EXECUTE_TEST(test_result, empty_test);
   EXECUTE_TEST(test_result, one_update_streaming_test);
   EXECUTE_TEST(test_result, multiple_update_streaming_test);
+  EXECUTE_TEST(test_result, long_test);
+  // EXECUTE_TEST(test_result, long_streaming_test);
   return status_ok(test_result);
 }

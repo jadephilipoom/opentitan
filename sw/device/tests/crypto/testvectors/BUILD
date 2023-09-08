@@ -6,6 +6,11 @@ load("//rules:autogen.bzl", "autogen_cryptotest_hjson_external")
 
 package(default_visibility = ["//visibility:public"])
 
+cc_library(
+  name = "random_data",
+  hdrs = ["random_data.h"]
+)
+
 filegroup(
     name = "ecdsa_p256_verify_testvectors_hardcoded",
     srcs = ["ecdsa_p256_verify_hardcoded.hjson"],

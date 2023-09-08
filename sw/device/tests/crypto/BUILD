@@ -362,9 +362,11 @@ opentitan_functest(
         timeout = "long",
     ),
     deps = [
+        "//sw/device/tests/crypto/testvectors:random_data",
         "//sw/device/lib/crypto/drivers:hmac",
         "//sw/device/lib/crypto/impl:hash",
         "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:profile",
         "//sw/device/lib/testing/test_framework:ottf_main",
     ],
 )
