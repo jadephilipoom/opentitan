@@ -176,44 +176,60 @@ static status_t multiple_update_streaming_test(void) {
 /**
  * Test with a long message.
  *
- * SHA256(kRandomDataOneKilobyte)
- *   = 0x655dd1aaf27aa5f252d767704a873338be66aca295c0bf8c204b7255be9af9cd
+ * SHA256(kRandomDataOneKilobyte * 100)
+ *   = 0xc541271685bcf634c74d3ee033a352c4098eb561ceef7461d52f058f9f71a2fe
  */
-static_assert(sizeof(kRandomDataOneKilobyte) == 1000,
-              "Data length is unexpected");
 static status_t long_test(void) {
   const uint32_t exp_digest[] = {
-      0xaad15d65, 0xf2a57af2, 0x7067d752, 0x3833874a,
-      0xa2ac66be, 0x8cbfc095, 0x55724b20, 0xcdf99abe,
+ 0x162741c5,
+ 0x34f6bc85,
+ 0xe03e4dc7,
+ 0xc452a333,
+ 0x61b58e09,
+ 0x6174efce,
+ 0x8f052fd5,
+ 0xfea2719f,
   };
-  crypto_const_byte_buf_t msg_buf = {
-      .data = (unsigned char *)kRandomDataOneKilobyte,
-      .len = sizeof(kRandomDataOneKilobyte),
+
+  // Repeat the 1kB data to generate a 100kB message.
+  uint32_t msg_data[ARRAYSIZE(kRandomDataOneKilobyte) * 100];
+  for (size_t i = 0; i < 100; i++) {
+    memcpy(&msg_data[ARRAYSIZE(kRandomDataOneKilobyte)*i], kRandomDataOneKilobyte, sizeof(kRandomDataOneKilobyte));
+  }
+  crypto_const_byte_buf_t msg = {
+      .data = (unsigned char *)msg_data,
+      .len = sizeof(msg_data),
   };
-  return run_test(msg_buf, exp_digest);
+  LOG_INFO("Hashing %d bytes of data with the one-shot API.", msg.len);
+  return run_test(msg, exp_digest);
 }
 
 /**
  * Test streaming API with a long message.
  *
- * SHA256(kRandomDataOneKilobyte || kRandomDataOneKilobyte || kRandomDataOneKilobyte)
- *   = 0x6a53a80bced7e3928e7f1607176553f9113e15ac54ed06cf82bd865917940282
+ * SHA256(kRandomDataOneKilobyte * 100)
+ *   = 0xc541271685bcf634c74d3ee033a352c4098eb561ceef7461d52f058f9f71a2fe
  */
 static status_t long_streaming_test(void) {
   const uint32_t exp_digest[] = {
-      0x0ba8536a,
-      0x92e3d7ce,
-      0x07167f8e,
-      0xf9536517,
-      0xac153e11,
-      0xcf06ed54,
-      0x5986bd82,
-      0x82029417,
+ 0x162741c5,
+ 0x34f6bc85,
+ 0xe03e4dc7,
+ 0xc452a333,
+ 0x61b58e09,
+ 0x6174efce,
+ 0x8f052fd5,
+ 0xfea2719f,
   };
-  // Construct message buffer, which will be chained with itself.
-  crypto_const_byte_buf_t msg_buf = {
-      .data = (unsigned char *)kRandomDataOneKilobyte,
-      .len = sizeof(kRandomDataOneKilobyte),
+
+  // Repeat the 1kB data to generate a 100kB message.
+  uint32_t msg_data[ARRAYSIZE(kRandomDataOneKilobyte) * 100];
+  for (size_t i = 0; i < 100; i++) {
+    memcpy(&msg_data[ARRAYSIZE(kRandomDataOneKilobyte)*i], kRandomDataOneKilobyte, sizeof(kRandomDataOneKilobyte));
+  }
+  crypto_const_byte_buf_t msg = {
+      .data = (unsigned char *)msg_data,
+      .len = sizeof(msg_data),
   };
 
   // Prepare a buffer to store the computed digest.
@@ -223,14 +239,13 @@ static status_t long_streaming_test(void) {
       .len = kDigestNumWords,
   };
 
+  LOG_INFO("Hashing %d bytes of data with the streaming API.", msg.len);
   uint64_t t_start = profile_start();
   hash_context_t ctx;
   TRY(otcrypto_hash_init(&ctx, kHashModeSha256));
-  for (size_t i = 0; i < 3; i++) {
-    TRY(otcrypto_hash_update(&ctx, msg_buf));
-  }
+  TRY(otcrypto_hash_update(&ctx, msg));
   TRY(otcrypto_hash_final(&ctx, &digest_buf));
-  profile_end_and_print(t_start, "sha256 3kB streaming");
+  profile_end_and_print(t_start, "sha256 streaming");
 
   TRY_CHECK_ARRAYS_EQ(act_digest, exp_digest, kDigestNumWords);
   return OK_STATUS();
