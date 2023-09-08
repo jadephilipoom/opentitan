@@ -181,20 +181,15 @@ static status_t multiple_update_streaming_test(void) {
  */
 static status_t long_test(void) {
   const uint32_t exp_digest[] = {
- 0x162741c5,
- 0x34f6bc85,
- 0xe03e4dc7,
- 0xc452a333,
- 0x61b58e09,
- 0x6174efce,
- 0x8f052fd5,
- 0xfea2719f,
+      0x162741c5, 0x34f6bc85, 0xe03e4dc7, 0xc452a333,
+      0x61b58e09, 0x6174efce, 0x8f052fd5, 0xfea2719f,
   };
 
   // Repeat the 1kB data to generate a 100kB message.
   uint32_t msg_data[ARRAYSIZE(kRandomDataOneKilobyte) * 100];
   for (size_t i = 0; i < 100; i++) {
-    memcpy(&msg_data[ARRAYSIZE(kRandomDataOneKilobyte)*i], kRandomDataOneKilobyte, sizeof(kRandomDataOneKilobyte));
+    memcpy(&msg_data[ARRAYSIZE(kRandomDataOneKilobyte) * i],
+           kRandomDataOneKilobyte, sizeof(kRandomDataOneKilobyte));
   }
   crypto_const_byte_buf_t msg = {
       .data = (unsigned char *)msg_data,
@@ -212,20 +207,15 @@ static status_t long_test(void) {
  */
 static status_t long_streaming_test(void) {
   const uint32_t exp_digest[] = {
- 0x162741c5,
- 0x34f6bc85,
- 0xe03e4dc7,
- 0xc452a333,
- 0x61b58e09,
- 0x6174efce,
- 0x8f052fd5,
- 0xfea2719f,
+      0x162741c5, 0x34f6bc85, 0xe03e4dc7, 0xc452a333,
+      0x61b58e09, 0x6174efce, 0x8f052fd5, 0xfea2719f,
   };
 
   // Repeat the 1kB data to generate a 100kB message.
   uint32_t msg_data[ARRAYSIZE(kRandomDataOneKilobyte) * 100];
   for (size_t i = 0; i < 100; i++) {
-    memcpy(&msg_data[ARRAYSIZE(kRandomDataOneKilobyte)*i], kRandomDataOneKilobyte, sizeof(kRandomDataOneKilobyte));
+    memcpy(&msg_data[ARRAYSIZE(kRandomDataOneKilobyte) * i],
+           kRandomDataOneKilobyte, sizeof(kRandomDataOneKilobyte));
   }
   crypto_const_byte_buf_t msg = {
       .data = (unsigned char *)msg_data,
