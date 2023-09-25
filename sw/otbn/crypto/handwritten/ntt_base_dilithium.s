@@ -11,6 +11,9 @@
     addi sp, sp, 4     /* Increment stack pointer by 4 bytes */
 .endm
 
+.equ x2, sp
+.equ x3, fp
+
 /**
  * Constant Time Dilithium NTT
  *
@@ -29,6 +32,24 @@
  */
 .globl ntt_base_dilithium
 ntt_base_dilithium:
+    /* 32 byte align the sp */
+    andi x6, sp, 31
+    beq  x6, zero, _aligned
+    sub  sp, sp, x6
+_aligned:
+    push x6
+    addi sp, sp, -28
+    /* save fp to stack */
+    addi sp, sp, -32
+    sw   fp, 0(sp)
+
+    addi fp, sp, 0
+    
+    /* Adjust sp to accomodate local variables */
+    addi sp, sp, -32
+
+    /* Reserve space for tmp buffer to hold a WDR */
+    #define STACK_WDR2GPR -32
 
     /* Save callee-saved registers */
     .irp reg,s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11
@@ -36,14 +57,6 @@ ntt_base_dilithium:
     .endr
 
     /* Set up constants for input/state */
-    li x4, 0
-    li x5, 1
-    li x6, 2
-    li x7, 3
-    li x8, 4
-    li x9, 5
-    li x13, 6
-    li x14, 7
     li x15, 8
     li x16, 9
     li x17, 10
@@ -57,10 +70,12 @@ ntt_base_dilithium:
     li x23, 16
     li x24, 17
 
-    /* w16 <= 0xFFFFFFFF for masking */
-    bn.addi w16, bn0, 1
-    bn.rshi w16, w16, bn0 >> 224
-    bn.subi w16, w16, 1 
+    /* w18 <= 0xFFFFFFFF for masking */
+    bn.xor w31, w31, w31 /* TODO remove */
+    bn.addi w18, w31, 1
+    bn.rshi w18, w18, w31 >> 224
+    bn.subi w18, w18, 1 
+    #define mask w18
 
     /* Load twiddle factors for layers 1--4 */
     bn.lid x23, 0(x11)
@@ -74,6 +89,7 @@ ntt_base_dilithium:
     #define coeff5 w5
     #define coeff6 w6
     #define coeff7 w7
+
     #define coeff8 w8
     #define coeff9 w9
     #define coeff10 w10
@@ -82,6 +98,24 @@ ntt_base_dilithium:
     #define coeff13 w13
     #define coeff14 w14
     #define coeff15 w15
+
+    #define coeff8_idx x15
+    #define coeff9_idx x16
+    #define coeff10_idx x17
+    #define coeff11_idx x18
+    #define coeff12_idx x19
+    #define coeff13_idx x20
+    #define coeff14_idx x21
+    #define coeff15_idx x22
+
+    li coeff8_idx, 8
+    li coeff9_idx, 9
+    li coeff10_idx, 10
+    li coeff11_idx, 11
+    li coeff12_idx, 12
+    li coeff13_idx, 13
+    li coeff14_idx, 14
+    li coeff15_idx, 15
 
     #define buf0 w31
     #define buf1 w30
@@ -92,59 +126,88 @@ ntt_base_dilithium:
     #define buf6 w25
     #define buf7 w24
 
+    #define buf0_idx x4
+    #define buf1_idx x5
+    #define buf2_idx x6
+    #define buf3_idx x7
+    #define buf4_idx x8
+    #define buf5_idx x9
+    #define buf6_idx x13
+    #define buf7_idx x14
+
     #define wtmp w23
     #define tf1 w16
     #define tf2 w17
 
+    #define inp x10
+    #define outp x12
+
+    #define tmp_gpr x25
+
+    li buf0_idx, 31
+    li buf1_idx, 30
+    li buf2_idx, 29
+    li buf3_idx, 28
+    li buf4_idx, 27
+    li buf5_idx, 26
+    li buf6_idx, 25
+    li buf7_idx, 24
+
     /* We can process 16 coefficients each iteration and need to process N=256, meaning we require 16 iterations. */
-    LOOP 2, X
+    LOOPI 2, 179
         /* Load coefficients into buffer registers */
-        bn.lid buf0, 0(addr)
-        bn.lid buf1, 64(addr)
-        bn.lid buf2, 128(addr)
-        bn.lid buf3, 192(addr)
-        bn.lid buf4, 256(addr)
-        bn.lid buf5, 320(addr)
-        bn.lid buf6, 384(addr)
-        bn.lid buf7, 448(addr)
-        LOOP 8, Y
+        bn.lid buf0_idx, 0(inp)
+        bn.lid buf1_idx, 64(inp)
+        bn.lid buf2_idx, 128(inp)
+        bn.lid buf3_idx, 192(inp)
+        bn.lid buf4_idx, 256(inp)
+        bn.lid buf5_idx, 320(inp)
+        bn.lid buf6_idx, 384(inp)
+        bn.lid buf7_idx, 448(inp)
+        LOOPI 8, 162
             /* Extract coefficients from buffer registers into working state */
-            .irp idx,0,1,2,3,4,5,6,7
-                bn.and coeff\idx, buf\idx, mask
-            .endr
+            bn.and coeff0, buf0, mask
+            bn.and coeff1, buf1, mask
+            bn.and coeff2, buf2, mask
+            bn.and coeff3, buf3, mask
+            bn.and coeff4, buf4, mask
+            bn.and coeff5, buf5, mask
+            bn.and coeff6, buf6, mask
+            bn.and coeff7, buf7, mask
+
             /* Load remaining coefficients using 32-bit loads */
             /* Coeff 8 */
-            lw t0, 512(addr)
-            sw t0, 0(STACK_GPR2WDR)
-            bn.lid coeff8, 0(STACK_GPR2WDR)
+            lw tmp_gpr, 512(inp)
+            sw tmp_gpr, STACK_WDR2GPR(fp)
+            bn.lid coeff8_idx, STACK_WDR2GPR(fp)
             /* Coeff 9 */
-            lw t0, 576(addr)
-            sw t0, 0(STACK_GPR2WDR)
-            bn.lid coeff9, 0(STACK_GPR2WDR)
+            lw tmp_gpr, 576(inp)
+            sw tmp_gpr, STACK_WDR2GPR(fp)
+            bn.lid coeff9_idx, STACK_WDR2GPR(fp)
             /* Coeff 10 */
-            lw t0, 640(addr)
-            sw t0, 0(STACK_GPR2WDR)
-            bn.lid coeff10, 0(STACK_GPR2WDR)
+            lw tmp_gpr, 640(inp)
+            sw tmp_gpr, STACK_WDR2GPR(fp)
+            bn.lid coeff10_idx, STACK_WDR2GPR(fp)
             /* Coeff 11 */
-            lw t0, 704(addr)
-            sw t0, 0(STACK_GPR2WDR)
-            bn.lid coeff11, 0(STACK_GPR2WDR)
+            lw tmp_gpr, 704(inp)
+            sw tmp_gpr, STACK_WDR2GPR(fp)
+            bn.lid coeff11_idx, STACK_WDR2GPR(fp)
             /* Coeff 12 */
-            lw t0, 768(addr)
-            sw t0, 0(STACK_GPR2WDR)
-            bn.lid coeff12, 0(STACK_GPR2WDR)
+            lw tmp_gpr, 768(inp)
+            sw tmp_gpr, STACK_WDR2GPR(fp)
+            bn.lid coeff12_idx, STACK_WDR2GPR(fp)
             /* Coeff 13 */
-            lw t0, 832(addr)
-            sw t0, 0(STACK_GPR2WDR)
-            bn.lid coeff13, 0(STACK_GPR2WDR)
+            lw tmp_gpr, 832(inp)
+            sw tmp_gpr, STACK_WDR2GPR(fp)
+            bn.lid coeff13_idx, STACK_WDR2GPR(fp)
             /* Coeff 14 */
-            lw t0, 896(addr)
-            sw t0, 0(STACK_GPR2WDR)
-            bn.lid coeff14, 0(STACK_GPR2WDR)
+            lw tmp_gpr, 896(inp)
+            sw tmp_gpr, STACK_WDR2GPR(fp)
+            bn.lid coeff14_idx, STACK_WDR2GPR(fp)
             /* Coeff 15 */
-            lw t0, 960(addr)
-            sw t0, 0(STACK_GPR2WDR)
-            bn.lid coeff15, 0(STACK_GPR2WDR)
+            lw tmp_gpr, 960(inp)
+            sw tmp_gpr, STACK_WDR2GPR(fp)
+            bn.lid coeff15_idx, STACK_WDR2GPR(fp)
 
             
             /* Layer 1, stride 128 */
@@ -257,58 +320,65 @@ ntt_base_dilithium:
 
 
             /* Shift result values into the top of buffer registers */
-            .irp idx,0,1,2,3,4,5,6,7
-                bn.rshi buf\idx, coeff\idx, buf\idx >> 32 /* implicitly removes the old value */
-            .endr
+            /* implicitly removes the old value */
+            bn.rshi buf0, coeff0, buf0 >> 32
+            bn.rshi buf1, coeff1, buf1 >> 32
+            bn.rshi buf2, coeff2, buf2 >> 32
+            bn.rshi buf3, coeff3, buf3 >> 32
+            bn.rshi buf4, coeff4, buf4 >> 32
+            bn.rshi buf5, coeff5, buf5 >> 32
+            bn.rshi buf6, coeff6, buf6 >> 32
+            bn.rshi buf7, coeff7, buf7 >> 32
 
             /* Store unbuffered values */
             /* Coeff8 */
-            bn.sid coeff8, 0(STACK_GPR2WDR)
-            lw t0, 0(STACK_GPR2WDR)
-            sw t0, 512(addr)
+            bn.sid coeff8_idx, STACK_WDR2GPR(fp)
+            lw tmp_gpr, STACK_WDR2GPR(fp)
+            sw tmp_gpr, 512(outp)
             /* Coeff9 */
-            bn.sid coeff9, 0(STACK_GPR2WDR)
-            lw t0, 0(STACK_GPR2WDR)
-            sw t0, 576(addr)
+            bn.sid coeff9_idx, STACK_WDR2GPR(fp)
+            lw tmp_gpr, STACK_WDR2GPR(fp)
+            sw tmp_gpr, 576(outp)
             /* Coeff10 */
-            bn.sid coeff10, 0(STACK_GPR2WDR)
-            lw t0, 0(STACK_GPR2WDR)
-            sw t0, 640(addr)
+            bn.sid coeff10_idx, STACK_WDR2GPR(fp)
+            lw tmp_gpr, STACK_WDR2GPR(fp)
+            sw tmp_gpr, 640(outp)
             /* Coeff11 */
-            bn.sid coeff11, 0(STACK_GPR2WDR)
-            lw t0, 0(STACK_GPR2WDR)
-            sw t0, 704(addr)
+            bn.sid coeff11_idx, STACK_WDR2GPR(fp)
+            lw tmp_gpr, STACK_WDR2GPR(fp)
+            sw tmp_gpr, 704(outp)
             /* Coeff12 */
-            bn.sid coeff12, 0(STACK_GPR2WDR)
-            lw t0, 0(STACK_GPR2WDR)
-            sw t0, 768(addr)
+            bn.sid coeff12_idx, STACK_WDR2GPR(fp)
+            lw tmp_gpr, STACK_WDR2GPR(fp)
+            sw tmp_gpr, 768(outp)
             /* Coeff13 */
-            bn.sid coeff13, 0(STACK_GPR2WDR)
-            lw t0, 0(STACK_GPR2WDR)
-            sw t0, 832(addr)
+            bn.sid coeff13_idx, STACK_WDR2GPR(fp)
+            lw tmp_gpr, STACK_WDR2GPR(fp)
+            sw tmp_gpr, 832(outp)
             /* Coeff14 */
-            bn.sid coeff14, 0(STACK_GPR2WDR)
-            lw t0, 0(STACK_GPR2WDR)
-            sw t0, 896(addr)
+            bn.sid coeff14_idx, STACK_WDR2GPR(fp)
+            lw tmp_gpr, STACK_WDR2GPR(fp)
+            sw tmp_gpr, 896(outp)
             /* Coeff15 */
-            bn.sid coeff15, 0(STACK_GPR2WDR)
-            lw t0, 0(STACK_GPR2WDR)
-            sw t0, 960(addr)
+            bn.sid coeff15_idx, STACK_WDR2GPR(fp)
+            lw tmp_gpr, STACK_WDR2GPR(fp)
+            sw tmp_gpr, 960(outp)
             
             /* Go to next coefficient for the unbuffered loads/stores */
-            addi addr, addr, 4
+            addi inp, inp, 4
+            addi outp, outp, 4
             /* Inner Loop End */
 
-            /* Subtract 32 from offset to account for the increment inside the LOOP 8 */
-            bn.sid buf0, -64(addr)
-            bn.sid buf1, 0(addr)
-            bn.sid buf2, 64(addr)
-            bn.sid buf3, 128(addr)
-            bn.sid buf4, 192(addr)
-            bn.sid buf5, 256(addr)
-            bn.sid buf6, 320(addr)
-            bn.sid buf7, 384(addr)
-            /* Outer Loop End */
+        /* Subtract 32 from offset to account for the increment inside the LOOP 8 */
+        bn.sid buf0_idx, -32(outp)
+        bn.sid buf1_idx, 32(outp)
+        bn.sid buf2_idx, 96(outp)
+        bn.sid buf3_idx, 160(outp)
+        bn.sid buf4_idx, 224(outp)
+        bn.sid buf5_idx, 288(outp)
+        bn.sid buf6_idx, 352(outp)
+        bn.sid buf7_idx, 416(outp)
+        /* Outer Loop End */
     
     /* Restore input pointer */
     addi x10, x10, -64
@@ -321,168 +391,176 @@ ntt_base_dilithium:
     /* Constants for twiddle factors */
     li x25, 18
 
-LOOPI 2
-	LOOPI 2
-		/* Load layer 5 twiddles */
+    LOOPI 16, 134
+        /* Load layer 5 twiddle + 2 layer 6 twiddles + 4 layer 7 twiddles + padding */
         bn.lid x23, 0(x11++)
-		LOOPI 2
-			/* Load layer 6 twiddles */
-            bn.lid x24, 0(x11++)
-			LOOPI 2
-                /* Load layer 7 twiddles */
-                bn.lid x25, 0(x11++)
+        /* Load layer 8 layer 8 twiddles */
+        bn.lid x24, 0(x11++)
 
-				/* Load Data */
-				bn.lid buf0, 0(addr)
-				bn.and  coeff0, mask, buf0 >> 0
-				bn.and  coeff1, mask, buf0 >> 32
-				bn.and  coeff2, mask, buf0 >> 64
-				bn.and  coeff3, mask, buf0 >> 96
-				bn.and  coeff4, mask, buf0 >> 128
-				bn.and  coeff5, mask, buf0 >> 160
-				bn.and  coeff6, mask, buf0 >> 192
-				bn.and  coeff7, mask, buf0 >> 224
+        /* Load Data */
+        bn.lid buf0_idx, 0(outp)
+        bn.and  coeff0, mask, buf0 >> 0
+        bn.and  coeff1, mask, buf0 >> 32
+        bn.and  coeff2, mask, buf0 >> 64
+        bn.and  coeff3, mask, buf0 >> 96
+        bn.and  coeff4, mask, buf0 >> 128
+        bn.and  coeff5, mask, buf0 >> 160
+        bn.and  coeff6, mask, buf0 >> 192
+        bn.and  coeff7, mask, buf0 >> 224
 
-				bn.lid buf0, 32(addr)
-				bn.and  coeff8, mask, buf0 >> 0
-				bn.and  coeff9, mask, buf0 >> 32
-				bn.and  coeff10, mask, buf0 >> 64
-				bn.and  coeff11, mask, buf0 >> 96
-				bn.and  coeff12, mask, buf0 >> 128
-				bn.and  coeff13, mask, buf0 >> 160
-				bn.and  coeff14, mask, buf0 >> 192
-				bn.and  coeff15, mask, buf0 >> 224
+        bn.lid buf0_idx, 32(outp)
+        bn.and  coeff8, mask, buf0 >> 0
+        bn.and  coeff9, mask, buf0 >> 32
+        bn.and  coeff10, mask, buf0 >> 64
+        bn.and  coeff11, mask, buf0 >> 96
+        bn.and  coeff12, mask, buf0 >> 128
+        bn.and  coeff13, mask, buf0 >> 160
+        bn.and  coeff14, mask, buf0 >> 192
+        bn.and  coeff15, mask, buf0 >> 224
 
-				/* Layer 5, stride 8 */
-                /* Butterflies */
-                bn.mulvm.l.8S wtmp, coeff1, tf1, 0
-                bn.subvm.8S   coeff1, coeff0, wtmp
-                bn.addvm.8S   coeff0, coeff0, wtmp
-                bn.mulvm.l.8S wtmp, coeff3, tf1, 1
-                bn.subvm.8S   coeff3, coeff2, wtmp
-                bn.addvm.8S   coeff2, coeff2, wtmp
-                bn.mulvm.l.8S wtmp, coeff5, tf1, 2
-                bn.subvm.8S   coeff5, coeff4, wtmp
-                bn.addvm.8S   coeff4, coeff4, wtmp
-                bn.mulvm.l.8S wtmp, coeff7, tf1, 3
-                bn.subvm.8S   coeff7, coeff6, wtmp
-                bn.addvm.8S   coeff6, coeff6, wtmp
-                bn.mulvm.l.8S wtmp, coeff9, tf1, 4
-                bn.subvm.8S   coeff9, coeff8, wtmp
-                bn.addvm.8S   coeff8, coeff8, wtmp
-                bn.mulvm.l.8S wtmp, coeff11, tf1, 5
-                bn.subvm.8S   coeff11, coeff10, wtmp
-                bn.addvm.8S   coeff10, coeff10, wtmp
-                bn.mulvm.l.8S wtmp, coeff13, tf1, 6
-                bn.subvm.8S   coeff13, coeff12, wtmp
-                bn.addvm.8S   coeff12, coeff12, wtmp
-                bn.mulvm.l.8S wtmp, coeff15, tf1, 7
-                bn.subvm.8S   coeff15, coeff14, wtmp
-                bn.addvm.8S   coeff14, coeff14, wtmp            
+        /* Layer 5, stride 8 */
+        /* Butterflies */
+        bn.mulvm.l.8S wtmp, coeff8, tf1, 0
+        bn.subvm.8S   coeff8, coeff0, wtmp
+        bn.addvm.8S   coeff0, coeff0, wtmp
+        bn.mulvm.l.8S wtmp, coeff9, tf1, 0
+        bn.subvm.8S   coeff9, coeff1, wtmp
+        bn.addvm.8S   coeff1, coeff1, wtmp
+        bn.mulvm.l.8S wtmp, coeff10, tf1, 0
+        bn.subvm.8S   coeff10, coeff2, wtmp
+        bn.addvm.8S   coeff2, coeff2, wtmp
+        bn.mulvm.l.8S wtmp, coeff11, tf1, 0
+        bn.subvm.8S   coeff11, coeff3, wtmp
+        bn.addvm.8S   coeff3, coeff3, wtmp
+        bn.mulvm.l.8S wtmp, coeff12, tf1, 0
+        bn.subvm.8S   coeff12, coeff4, wtmp
+        bn.addvm.8S   coeff4, coeff4, wtmp
+        bn.mulvm.l.8S wtmp, coeff13, tf1, 0
+        bn.subvm.8S   coeff13, coeff5, wtmp
+        bn.addvm.8S   coeff5, coeff5, wtmp
+        bn.mulvm.l.8S wtmp, coeff14, tf1, 0
+        bn.subvm.8S   coeff14, coeff6, wtmp
+        bn.addvm.8S   coeff6, coeff6, wtmp
+        bn.mulvm.l.8S wtmp, coeff15, tf1, 0
+        bn.subvm.8S   coeff15, coeff7, wtmp
+        bn.addvm.8S   coeff7, coeff7, wtmp    
 
-                /* Layer 6, stride 4 */
-                /* Butterflies */
-                bn.mulvm.8S wtmp, coeff4, tf1, 0
-                bn.subvm.8S coeff4, coeff0, wtmp
-                bn.addvm.8S coeff0, coeff0, wtmp
-                bn.mulvm.8S wtmp, coeff5, tf1, 0
-                bn.subvm.8S coeff5, coeff1, wtmp
-                bn.addvm.8S coeff1, coeff1, wtmp
-                bn.mulvm.8S wtmp, coeff6, tf1, 0
-                bn.subvm.8S coeff6, coeff2, wtmp
-                bn.addvm.8S coeff2, coeff2, wtmp
-                bn.mulvm.8S wtmp, coeff7, tf1, 0
-                bn.subvm.8S coeff7, coeff3, wtmp
-                bn.addvm.8S coeff3, coeff3, wtmp
-                bn.mulvm.8S wtmp, coeff12, tf2, 0
-                bn.subvm.8S coeff12, coeff8, wtmp
-                bn.addvm.8S coeff8, coeff8, wtmp
-                bn.mulvm.8S wtmp, coeff13, tf2, 0
-                bn.subvm.8S coeff13, coeff9, wtmp
-                bn.addvm.8S coeff9, coeff9, wtmp
-                bn.mulvm.8S wtmp, coeff14, tf2, 0
-                bn.subvm.8S coeff14, coeff10, wtmp
-                bn.addvm.8S coeff10, coeff10, wtmp
-                bn.mulvm.8S wtmp, coeff15, tf2, 0
-                bn.subvm.8S coeff15, coeff11, wtmp
-                bn.addvm.8S coeff11, coeff11, wtmp
+        /* Layer 6, stride 4 */
+        /* Butterflies */
+        bn.mulvm.l.8S wtmp, coeff4, tf1, 1
+        bn.subvm.8S coeff4, coeff0, wtmp
+        bn.addvm.8S coeff0, coeff0, wtmp
+        bn.mulvm.l.8S wtmp, coeff5, tf1, 1
+        bn.subvm.8S coeff5, coeff1, wtmp
+        bn.addvm.8S coeff1, coeff1, wtmp
+        bn.mulvm.l.8S wtmp, coeff6, tf1, 1
+        bn.subvm.8S coeff6, coeff2, wtmp
+        bn.addvm.8S coeff2, coeff2, wtmp
+        bn.mulvm.l.8S wtmp, coeff7, tf1, 1
+        bn.subvm.8S coeff7, coeff3, wtmp
+        bn.addvm.8S coeff3, coeff3, wtmp
+        bn.mulvm.l.8S wtmp, coeff12, tf1, 2
+        bn.subvm.8S coeff12, coeff8, wtmp
+        bn.addvm.8S coeff8, coeff8, wtmp
+        bn.mulvm.l.8S wtmp, coeff13, tf1, 2
+        bn.subvm.8S coeff13, coeff9, wtmp
+        bn.addvm.8S coeff9, coeff9, wtmp
+        bn.mulvm.l.8S wtmp, coeff14, tf1, 2
+        bn.subvm.8S coeff14, coeff10, wtmp
+        bn.addvm.8S coeff10, coeff10, wtmp
+        bn.mulvm.l.8S wtmp, coeff15, tf1, 2
+        bn.subvm.8S coeff15, coeff11, wtmp
+        bn.addvm.8S coeff11, coeff11, wtmp
 
-                /* Layer 7, stride 2 */
-                /* Butterflies */
-                bn.mulvm.8S wtmp, coeff2, tf1, 0
-                bn.subvm.8S coeff2, coeff0, wtmp
-                bn.addvm.8S coeff0, coeff0, wtmp
-                bn.mulvm.8S wtmp, coeff3, tf1, 0
-                bn.subvm.8S coeff3, coeff1, wtmp
-                bn.addvm.8S coeff1, coeff1, wtmp
-                bn.mulvm.8S wtmp, coeff6, tf2, 0
-                bn.subvm.8S coeff6, coeff4, wtmp
-                bn.addvm.8S coeff4, coeff4, wtmp
-                bn.mulvm.8S wtmp, coeff7, tf2, 0
-                bn.subvm.8S coeff7, coeff5, wtmp
-                bn.addvm.8S coeff5, coeff5, wtmp
-                bn.mulvm.8S wtmp, coeff10, tf3, 0
-                bn.subvm.8S coeff10, coeff8, wtmp
-                bn.addvm.8S coeff8, coeff8, wtmp
-                bn.mulvm.8S wtmp, coeff11, tf3, 0
-                bn.subvm.8S coeff11, coeff9, wtmp
-                bn.addvm.8S coeff9, coeff9, wtmp
-                bn.mulvm.8S wtmp, coeff14, tf4, 0
-                bn.subvm.8S coeff14, coeff12, wtmp
-                bn.addvm.8S coeff12, coeff12, wtmp
-                bn.mulvm.8S wtmp, coeff15, tf4, 0
-                bn.subvm.8S coeff15, coeff13, wtmp
-                bn.addvm.8S coeff13, coeff13, wtmp
+        /* Layer 7, stride 2 */
+        /* Butterflies */
+        bn.mulvm.l.8S wtmp, coeff2, tf1, 3
+        bn.subvm.8S coeff2, coeff0, wtmp
+        bn.addvm.8S coeff0, coeff0, wtmp
+        bn.mulvm.l.8S wtmp, coeff3, tf1, 3
+        bn.subvm.8S coeff3, coeff1, wtmp
+        bn.addvm.8S coeff1, coeff1, wtmp
+        bn.mulvm.l.8S wtmp, coeff6, tf1, 4
+        bn.subvm.8S coeff6, coeff4, wtmp
+        bn.addvm.8S coeff4, coeff4, wtmp
+        bn.mulvm.l.8S wtmp, coeff7, tf1, 4
+        bn.subvm.8S coeff7, coeff5, wtmp
+        bn.addvm.8S coeff5, coeff5, wtmp
+        bn.mulvm.l.8S wtmp, coeff10, tf1, 5
+        bn.subvm.8S coeff10, coeff8, wtmp
+        bn.addvm.8S coeff8, coeff8, wtmp
+        bn.mulvm.l.8S wtmp, coeff11, tf1, 5
+        bn.subvm.8S coeff11, coeff9, wtmp
+        bn.addvm.8S coeff9, coeff9, wtmp
+        bn.mulvm.l.8S wtmp, coeff14, tf1, 6
+        bn.subvm.8S coeff14, coeff12, wtmp
+        bn.addvm.8S coeff12, coeff12, wtmp
+        bn.mulvm.l.8S wtmp, coeff15, tf1, 6
+        bn.subvm.8S coeff15, coeff13, wtmp
+        bn.addvm.8S coeff13, coeff13, wtmp
 
-                /* Layer 8, stride 1 */
+        /* Layer 8, stride 1 */
 
-                /* Butterflies */
-                /* Load layer 8 tcoeffiddles - Part 1 */
-                bn.lid x25, 0(x11++)
-                bn.mulvm.8S wtmp, coeff1, tf1, 0
-                bn.subvm.8S coeff1, coeff0, wtmp
-                bn.addvm.8S coeff0, coeff0, wtmp
-                bn.mulvm.8S wtmp, coeff3, tf2, 0
-                bn.subvm.8S coeff3, coeff2, wtmp
-                bn.addvm.8S coeff2, coeff2, wtmp
-                bn.mulvm.8S wtmp, coeff5, tf3, 0
-                bn.subvm.8S coeff5, coeff4, wtmp
-                bn.addvm.8S coeff4, coeff4, wtmp
-                bn.mulvm.8S wtmp, coeff7, tf4, 0
-                bn.subvm.8S coeff7, coeff6, wtmp
-                bn.addvm.8S coeff6, coeff6, wtmp
-                /* Load layer 8 tcoeffiddles - Part 2 */
-                bn.lid x25, 0(x11++)
-                bn.mulvm.8S wtmp, coeff9, tf5, 0
-                bn.subvm.8S coeff9, coeff8, wtmp
-                bn.addvm.8S coeff8, coeff8, wtmp
-                bn.mulvm.8S wtmp, coeff11, tf6, 0
-                bn.subvm.8S coeff11, coeff10, wtmp
-                bn.addvm.8S coeff10, coeff10, wtmp
-                bn.mulvm.8S wtmp, coeff13, tf7, 0
-                bn.subvm.8S coeff13, coeff12, wtmp
-                bn.addvm.8S coeff12, coeff12, wtmp
-                bn.mulvm.8S wtmp, coeff15, tf8, 0
-                bn.subvm.8S coeff15, coeff14, wtmp
-                bn.addvm.8S coeff14, coeff14, wtmp
+        /* Butterflies */
+        bn.mulvm.l.8S wtmp, coeff1, tf1, 7
+        bn.subvm.8S coeff1, coeff0, wtmp
+        bn.addvm.8S coeff0, coeff0, wtmp
+        bn.mulvm.l.8S wtmp, coeff3, tf2, 0
+        bn.subvm.8S coeff3, coeff2, wtmp
+        bn.addvm.8S coeff2, coeff2, wtmp
+        bn.mulvm.l.8S wtmp, coeff5, tf2, 1
+        bn.subvm.8S coeff5, coeff4, wtmp
+        bn.addvm.8S coeff4, coeff4, wtmp
+        bn.mulvm.l.8S wtmp, coeff7, tf2, 2
+        bn.subvm.8S coeff7, coeff6, wtmp
+        bn.addvm.8S coeff6, coeff6, wtmp
+        bn.mulvm.l.8S wtmp, coeff9, tf2, 3
+        bn.subvm.8S coeff9, coeff8, wtmp
+        bn.addvm.8S coeff8, coeff8, wtmp
+        bn.mulvm.l.8S wtmp, coeff11, tf2, 4
+        bn.subvm.8S coeff11, coeff10, wtmp
+        bn.addvm.8S coeff10, coeff10, wtmp
+        bn.mulvm.l.8S wtmp, coeff13, tf2, 5
+        bn.subvm.8S coeff13, coeff12, wtmp
+        bn.addvm.8S coeff12, coeff12, wtmp
+        bn.mulvm.l.8S wtmp, coeff15, tf2, 6
+        bn.subvm.8S coeff15, coeff14, wtmp
+        bn.addvm.8S coeff14, coeff14, wtmp
 
-				/* Reassemble WDRs and store */
-				.irp idx,0,1,2,3,4,5,6,7
-					bn.rshi buf0, coeff\idx, buf0 >> 32
-				.endr
-				bn.sid buf0, 0(addr++)
-                
-				.irp idx,8,9,10,11,12,13,14,15
-					bn.rshi buf0, coeff\idx, buf0 >> 32
-				.endr
-				bn.sid buf0, 0(addr++)
-
-            
-
+        /* Reassemble WDRs and store */
+        bn.rshi buf0, coeff0, buf0 >> 32
+        bn.rshi buf0, coeff1, buf0 >> 32
+        bn.rshi buf0, coeff2, buf0 >> 32
+        bn.rshi buf0, coeff3, buf0 >> 32
+        bn.rshi buf0, coeff4, buf0 >> 32
+        bn.rshi buf0, coeff5, buf0 >> 32
+        bn.rshi buf0, coeff6, buf0 >> 32
+        bn.rshi buf0, coeff7, buf0 >> 32
+        bn.sid buf0_idx, 0(outp++)
+        
+        bn.rshi buf0, coeff8, buf0 >> 32
+        bn.rshi buf0, coeff9, buf0 >> 32
+        bn.rshi buf0, coeff10, buf0 >> 32
+        bn.rshi buf0, coeff11, buf0 >> 32
+        bn.rshi buf0, coeff12, buf0 >> 32
+        bn.rshi buf0, coeff13, buf0 >> 32
+        bn.rshi buf0, coeff14, buf0 >> 32
+        bn.rshi buf0, coeff15, buf0 >> 32
+        bn.sid buf0_idx, 0(outp++)
 
     .irp reg,s11,s10,s9,s8,s7,s6,s5,s4,s3,s2,s1,s0
         pop \reg
     .endr
+    
+    /* sp <- fp */
+    addi sp, fp, 0
+    /* Pop ebp */
+    lw fp, 0(sp)
+    addi sp, sp, 32
+
+    add sp, sp, 28
+    pop x6
+    add sp, sp, x6
 
     /* Zero w31 again */
     bn.xor w31, w31, w31

@@ -581,6 +581,17 @@ otbn_sim_test(
 )
 
 otbn_sim_test(
+    name = "ntt_base_dilithium_test",
+    srcs = [
+        "ntt_base_dilithium_test.s",
+    ],
+    exp = "ntt_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:ntt_base_dilithium",
+    ],
+)
+
+otbn_sim_test(
     name = "intt_dilithium_test",
     srcs = [
         "intt_dilithium_test.s",
@@ -706,6 +717,7 @@ otbn_sim_test(
     deps = [
         "//sw/otbn/crypto/handwritten:key_pair_base_dilithium",
         "//sw/otbn/crypto/handwritten:ntt_dilithium",
+        "//sw/otbn/crypto/handwritten:ntt_base_dilithium",
         "//sw/otbn/crypto/handwritten:intt_dilithium",
         "//sw/otbn/crypto/handwritten:poly_pointwise_dilithium",
         "//sw/otbn/crypto/handwritten:poly_reduce32_dilithium",
@@ -747,6 +759,7 @@ otbn_sim_test(
     deps = [
         "//sw/otbn/crypto/handwritten:verify_base_dilithium",
         "//sw/otbn/crypto/handwritten:ntt_dilithium",
+        "//sw/otbn/crypto/handwritten:ntt_base_dilithium",
         "//sw/otbn/crypto/handwritten:intt_dilithium",
         "//sw/otbn/crypto/handwritten:poly_pointwise_dilithium",
         "//sw/otbn/crypto/handwritten:poly_reduce32_dilithium",
@@ -790,6 +803,7 @@ otbn_sim_test(
     deps = [
         "//sw/otbn/crypto/handwritten:sign_base_dilithium",
         "//sw/otbn/crypto/handwritten:ntt_dilithium",
+        "//sw/otbn/crypto/handwritten:ntt_base_dilithium",
         "//sw/otbn/crypto/handwritten:intt_dilithium",
         "//sw/otbn/crypto/handwritten:poly_pointwise_dilithium",
         "//sw/otbn/crypto/handwritten:poly_reduce32_dilithium",
