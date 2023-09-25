@@ -55,31 +55,6 @@ _aligned:
     .irp reg,s0,s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11
         push \reg
     .endr
-
-    /* Set up constants for input/state */
-    li x15, 8
-    li x16, 9
-    li x17, 10
-    li x18, 11
-    li x19, 12
-    li x20, 13
-    li x21, 14
-    li x22, 15
-
-    /* Set up constants for input/twiddle factors */
-    li x23, 16
-    li x24, 17
-
-    /* w18 <= 0xFFFFFFFF for masking */
-    bn.xor w31, w31, w31 /* TODO remove */
-    bn.addi w18, w31, 1
-    bn.rshi w18, w18, w31 >> 224
-    bn.subi w18, w18, 1 
-    #define mask w18
-
-    /* Load twiddle factors for layers 1--4 */
-    bn.lid x23, 0(x11)
-    bn.lid x24, 32(x11)
     
     #define coeff0 w0
     #define coeff1 w1
@@ -99,24 +74,6 @@ _aligned:
     #define coeff14 w14
     #define coeff15 w15
 
-    #define coeff8_idx x15
-    #define coeff9_idx x16
-    #define coeff10_idx x17
-    #define coeff11_idx x18
-    #define coeff12_idx x19
-    #define coeff13_idx x20
-    #define coeff14_idx x21
-    #define coeff15_idx x22
-
-    li coeff8_idx, 8
-    li coeff9_idx, 9
-    li coeff10_idx, 10
-    li coeff11_idx, 11
-    li coeff12_idx, 12
-    li coeff13_idx, 13
-    li coeff14_idx, 14
-    li coeff15_idx, 15
-
     #define buf0 w31
     #define buf1 w30
     #define buf2 w29
@@ -126,6 +83,17 @@ _aligned:
     #define buf6 w25
     #define buf7 w24
 
+    /* Twiddle Factors */
+    #define tf1 w16
+    #define tf2 w17
+    #define tf3 w18
+    #define tf4 w19
+
+    /* Other */
+    #define mask w22
+    #define wtmp w23
+
+    /* GPRs with indices to access WDRs */
     #define buf0_idx x4
     #define buf1_idx x5
     #define buf2_idx x6
@@ -134,15 +102,48 @@ _aligned:
     #define buf5_idx x9
     #define buf6_idx x13
     #define buf7_idx x14
-
-    #define wtmp w23
-    #define tf1 w16
-    #define tf2 w17
-
     #define inp x10
+    #define twp x11
     #define outp x12
+    #define coeff8_idx x15
+    #define coeff9_idx x16
+    #define coeff10_idx x17
+    #define coeff11_idx x18
+    #define coeff12_idx x19
+    #define coeff13_idx x20
+    #define coeff14_idx x21
+    #define coeff15_idx x22
+    #define tf1_idx x23
+    #define tf2_idx x24
+    #define tf3_idx x25
+    #define tf4_idx x26
+    #define tmp_gpr x27
 
-    #define tmp_gpr x25
+    /* Set up constants for input/twiddle factors */
+    li tf1_idx, 16
+    li tf2_idx, 17
+    li tf3_idx, 18
+    li tf4_idx, 19
+
+    /* Load twiddle factors for layers 1--4 */
+    bn.lid tf1_idx, 0(twp)
+    bn.lid tf2_idx, 32(twp)
+    bn.lid tf3_idx, 64(twp)
+    bn.lid tf4_idx, 96(twp)
+
+    /* w18 <= 0xFFFFFFFF for masking */
+    bn.addi mask, w31, 1
+    bn.rshi mask, mask, w31 >> 224
+    bn.subi mask, mask, 1 
+
+    li coeff8_idx, 8
+    li coeff9_idx, 9
+    li coeff10_idx, 10
+    li coeff11_idx, 11
+    li coeff12_idx, 12
+    li coeff13_idx, 13
+    li coeff14_idx, 14
+    li coeff15_idx, 15
 
     li buf0_idx, 31
     li buf1_idx, 30
@@ -239,82 +240,82 @@ _aligned:
             
             /* Layer 2, stride 64 */
 
-            bn.mulvm.l.8S wtmp, coeff4, tf1, 1
+            bn.mulvm.l.8S wtmp, coeff4, tf1, 2
             bn.subvm.8S   coeff4, coeff0, wtmp
             bn.addvm.8S   coeff0, coeff0, wtmp
-            bn.mulvm.l.8S wtmp, coeff5, tf1, 1
+            bn.mulvm.l.8S wtmp, coeff5, tf1, 2
             bn.subvm.8S   coeff5, coeff1, wtmp
             bn.addvm.8S   coeff1, coeff1, wtmp
-            bn.mulvm.l.8S wtmp, coeff6, tf1, 1
+            bn.mulvm.l.8S wtmp, coeff6, tf1, 2
             bn.subvm.8S   coeff6, coeff2, wtmp
             bn.addvm.8S   coeff2, coeff2, wtmp
-            bn.mulvm.l.8S wtmp, coeff7, tf1, 1
+            bn.mulvm.l.8S wtmp, coeff7, tf1, 2
             bn.subvm.8S   coeff7, coeff3, wtmp
             bn.addvm.8S   coeff3, coeff3, wtmp
-            bn.mulvm.l.8S wtmp, coeff12, tf1, 2
+            bn.mulvm.l.8S wtmp, coeff12, tf1, 4
             bn.subvm.8S   coeff12, coeff8, wtmp
             bn.addvm.8S   coeff8, coeff8, wtmp
-            bn.mulvm.l.8S wtmp, coeff13, tf1, 2
+            bn.mulvm.l.8S wtmp, coeff13, tf1, 4
             bn.subvm.8S   coeff13, coeff9, wtmp
             bn.addvm.8S   coeff9, coeff9, wtmp
-            bn.mulvm.l.8S wtmp, coeff14, tf1, 2
+            bn.mulvm.l.8S wtmp, coeff14, tf1, 4
             bn.subvm.8S   coeff14, coeff10, wtmp
             bn.addvm.8S   coeff10, coeff10, wtmp
-            bn.mulvm.l.8S wtmp, coeff15, tf1, 2
+            bn.mulvm.l.8S wtmp, coeff15, tf1, 4
             bn.subvm.8S   coeff15, coeff11, wtmp
             bn.addvm.8S   coeff11, coeff11, wtmp
 
             /* Layer 3, stride 32 */
 
-            bn.mulvm.l.8S wtmp, coeff2, tf1, 3
+            bn.mulvm.l.8S wtmp, coeff2, tf1, 6
             bn.subvm.8S   coeff2, coeff0, wtmp
             bn.addvm.8S   coeff0, coeff0, wtmp
-            bn.mulvm.l.8S wtmp, coeff3, tf1, 3
+            bn.mulvm.l.8S wtmp, coeff3, tf1, 6
             bn.subvm.8S   coeff3, coeff1, wtmp
             bn.addvm.8S   coeff1, coeff1, wtmp
-            bn.mulvm.l.8S wtmp, coeff6, tf1, 4
+            bn.mulvm.l.8S wtmp, coeff6, tf2, 0
             bn.subvm.8S   coeff6, coeff4, wtmp
             bn.addvm.8S   coeff4, coeff4, wtmp
-            bn.mulvm.l.8S wtmp, coeff7, tf1, 4
+            bn.mulvm.l.8S wtmp, coeff7, tf2, 0
             bn.subvm.8S   coeff7, coeff5, wtmp
             bn.addvm.8S   coeff5, coeff5, wtmp
-            bn.mulvm.l.8S wtmp, coeff10, tf1, 5
+            bn.mulvm.l.8S wtmp, coeff10, tf2, 2
             bn.subvm.8S   coeff10, coeff8, wtmp
             bn.addvm.8S   coeff8, coeff8, wtmp
-            bn.mulvm.l.8S wtmp, coeff11, tf1, 5
+            bn.mulvm.l.8S wtmp, coeff11, tf2, 2
             bn.subvm.8S   coeff11, coeff9, wtmp
             bn.addvm.8S   coeff9, coeff9, wtmp
-            bn.mulvm.l.8S wtmp, coeff14, tf1, 6
+            bn.mulvm.l.8S wtmp, coeff14, tf2, 4
             bn.subvm.8S   coeff14, coeff12, wtmp
             bn.addvm.8S   coeff12, coeff12, wtmp
-            bn.mulvm.l.8S wtmp, coeff15, tf1, 6
+            bn.mulvm.l.8S wtmp, coeff15, tf2, 4
             bn.subvm.8S   coeff15, coeff13, wtmp
             bn.addvm.8S   coeff13, coeff13, wtmp
 
             /* Layer 4, stride 16 */
 
-            bn.mulvm.l.8S wtmp, coeff1, tf1, 7
+            bn.mulvm.l.8S wtmp, coeff1, tf2, 6
             bn.subvm.8S   coeff1, coeff0, wtmp
             bn.addvm.8S   coeff0, coeff0, wtmp
-            bn.mulvm.l.8S wtmp, coeff3, tf2, 0
+            bn.mulvm.l.8S wtmp, coeff3, tf3, 0
             bn.subvm.8S   coeff3, coeff2, wtmp
             bn.addvm.8S   coeff2, coeff2, wtmp
-            bn.mulvm.l.8S wtmp, coeff5, tf2, 1
+            bn.mulvm.l.8S wtmp, coeff5, tf3, 2
             bn.subvm.8S   coeff5, coeff4, wtmp
             bn.addvm.8S   coeff4, coeff4, wtmp
-            bn.mulvm.l.8S wtmp, coeff7, tf2, 2
+            bn.mulvm.l.8S wtmp, coeff7, tf3, 4
             bn.subvm.8S   coeff7, coeff6, wtmp
             bn.addvm.8S   coeff6, coeff6, wtmp
-            bn.mulvm.l.8S wtmp, coeff9, tf2, 3
+            bn.mulvm.l.8S wtmp, coeff9, tf3, 6
             bn.subvm.8S   coeff9, coeff8, wtmp
             bn.addvm.8S   coeff8, coeff8, wtmp
-            bn.mulvm.l.8S wtmp, coeff11, tf2, 4
+            bn.mulvm.l.8S wtmp, coeff11, tf4, 0
             bn.subvm.8S   coeff11, coeff10, wtmp
             bn.addvm.8S   coeff10, coeff10, wtmp
-            bn.mulvm.l.8S wtmp, coeff13, tf2, 5
+            bn.mulvm.l.8S wtmp, coeff13, tf4, 2
             bn.subvm.8S   coeff13, coeff12, wtmp
             bn.addvm.8S   coeff12, coeff12, wtmp
-            bn.mulvm.l.8S wtmp, coeff15, tf2, 6
+            bn.mulvm.l.8S wtmp, coeff15, tf4, 4
             bn.subvm.8S   coeff15, coeff14, wtmp
             bn.addvm.8S   coeff14, coeff14, wtmp
 
@@ -386,7 +387,7 @@ _aligned:
     addi x12, x12, -64
 
     /* Set the twiddle pointer for layer 5 */
-    addi x11, x11, 64
+    addi x11, x11, 128
 
     /* Constants for twiddle factors */
     li x25, 18
