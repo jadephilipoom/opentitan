@@ -74,23 +74,39 @@ modulus_base:
 .global twiddles_fwd
 twiddles_fwd:
   /* Layers 1-4 */
-    .word 0x00495e02
+    .word 13246599
+    .word 2464201481
     .word 0x00397567
+    .word 0 /* Padding */
     .word 0x00396569
+    .word 0 /* Padding */
     .word 0x004f062b
+    .word 0 /* Padding */
     .word 0x0053df73
+    .word 0 /* Padding */
     .word 0x004fe033
+    .word 0 /* Padding */
     .word 0x004f066b
+    .word 0 /* Padding */
     .word 0x0076b1ae
+    .word 0 /* Padding */
     .word 0x00360dd5
+    .word 0 /* Padding */
     .word 0x0028edb0
+    .word 0 /* Padding */
     .word 0x00207fe4
+    .word 0 /* Padding */
     .word 0x00397283
+    .word 0 /* Padding */
     .word 0x0070894a
+    .word 0 /* Padding */
     .word 0x00088192
+    .word 0 /* Padding */
     .word 0x006d3dc8
+    .word 0 /* Padding */
     /* Padding */
     .word 0x00000000
+    .word 0 /* Padding */
     /* Layer 5 - 1 */
     .word 0x004c7294
     /* Layer 6 - 1 */

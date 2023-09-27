@@ -293,6 +293,7 @@ input:
 output:
   .zero 1024
 /* Modulus for reduction */
+.global modulus
 modulus:
   .word 0x007fe001
   .word 0x00000000
@@ -306,8 +307,8 @@ modulus:
 /* Second input */
 twiddles:
     /* Layers 1-4 */
-    .word 0x00495e02
-    .word 0 /* Padding */
+    .word 13246599
+    .word 2464201481
     .word 0x00397567
     .word 0 /* Padding */
     .word 0x00396569

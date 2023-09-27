@@ -90,9 +90,11 @@ _aligned:
     #define tf4 w19
 
     /* Other */
-    #define mask w22
-    #define wtmp w23
-
+    #define wtmp w20
+    #define wtmp2 w21
+    #define wtmp3 w22
+    #define mask w23
+    
     /* GPRs with indices to access WDRs */
     #define buf0_idx x4
     #define buf1_idx x5
@@ -118,6 +120,7 @@ _aligned:
     #define tf3_idx x25
     #define tf4_idx x26
     #define tmp_gpr x27
+    #define tmp_gpr2 x28
 
     /* Set up constants for input/twiddle factors */
     li tf1_idx, 16
@@ -154,8 +157,21 @@ _aligned:
     li buf6_idx, 25
     li buf7_idx, 24
 
+    /* Zero out one register */
+    bn.xor wtmp2, wtmp2, wtmp2
+
+    /* Set one register in the lower WLEN/4 to 1s, use above for constants */
+    bn.rshi wtmp3, mask, wtmp2 >> 32
+    /* Set second WLEN/4 quad word to modulus */
+    la tmp_gpr, modulus
+    li tmp_gpr2, 20 /* Load to wtmp */
+    bn.lid tmp_gpr2, 0(tmp_gpr)
+    bn.and wtmp, wtmp, mask
+    bn.or wtmp3, wtmp3, wtmp
+
+
     /* We can process 16 coefficients each iteration and need to process N=256, meaning we require 16 iterations. */
-    LOOPI 2, 179
+    LOOPI 2, 299
         /* Load coefficients into buffer registers */
         bn.lid buf0_idx, 0(inp)
         bn.lid buf1_idx, 64(inp)
@@ -165,7 +181,7 @@ _aligned:
         bn.lid buf5_idx, 320(inp)
         bn.lid buf6_idx, 384(inp)
         bn.lid buf7_idx, 448(inp)
-        LOOPI 8, 162
+        LOOPI 8, 282
             /* Extract coefficients from buffer registers into working state */
             bn.and coeff0, buf0, mask
             bn.and coeff1, buf1, mask
@@ -213,30 +229,302 @@ _aligned:
             
             /* Layer 1, stride 128 */
 
-            bn.mulvm.l.8S wtmp, coeff8, tf1, 0
+            /* bn.mulvm.l.8S wtmp, coeff8, tf1, 0 */
+
+            /* Sign extend coefficient */
+            /* Extend */
+            bn.rshi wtmp, wtmp2, coeff8 >> 31
+            bn.addi wtmp, wtmp, 0
+            /* If the zero flag is set, then the sign bit was not set */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.or coeff8, coeff8, wtmp >> 192
+            /* Plantard multiplication */
+            
+            /* a*bq' */
+            bn.mulqacc.wo.z coeff8, coeff8.0, tf1.0, 0
+            bn.or coeff8, wtmp2, coeff8 << 192
+            bn.or coeff8, wtmp2, coeff8 >> 192
+            bn.rshi coeff8, wtmp2, coeff8 >> 32
+
+            /* + 2^alpha = 2^8 */
+            bn.addi coeff8, coeff8, 256
+
+            /* *q */
+            bn.addi wtmp3, wtmp3, 0
+            bn.mulqacc.wo.z coeff8, coeff8.0, wtmp3.0, 0
+
+            /* arithmetic >> l */
+            
+            /* Check sign */
+            bn.rshi wtmp, wtmp2, coeff8 >> 255
+            bn.addi wtmp, wtmp, 0
+            /* If zero flag is set, then the sign bit was not set => return 0 */
+            /* If the zero flag is set, then the sign bit was also set => return 0xFFFFFFFF */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.rshi coeff8, wtmp2, coeff8 >> 32
+            bn.or wtmp, coeff8, wtmp >> 192
+
             bn.subvm.8S   coeff8, coeff0, wtmp
             bn.addvm.8S   coeff0, coeff0, wtmp
-            bn.mulvm.l.8S wtmp, coeff9, tf1, 0
+            /* -------------------------------------------------------------- */
+            /* Sign extend coefficient */
+            /* Extend */
+            bn.rshi wtmp, wtmp2, coeff9 >> 31
+            bn.addi wtmp, wtmp, 0
+            /* If the zero flag is set, then the sign bit was not set */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.or coeff9, coeff9, wtmp >> 192
+            /* Plantard multiplication */
+            
+            /* a*bq' */
+            bn.mulqacc.wo.z coeff9, coeff9.0, tf1.0, 0
+            bn.or coeff9, wtmp2, coeff9 << 192
+            bn.or coeff9, wtmp2, coeff9 >> 192
+            bn.rshi coeff9, wtmp2, coeff9 >> 32
+
+            /* + 2^alpha = 2^8 */
+            bn.addi coeff9, coeff9, 256
+
+            /* *q */
+            bn.addi wtmp3, wtmp3, 0
+            bn.mulqacc.wo.z coeff9, coeff9.0, wtmp3.0, 0
+
+            /* arithmetic >> l */
+
+            /* Check sign */
+            bn.rshi wtmp, wtmp2, coeff9 >> 255
+            bn.addi wtmp, wtmp, 0
+            /* If zero flag is set, then the sign bit was not set => return 0 */
+            /* If the zero flag is set, then the sign bit was also set => return 0xFFFFFFFF */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.rshi coeff9, wtmp2, coeff9 >> 32
+            bn.or wtmp, coeff9, wtmp >> 192
+
             bn.subvm.8S   coeff9, coeff1, wtmp
             bn.addvm.8S   coeff1, coeff1, wtmp
-            bn.mulvm.l.8S wtmp, coeff10, tf1, 0
+            /* -------------------------------------------------------------- */
+            /* Sign extend coefficient */
+            /* Extend */
+            bn.rshi wtmp, wtmp2, coeff10 >> 31
+            bn.addi wtmp, wtmp, 0
+            /* If the zero flag is set, then the sign bit was not set */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.or coeff10, coeff10, wtmp >> 192
+            /* Plantard multiplication */
+            
+            /* a*bq' */
+            bn.mulqacc.wo.z coeff10, coeff10.0, tf1.0, 0
+            bn.or coeff10, wtmp2, coeff10 << 192
+            bn.or coeff10, wtmp2, coeff10 >> 192
+            bn.rshi coeff10, wtmp2, coeff10 >> 32
+
+            /* + 2^alpha = 2^8 */
+            bn.addi coeff10, coeff10, 256
+
+            /* *q */
+            bn.addi wtmp3, wtmp3, 0
+            bn.mulqacc.wo.z coeff10, coeff10.0, wtmp3.0, 0
+
+            /* arithmetic >> l */
+
+            /* Get the mask */
+            /* Check sign */
+            bn.rshi wtmp, wtmp2, coeff10 >> 255
+            bn.addi wtmp, wtmp, 0
+            /* If zero flag is set, then the sign bit was not set => return 0 */
+            /* If the zero flag is set, then the sign bit was also set => return 0xFFFFFFFF */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.rshi coeff10, wtmp2, coeff10 >> 32
+                        bn.or wtmp, coeff10, wtmp >> 192
+
             bn.subvm.8S   coeff10, coeff2, wtmp
             bn.addvm.8S   coeff2, coeff2, wtmp
-            bn.mulvm.l.8S wtmp, coeff11, tf1, 0
+            /* -------------------------------------------------------------- */
+
+            /* Sign extend coefficient */
+            /* Extend */
+            bn.rshi wtmp, wtmp2, coeff11 >> 31
+            bn.addi wtmp, wtmp, 0
+            /* If the zero flag is set, then the sign bit was not set */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.or coeff11, coeff11, wtmp >> 192
+            /* Plantard multiplication */
+            
+            /* a*bq' */
+            bn.mulqacc.wo.z coeff11, coeff11.0, tf1.0, 0
+            bn.or coeff11, wtmp2, coeff11 << 192
+            bn.or coeff11, wtmp2, coeff11 >> 192
+            bn.rshi coeff11, wtmp2, coeff11 >> 32
+
+            /* + 2^alpha = 2^8 */
+            bn.addi coeff11, coeff11, 256
+
+            /* *q */
+            bn.addi wtmp3, wtmp3, 0
+            bn.mulqacc.wo.z coeff11, coeff11.0, wtmp3.0, 0
+
+            /* arithmetic >> l */
+
+            /* Get the mask */
+            /* Check sign */
+            bn.rshi wtmp, wtmp2, coeff11 >> 255
+            bn.addi wtmp, wtmp, 0
+            /* If zero flag is set, then the sign bit was not set => return 0 */
+            /* If the zero flag is set, then the sign bit was also set => return 0xFFFFFFFF */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.rshi coeff11, wtmp2, coeff11 >> 32
+                        bn.or wtmp, coeff11, wtmp >> 192
+
             bn.subvm.8S   coeff11, coeff3, wtmp
             bn.addvm.8S   coeff3, coeff3, wtmp
-            bn.mulvm.l.8S wtmp, coeff12, tf1, 0
+            /* -------------------------------------------------------------- */
+            
+            /* Sign extend coefficient */
+            /* Extend */
+            bn.rshi wtmp, wtmp2, coeff12 >> 31
+            bn.addi wtmp, wtmp, 0
+            /* If the zero flag is set, then the sign bit was not set */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.or coeff12, coeff12, wtmp >> 192
+            /* Plantard multiplication */
+            
+            /* a*bq' */
+            bn.mulqacc.wo.z coeff12, coeff12.0, tf1.0, 0
+            bn.or coeff12, wtmp2, coeff12 << 192
+            bn.or coeff12, wtmp2, coeff12 >> 192
+            bn.rshi coeff12, wtmp2, coeff12 >> 32
+
+            /* + 2^alpha = 2^8 */
+            bn.addi coeff12, coeff12, 256
+
+            /* *q */
+            bn.addi wtmp3, wtmp3, 0
+            bn.mulqacc.wo.z coeff12, coeff12.0, wtmp3.0, 0
+
+            /* arithmetic >> l */
+
+            /* Check sign */
+            bn.rshi wtmp, wtmp2, coeff12 >> 255
+            bn.addi wtmp, wtmp, 0
+            /* If zero flag is set, then the sign bit was not set => return 0 */
+            /* If the zero flag is set, then the sign bit was also set => return 0xFFFFFFFF */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.rshi coeff12, wtmp2, coeff12 >> 32
+            bn.or wtmp, coeff12, wtmp >> 192
+
             bn.subvm.8S   coeff12, coeff4, wtmp
             bn.addvm.8S   coeff4, coeff4, wtmp
-            bn.mulvm.l.8S wtmp, coeff13, tf1, 0
+            /* -------------------------------------------------------------- */
+            
+            /* Sign extend coefficient */
+            /* Extend */
+            bn.rshi wtmp, wtmp2, coeff13 >> 31
+            bn.addi wtmp, wtmp, 0
+            /* If the zero flag is set, then the sign bit was not set */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.or coeff13, coeff13, wtmp >> 192
+            /* Plantard multiplication */
+            
+            /* a*bq' */
+            bn.mulqacc.wo.z coeff13, coeff13.0, tf1.0, 0
+            bn.or coeff13, wtmp2, coeff13 << 192
+            bn.or coeff13, wtmp2, coeff13 >> 192
+            bn.rshi coeff13, wtmp2, coeff13 >> 32
+
+            /* + 2^alpha = 2^8 */
+            bn.addi coeff13, coeff13, 256
+
+            /* *q */
+            bn.addi wtmp3, wtmp3, 0
+            bn.mulqacc.wo.z coeff13, coeff13.0, wtmp3.0, 0
+
+            /* arithmetic >> l */
+            /* Check sign */
+            bn.rshi wtmp, wtmp2, coeff13 >> 255
+            bn.addi wtmp, wtmp, 0
+            /* If zero flag is set, then the sign bit was not set => return 0 */
+            /* If the zero flag is set, then the sign bit was also set => return 0xFFFFFFFF */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.rshi coeff13, wtmp2, coeff13 >> 32
+            bn.or wtmp, coeff13, wtmp >> 192
+
             bn.subvm.8S   coeff13, coeff5, wtmp
             bn.addvm.8S   coeff5, coeff5, wtmp
-            bn.mulvm.l.8S wtmp, coeff14, tf1, 0
+            /* -------------------------------------------------------------- */
+            
+            /* Sign extend coefficient */
+            /* Extend */
+            bn.rshi wtmp, wtmp2, coeff14 >> 31
+            bn.addi wtmp, wtmp, 0
+            /* If the zero flag is set, then the sign bit was not set */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.or coeff14, coeff14, wtmp >> 192
+            /* Plantard multiplication */
+            
+            /* a*bq' */
+            bn.mulqacc.wo.z coeff14, coeff14.0, tf1.0, 0
+            bn.or coeff14, wtmp2, coeff14 << 192
+            bn.or coeff14, wtmp2, coeff14 >> 192
+            bn.rshi coeff14, wtmp2, coeff14 >> 32
+
+            /* + 2^alpha = 2^8 */
+            bn.addi coeff14, coeff14, 256
+
+            /* *q */
+            bn.addi wtmp3, wtmp3, 0
+            bn.mulqacc.wo.z coeff14, coeff14.0, wtmp3.0, 0
+
+            /* arithmetic >> l */
+
+            /* Check sign */
+            bn.rshi wtmp, wtmp2, coeff14 >> 255
+            bn.addi wtmp, wtmp, 0
+            /* If zero flag is set, then the sign bit was not set => return 0 */
+            /* If the zero flag is set, then the sign bit was also set => return 0xFFFFFFFF */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.rshi coeff14, wtmp2, coeff14 >> 32
+            bn.or wtmp, coeff14, wtmp >> 192
+
             bn.subvm.8S   coeff14, coeff6, wtmp
             bn.addvm.8S   coeff6, coeff6, wtmp
-            bn.mulvm.l.8S wtmp, coeff15, tf1, 0
+            /* -------------------------------------------------------------- */
+
+            /* Sign extend coefficient */
+            /* Extend */
+            bn.rshi wtmp, wtmp2, coeff15 >> 31
+            bn.addi wtmp, wtmp, 0
+            /* If the zero flag is set, then the sign bit was not set */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.or coeff15, coeff15, wtmp >> 192
+            /* Plantard multiplication */
+            
+            /* a*bq' */
+            bn.mulqacc.wo.z coeff15, coeff15.0, tf1.0, 0
+            bn.or coeff15, wtmp2, coeff15 << 192
+            bn.or coeff15, wtmp2, coeff15 >> 192
+            bn.rshi coeff15, wtmp2, coeff15 >> 32
+
+            /* + 2^alpha = 2^8 */
+            bn.addi coeff15, coeff15, 256
+
+            /* *q */
+            bn.addi wtmp3, wtmp3, 0
+            bn.mulqacc.wo.z coeff15, coeff15.0, wtmp3.0, 0
+
+            /* arithmetic >> l */
+
+            /* Check sign */
+            bn.rshi wtmp, wtmp2, coeff15 >> 255
+            bn.addi wtmp, wtmp, 0
+            /* If zero flag is set, then the sign bit was not set => return 0 */
+            /* If the zero flag is set, then the sign bit was also set => return 0xFFFFFFFF */
+            bn.sel wtmp, wtmp2, wtmp3, z
+            bn.rshi coeff15, wtmp2, coeff15 >> 32
+            bn.or wtmp, coeff15, wtmp >> 192
+
             bn.subvm.8S   coeff15, coeff7, wtmp
             bn.addvm.8S   coeff7, coeff7, wtmp
+            /* -------------------------------------------------------------- */
             
             /* Layer 2, stride 64 */
 
@@ -382,21 +670,24 @@ _aligned:
         /* Outer Loop End */
     
     /* Restore input pointer */
-    addi x10, x10, -64
+    addi inp, inp, -64
     /* Restore output pointer */
-    addi x12, x12, -64
+    addi outp, outp, -64
 
     /* Set the twiddle pointer for layer 5 */
-    addi x11, x11, 128
+    addi twp, twp, 128
 
-    /* Constants for twiddle factors */
-    li x25, 18
+    /* Set up constants for input/twiddle factors */
+    li tf1_idx, 16
+    li tf2_idx, 17
+    li tf3_idx, 18
+    li tf4_idx, 19
 
     LOOPI 16, 134
         /* Load layer 5 twiddle + 2 layer 6 twiddles + 4 layer 7 twiddles + padding */
-        bn.lid x23, 0(x11++)
+        bn.lid tf1_idx, 0(twp++)
         /* Load layer 8 layer 8 twiddles */
-        bn.lid x24, 0(x11++)
+        bn.lid tf2_idx, 0(twp++)
 
         /* Load Data */
         bn.lid buf0_idx, 0(outp)
