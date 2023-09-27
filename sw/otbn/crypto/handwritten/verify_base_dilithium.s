@@ -377,7 +377,7 @@ verify_base_dilithium:
     LOOPI 4, 3
         jal  x1, ntt_base_dilithium
         addi a0, a0, 1024
-        addi a1, a1, -1088
+        addi a1, a1, -1152
 
     .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
         pop \reg
@@ -438,7 +438,7 @@ verify_base_dilithium:
     LOOPI 4, 3
         jal  x1, ntt_base_dilithium
         addi a0, a0, 1024
-        addi a1, a1, -1088
+        addi a1, a1, -1152
 
     .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
         pop \reg
