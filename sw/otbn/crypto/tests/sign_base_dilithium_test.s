@@ -1321,12 +1321,10 @@ modulus_base:
 .global twiddles_fwd
 twiddles_fwd:
   twiddles_fwd:
-    .word 0x00495e02
-    .word 0 /* Padding */
-    .word 0x00397567
-    .word 0 /* Padding */
-    .word 0x00396569
-    .word 0 /* Padding */
+    /* Layers 1-4 */
+    .word 0x00ca2087, 0x92e0bb09
+    .word 0xb04e1826, 0x73078efd
+    .word 0xf0260fa4, 0x72e78afc
     .word 0x004f062b
     .word 0 /* Padding */
     .word 0x0053df73
