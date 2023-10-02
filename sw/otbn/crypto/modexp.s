@@ -10,6 +10,7 @@
 
 .text
 .globl modexp_65537
+.globl modexp_3
 .globl modexp
 
 /**
@@ -159,6 +160,93 @@ modexp:
     jal       x1, sel_sqr_or_sqrmul
 
     nop
+
+  /* convert back from montgomery domain */
+  /* out = montmul(out,1) = out/R mod M  */
+  addi      x19, x2, 0
+  addi      x21, x2, 0
+  jal       x1, montmul_mul1
+
+  ret
+
+
+/**
+ * Bigint modular exponentiation with fixed exponent of 3
+ *
+ * Returns: C = modexp(A,3) = A^3 mod M
+ *
+ * This implements the square and multiply algorithm for the fixed exponent of
+ * E=3. Note that this implementation (in contrast to modexp) runs the
+ * multiplication step only for bits being actually set in the exponent. Since
+ * the exponent is fixed, this is inherently constant-time.
+ *
+ * The squared Montgomery modulus RR and the Montgomery constant m0' have to
+ * be precomputed and provided at the appropriate locations in dmem.
+ *
+ * Flags: The states of both FG0 and FG1 depend on intermediate values and are
+ *        not usable after return.
+ *
+ * The base bignum A is expected in the input buffer, the result C is written
+ * to the output buffer. Note, that the content of the input buffer is
+ * modified during execution.
+ *
+ * @param[in]   x2: dptr_c, dmem pointer to buffer for output C
+ * @param[in]  x14: dptr_a, dmem pointer to first limb of input A
+ * @param[in]  x16: dptr_M, dmem pointer to first limb of modulus M
+ * @param[in]  x17: dptr_m0d, dmem pointer to Mongtgomery constant m0'
+ * @param[in]  x18: dptr_RR, dmem pointer to Montgmery constant RR
+ * @param[in]  x30: N, number of limbs per bignum
+ * @param[in]  w31: all-zero
+ * @param[out] dmem[dptr_c:dptr_c+N*32] C, A^3 mod M
+ *
+ * clobbered registers: x3 to x13, x16 to x31
+ *                      w0 to w3, w24 to w30
+ *                      w4 to w[4+N-1]
+ * clobbered Flag Groups: FG0, FG1
+ */
+modexp_3:
+  /* prepare pointers to temp regs */
+  li         x8, 4
+  li         x9, 3
+  li        x10, 4
+  li        x11, 2
+
+  /* Compute (N-1).
+       x31 <= x30 - 1 = N - 1 */
+  addi      x31, x30, -1
+
+  /* Convert input to montgomery domain.
+     dmem[dptr_a] <= montmul(A,RR) = (A*R) mod M */
+  addi      x19, x14, 0
+  addi      x20, x18, 0
+  addi      x21, x14, 0
+  jal       x1, montmul
+  /* Store result in dmem starting at dmem[dptr_a] */
+  loop      x30, 2
+    bn.sid    x8, 0(x21++)
+    addi      x8, x8, 1
+
+  /* Square the input and store the result in the output buffer.
+      dmem[dptr_c] <= (A*A*R) mod M */
+  addi      x19, x14, 0
+  addi      x20, x14, 0
+  jal       x1, montmul
+  addi      x21, x2, 0
+  li        x8, 4
+  loop      x30, 2
+    bn.sid    x8, 0(x21++)
+    addi      x8, x8, 1
+
+  /* Multiply the input and output buffers.
+      dmem[dptr_c] <= (A*A*A*R) mod M */
+  addi      x19, x14, 0
+  addi      x20, x2, 0
+  jal       x1, montmul
+  addi      x21, x2, 0
+  li        x8, 4
+  loop      x30, 2
+    bn.sid    x8, 0(x21++)
+    addi      x8, x8, 1
 
   /* convert back from montgomery domain */
   /* out = montmul(out,1) = out/R mod M  */
