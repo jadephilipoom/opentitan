@@ -175,7 +175,7 @@ _aligned:
 
 
     /* We can process 16 coefficients each iteration and need to process N=256, meaning we require 16 iterations. */
-    LOOPI 2, 291
+    LOOPI 2, 404
         /* Load coefficients into buffer registers */
         bn.lid buf0_idx, 0(inp)
         bn.lid buf1_idx, 64(inp)
@@ -185,7 +185,7 @@ _aligned:
         bn.lid buf5_idx, 320(inp)
         bn.lid buf6_idx, 384(inp)
         bn.lid buf7_idx, 448(inp)
-        LOOPI 8, 274
+        LOOPI 8, 387
             /* Extract coefficients from buffer registers into working state */
             bn.and coeff0, buf0, mask
             bn.and coeff1, buf1, mask
@@ -464,55 +464,259 @@ _aligned:
 
             /* Layer 3, stride 32 */
 
-            bn.mulvm.l.8S wtmp, coeff2, tf1, 6
+            bn.and wtmp, coeff2, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff2, coeff2, wtmp >> 192
+              
+
+            bn.and wtmp, coeff3, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff3, coeff3, wtmp >> 192
+              
+
+            bn.and wtmp, coeff6, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff6, coeff6, wtmp >> 192
+              
+
+            bn.and wtmp, coeff7, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff7, coeff7, wtmp >> 192
+              
+
+            bn.and wtmp, coeff10, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff10, coeff10, wtmp >> 192
+              
+
+            bn.and wtmp, coeff11, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff11, coeff11, wtmp >> 192
+              
+
+            bn.and wtmp, coeff14, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff14, coeff14, wtmp >> 192
+              
+
+            bn.and wtmp, coeff15, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff15, coeff15, wtmp >> 192
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff2, coeff2.0, tf1.3, 0 /* a*bq' */
+            bn.and coeff2, mask, coeff2 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff2, coeff2, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff2, coeff2.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff2 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff2, coeff0, wtmp
             bn.addvm.8S   coeff0, coeff0, wtmp
-            bn.mulvm.l.8S wtmp, coeff3, tf1, 6
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff3, coeff3.0, tf1.3, 0 /* a*bq' */
+            bn.and coeff3, mask, coeff3 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff3, coeff3, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff3, coeff3.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff3 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff3, coeff1, wtmp
             bn.addvm.8S   coeff1, coeff1, wtmp
-            bn.mulvm.l.8S wtmp, coeff6, tf2, 0
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff6, coeff6.0, tf2.0, 0 /* a*bq' */
+            bn.and coeff6, mask, coeff6 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff6, coeff6, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff6, coeff6.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff6 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff6, coeff4, wtmp
             bn.addvm.8S   coeff4, coeff4, wtmp
-            bn.mulvm.l.8S wtmp, coeff7, tf2, 0
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff7, coeff7.0, tf2.0, 0 /* a*bq' */
+            bn.and coeff7, mask, coeff7 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff7, coeff7, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff7, coeff7.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff7 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff7, coeff5, wtmp
             bn.addvm.8S   coeff5, coeff5, wtmp
-            bn.mulvm.l.8S wtmp, coeff10, tf2, 2
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff10, coeff10.0, tf2.1, 0 /* a*bq' */
+            bn.and coeff10, mask, coeff10 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff10, coeff10, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff10, coeff10.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff10 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff10, coeff8, wtmp
             bn.addvm.8S   coeff8, coeff8, wtmp
-            bn.mulvm.l.8S wtmp, coeff11, tf2, 2
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff11, coeff11.0, tf2.1, 0 /* a*bq' */
+            bn.and coeff11, mask, coeff11 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff11, coeff11, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff11, coeff11.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff11 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff11, coeff9, wtmp
             bn.addvm.8S   coeff9, coeff9, wtmp
-            bn.mulvm.l.8S wtmp, coeff14, tf2, 4
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff14, coeff14.0, tf2.2, 0 /* a*bq' */
+            bn.and coeff14, mask, coeff14 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff14, coeff14, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff14, coeff14.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff14 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff14, coeff12, wtmp
             bn.addvm.8S   coeff12, coeff12, wtmp
-            bn.mulvm.l.8S wtmp, coeff15, tf2, 4
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff15, coeff15.0, tf2.2, 0 /* a*bq' */
+            bn.and coeff15, mask, coeff15 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff15, coeff15, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff15, coeff15.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff15 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff15, coeff13, wtmp
             bn.addvm.8S   coeff13, coeff13, wtmp
 
             /* Layer 4, stride 16 */
 
-            bn.mulvm.l.8S wtmp, coeff1, tf2, 6
+            bn.and wtmp, coeff1, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff1, coeff1, wtmp >> 192
+              
+
+            bn.and wtmp, coeff3, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff3, coeff3, wtmp >> 192
+              
+
+            bn.and wtmp, coeff5, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff5, coeff5, wtmp >> 192
+              
+
+            bn.and wtmp, coeff7, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff7, coeff7, wtmp >> 192
+              
+
+            bn.and wtmp, coeff9, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff9, coeff9, wtmp >> 192
+              
+
+            bn.and wtmp, coeff11, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff11, coeff11, wtmp >> 192
+              
+
+            bn.and wtmp, coeff13, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff13, coeff13, wtmp >> 192
+              
+
+            bn.and wtmp, coeff15, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.or coeff15, coeff15, wtmp >> 192
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff1, coeff1.0, tf2.3, 0 /* a*bq' */
+            bn.and coeff1, mask, coeff1 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff1, coeff1, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff1, coeff1.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff1 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff1, coeff0, wtmp
             bn.addvm.8S   coeff0, coeff0, wtmp
-            bn.mulvm.l.8S wtmp, coeff3, tf3, 0
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff3, coeff3.0, tf3.0, 0 /* a*bq' */
+            bn.and coeff3, mask, coeff3 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff3, coeff3, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff3, coeff3.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff3 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff3, coeff2, wtmp
             bn.addvm.8S   coeff2, coeff2, wtmp
-            bn.mulvm.l.8S wtmp, coeff5, tf3, 2
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff5, coeff5.0, tf3.1, 0 /* a*bq' */
+            bn.and coeff5, mask, coeff5 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff5, coeff5, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff5, coeff5.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff5 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff5, coeff4, wtmp
             bn.addvm.8S   coeff4, coeff4, wtmp
-            bn.mulvm.l.8S wtmp, coeff7, tf3, 4
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff7, coeff7.0, tf3.2, 0 /* a*bq' */
+            bn.and coeff7, mask, coeff7 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff7, coeff7, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff7, coeff7.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff7 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff7, coeff6, wtmp
             bn.addvm.8S   coeff6, coeff6, wtmp
-            bn.mulvm.l.8S wtmp, coeff9, tf3, 6
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff9, coeff9.0, tf3.3, 0 /* a*bq' */
+            bn.and coeff9, mask, coeff9 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff9, coeff9, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff9, coeff9.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff9 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff9, coeff8, wtmp
             bn.addvm.8S   coeff8, coeff8, wtmp
-            bn.mulvm.l.8S wtmp, coeff11, tf4, 0
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff11, coeff11.0, tf4.0, 0 /* a*bq' */
+            bn.and coeff11, mask, coeff11 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff11, coeff11, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff11, coeff11.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff11 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff11, coeff10, wtmp
             bn.addvm.8S   coeff10, coeff10, wtmp
-            bn.mulvm.l.8S wtmp, coeff13, tf4, 2
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff13, coeff13.0, tf4.1, 0 /* a*bq' */
+            bn.and coeff13, mask, coeff13 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff13, coeff13, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff13, coeff13.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff13 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff13, coeff12, wtmp
             bn.addvm.8S   coeff12, coeff12, wtmp
-            bn.mulvm.l.8S wtmp, coeff15, tf4, 4
+              
+
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff15, coeff15.0, tf4.2, 0 /* a*bq' */
+            bn.and coeff15, mask, coeff15 >> 32 /* Implements mod 2l and >> l */
+            bn.addi coeff15, coeff15, 256 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff15, coeff15.0, wtmp3.0, 0 /* *q */
+            bn.rshi wtmp, wtmp2, coeff15 >> 32 /* >> l */
+            /* Butterfly */
             bn.subvm.8S   coeff15, coeff14, wtmp
             bn.addvm.8S   coeff14, coeff14, wtmp
 
@@ -592,11 +796,9 @@ _aligned:
     li tf3_idx, 18
     li tf4_idx, 19
 
-    LOOPI 16, 134
-        /* Load layer 5 twiddle + 2 layer 6 twiddles + 4 layer 7 twiddles + padding */
+    LOOPI 16, 360
+        /* Load layer 5 + 2 layer 6 + 1 layer 7 twiddle */
         bn.lid tf1_idx, 0(twp++)
-        /* Load layer 8 layer 8 twiddles */
-        bn.lid tf2_idx, 0(twp++)
 
         /* Load Data */
         bn.lid buf0_idx, 0(outp)
@@ -620,113 +822,522 @@ _aligned:
         bn.and  coeff15, mask, buf0 >> 224
 
         /* Layer 5, stride 8 */
-        /* Butterflies */
-        bn.mulvm.l.8S wtmp, coeff8, tf1, 0
+        bn.and wtmp, coeff8, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff8, coeff8, wtmp >> 192
+            
+
+        bn.and wtmp, coeff9, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff9, coeff9, wtmp >> 192
+            
+
+        bn.and wtmp, coeff10, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff10, coeff10, wtmp >> 192
+            
+
+        bn.and wtmp, coeff11, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff11, coeff11, wtmp >> 192
+            
+
+        bn.and wtmp, coeff12, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff12, coeff12, wtmp >> 192
+            
+
+        bn.and wtmp, coeff13, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff13, coeff13, wtmp >> 192
+            
+
+        bn.and wtmp, coeff14, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff14, coeff14, wtmp >> 192
+            
+
+        bn.and wtmp, coeff15, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff15, coeff15, wtmp >> 192
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff8, coeff8.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff8, mask, coeff8 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff8, coeff8, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff8, coeff8.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff8 >> 32 /* >> l */
+        /* Butterfly */
         bn.subvm.8S   coeff8, coeff0, wtmp
         bn.addvm.8S   coeff0, coeff0, wtmp
-        bn.mulvm.l.8S wtmp, coeff9, tf1, 0
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff9, coeff9.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff9, mask, coeff9 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff9, coeff9, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff9, coeff9.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff9 >> 32 /* >> l */
+        /* Butterfly */
         bn.subvm.8S   coeff9, coeff1, wtmp
         bn.addvm.8S   coeff1, coeff1, wtmp
-        bn.mulvm.l.8S wtmp, coeff10, tf1, 0
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff10, coeff10.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff10, mask, coeff10 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff10, coeff10, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff10, coeff10.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff10 >> 32 /* >> l */
+        /* Butterfly */
         bn.subvm.8S   coeff10, coeff2, wtmp
         bn.addvm.8S   coeff2, coeff2, wtmp
-        bn.mulvm.l.8S wtmp, coeff11, tf1, 0
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff11, coeff11.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff11, mask, coeff11 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff11, coeff11, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff11, coeff11.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff11 >> 32 /* >> l */
+        /* Butterfly */
         bn.subvm.8S   coeff11, coeff3, wtmp
         bn.addvm.8S   coeff3, coeff3, wtmp
-        bn.mulvm.l.8S wtmp, coeff12, tf1, 0
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff12, coeff12.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff12, mask, coeff12 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff12, coeff12, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff12, coeff12.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff12 >> 32 /* >> l */
+        /* Butterfly */
         bn.subvm.8S   coeff12, coeff4, wtmp
         bn.addvm.8S   coeff4, coeff4, wtmp
-        bn.mulvm.l.8S wtmp, coeff13, tf1, 0
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff13, coeff13.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff13, mask, coeff13 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff13, coeff13, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff13, coeff13.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff13 >> 32 /* >> l */
+        /* Butterfly */
         bn.subvm.8S   coeff13, coeff5, wtmp
         bn.addvm.8S   coeff5, coeff5, wtmp
-        bn.mulvm.l.8S wtmp, coeff14, tf1, 0
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff14, coeff14.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff14, mask, coeff14 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff14, coeff14, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff14, coeff14.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff14 >> 32 /* >> l */
+        /* Butterfly */
         bn.subvm.8S   coeff14, coeff6, wtmp
         bn.addvm.8S   coeff6, coeff6, wtmp
-        bn.mulvm.l.8S wtmp, coeff15, tf1, 0
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff15, coeff15.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff15, mask, coeff15 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff15, coeff15, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff15, coeff15.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff15 >> 32 /* >> l */
+        /* Butterfly */
         bn.subvm.8S   coeff15, coeff7, wtmp
-        bn.addvm.8S   coeff7, coeff7, wtmp    
+        bn.addvm.8S   coeff7, coeff7, wtmp 
 
         /* Layer 6, stride 4 */
         /* Butterflies */
-        bn.mulvm.l.8S wtmp, coeff4, tf1, 1
-        bn.subvm.8S coeff4, coeff0, wtmp
-        bn.addvm.8S coeff0, coeff0, wtmp
-        bn.mulvm.l.8S wtmp, coeff5, tf1, 1
-        bn.subvm.8S coeff5, coeff1, wtmp
-        bn.addvm.8S coeff1, coeff1, wtmp
-        bn.mulvm.l.8S wtmp, coeff6, tf1, 1
-        bn.subvm.8S coeff6, coeff2, wtmp
-        bn.addvm.8S coeff2, coeff2, wtmp
-        bn.mulvm.l.8S wtmp, coeff7, tf1, 1
-        bn.subvm.8S coeff7, coeff3, wtmp
-        bn.addvm.8S coeff3, coeff3, wtmp
-        bn.mulvm.l.8S wtmp, coeff12, tf1, 2
-        bn.subvm.8S coeff12, coeff8, wtmp
-        bn.addvm.8S coeff8, coeff8, wtmp
-        bn.mulvm.l.8S wtmp, coeff13, tf1, 2
-        bn.subvm.8S coeff13, coeff9, wtmp
-        bn.addvm.8S coeff9, coeff9, wtmp
-        bn.mulvm.l.8S wtmp, coeff14, tf1, 2
-        bn.subvm.8S coeff14, coeff10, wtmp
-        bn.addvm.8S coeff10, coeff10, wtmp
-        bn.mulvm.l.8S wtmp, coeff15, tf1, 2
-        bn.subvm.8S coeff15, coeff11, wtmp
-        bn.addvm.8S coeff11, coeff11, wtmp
+        bn.and wtmp, coeff4, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff4, coeff4, wtmp >> 192
+            
+
+        bn.and wtmp, coeff5, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff5, coeff5, wtmp >> 192
+            
+
+        bn.and wtmp, coeff6, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff6, coeff6, wtmp >> 192
+            
+
+        bn.and wtmp, coeff7, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff7, coeff7, wtmp >> 192
+            
+
+        bn.and wtmp, coeff12, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff12, coeff12, wtmp >> 192
+            
+
+        bn.and wtmp, coeff13, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff13, coeff13, wtmp >> 192
+            
+
+        bn.and wtmp, coeff14, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff14, coeff14, wtmp >> 192
+            
+
+        bn.and wtmp, coeff15, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff15, coeff15, wtmp >> 192
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff4, coeff4.0, tf1.1, 0 /* a*bq' */
+        bn.and coeff4, mask, coeff4 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff4, coeff4, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff4, coeff4.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff4 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff4, coeff0, wtmp
+        bn.addvm.8S   coeff0, coeff0, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff5, coeff5.0, tf1.1, 0 /* a*bq' */
+        bn.and coeff5, mask, coeff5 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff5, coeff5, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff5, coeff5.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff5 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff5, coeff1, wtmp
+        bn.addvm.8S   coeff1, coeff1, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff6, coeff6.0, tf1.1, 0 /* a*bq' */
+        bn.and coeff6, mask, coeff6 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff6, coeff6, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff6, coeff6.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff6 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff6, coeff2, wtmp
+        bn.addvm.8S   coeff2, coeff2, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff7, coeff7.0, tf1.1, 0 /* a*bq' */
+        bn.and coeff7, mask, coeff7 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff7, coeff7, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff7, coeff7.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff7 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff7, coeff3, wtmp
+        bn.addvm.8S   coeff3, coeff3, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff12, coeff12.0, tf1.2, 0 /* a*bq' */
+        bn.and coeff12, mask, coeff12 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff12, coeff12, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff12, coeff12.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff12 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff12, coeff8, wtmp
+        bn.addvm.8S   coeff8, coeff8, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff13, coeff13.0, tf1.2, 0 /* a*bq' */
+        bn.and coeff13, mask, coeff13 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff13, coeff13, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff13, coeff13.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff13 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff13, coeff9, wtmp
+        bn.addvm.8S   coeff9, coeff9, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff14, coeff14.0, tf1.2, 0 /* a*bq' */
+        bn.and coeff14, mask, coeff14 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff14, coeff14, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff14, coeff14.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff14 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff14, coeff10, wtmp
+        bn.addvm.8S   coeff10, coeff10, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff15, coeff15.0, tf1.2, 0 /* a*bq' */
+        bn.and coeff15, mask, coeff15 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff15, coeff15, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff15, coeff15.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff15 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff15, coeff11, wtmp
+        bn.addvm.8S   coeff11, coeff11, wtmp
 
         /* Layer 7, stride 2 */
+        bn.and wtmp, coeff2, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff2, coeff2, wtmp >> 192
+            
+
+        bn.and wtmp, coeff3, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff3, coeff3, wtmp >> 192
+            
+
+        bn.and wtmp, coeff6, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff6, coeff6, wtmp >> 192
+            
+
+        bn.and wtmp, coeff7, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff7, coeff7, wtmp >> 192
+            
+
+        bn.and wtmp, coeff10, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff10, coeff10, wtmp >> 192
+            
+
+        bn.and wtmp, coeff11, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff11, coeff11, wtmp >> 192
+            
+
+        bn.and wtmp, coeff14, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff14, coeff14, wtmp >> 192
+            
+
+        bn.and wtmp, coeff15, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff15, coeff15, wtmp >> 192
+
         /* Butterflies */
-        bn.mulvm.l.8S wtmp, coeff2, tf1, 3
-        bn.subvm.8S coeff2, coeff0, wtmp
-        bn.addvm.8S coeff0, coeff0, wtmp
-        bn.mulvm.l.8S wtmp, coeff3, tf1, 3
-        bn.subvm.8S coeff3, coeff1, wtmp
-        bn.addvm.8S coeff1, coeff1, wtmp
-        bn.mulvm.l.8S wtmp, coeff6, tf1, 4
-        bn.subvm.8S coeff6, coeff4, wtmp
-        bn.addvm.8S coeff4, coeff4, wtmp
-        bn.mulvm.l.8S wtmp, coeff7, tf1, 4
-        bn.subvm.8S coeff7, coeff5, wtmp
-        bn.addvm.8S coeff5, coeff5, wtmp
-        bn.mulvm.l.8S wtmp, coeff10, tf1, 5
-        bn.subvm.8S coeff10, coeff8, wtmp
-        bn.addvm.8S coeff8, coeff8, wtmp
-        bn.mulvm.l.8S wtmp, coeff11, tf1, 5
-        bn.subvm.8S coeff11, coeff9, wtmp
-        bn.addvm.8S coeff9, coeff9, wtmp
-        bn.mulvm.l.8S wtmp, coeff14, tf1, 6
-        bn.subvm.8S coeff14, coeff12, wtmp
-        bn.addvm.8S coeff12, coeff12, wtmp
-        bn.mulvm.l.8S wtmp, coeff15, tf1, 6
-        bn.subvm.8S coeff15, coeff13, wtmp
-        bn.addvm.8S coeff13, coeff13, wtmp
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff2, coeff2.0, tf1.3, 0 /* a*bq' */
+        bn.and coeff2, mask, coeff2 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff2, coeff2, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff2, coeff2.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff2 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff2, coeff0, wtmp
+        bn.addvm.8S   coeff0, coeff0, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff3, coeff3.0, tf1.3, 0 /* a*bq' */
+        bn.and coeff3, mask, coeff3 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff3, coeff3, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff3, coeff3.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff3 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff3, coeff1, wtmp
+        bn.addvm.8S   coeff1, coeff1, wtmp
+
+        /* Load 3 layer 7, 1 layer 8 */
+        bn.lid tf1_idx, 0(twp++)
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff6, coeff6.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff6, mask, coeff6 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff6, coeff6, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff6, coeff6.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff6 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff6, coeff4, wtmp
+        bn.addvm.8S   coeff4, coeff4, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff7, coeff7.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff7, mask, coeff7 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff7, coeff7, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff7, coeff7.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff7 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff7, coeff5, wtmp
+        bn.addvm.8S   coeff5, coeff5, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff10, coeff10.0, tf1.1, 0 /* a*bq' */
+        bn.and coeff10, mask, coeff10 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff10, coeff10, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff10, coeff10.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff10 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff10, coeff8, wtmp
+        bn.addvm.8S   coeff8, coeff8, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff11, coeff11.0, tf1.1, 0 /* a*bq' */
+        bn.and coeff11, mask, coeff11 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff11, coeff11, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff11, coeff11.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff11 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff11, coeff9, wtmp
+        bn.addvm.8S   coeff9, coeff9, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff14, coeff14.0, tf1.2, 0 /* a*bq' */
+        bn.and coeff14, mask, coeff14 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff14, coeff14, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff14, coeff14.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff14 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff14, coeff12, wtmp
+        bn.addvm.8S   coeff12, coeff12, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff15, coeff15.0, tf1.2, 0 /* a*bq' */
+        bn.and coeff15, mask, coeff15 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff15, coeff15, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff15, coeff15.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff15 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff15, coeff13, wtmp
+        bn.addvm.8S   coeff13, coeff13, wtmp
 
         /* Layer 8, stride 1 */
+        bn.and wtmp, coeff1, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff1, coeff1, wtmp >> 192
+            
 
+        bn.and wtmp, coeff3, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff3, coeff3, wtmp >> 192
+            
+
+        bn.and wtmp, coeff5, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff5, coeff5, wtmp >> 192
+            
+
+        bn.and wtmp, coeff7, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff7, coeff7, wtmp >> 192
+            
+
+        bn.and wtmp, coeff9, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff9, coeff9, wtmp >> 192
+            
+
+        bn.and wtmp, coeff11, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff11, coeff11, wtmp >> 192
+            
+
+        bn.and wtmp, coeff13, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff13, coeff13, wtmp >> 192
+            
+
+        bn.and wtmp, coeff15, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.or coeff15, coeff15, wtmp >> 192
         /* Butterflies */
-        bn.mulvm.l.8S wtmp, coeff1, tf1, 7
-        bn.subvm.8S coeff1, coeff0, wtmp
-        bn.addvm.8S coeff0, coeff0, wtmp
-        bn.mulvm.l.8S wtmp, coeff3, tf2, 0
-        bn.subvm.8S coeff3, coeff2, wtmp
-        bn.addvm.8S coeff2, coeff2, wtmp
-        bn.mulvm.l.8S wtmp, coeff5, tf2, 1
-        bn.subvm.8S coeff5, coeff4, wtmp
-        bn.addvm.8S coeff4, coeff4, wtmp
-        bn.mulvm.l.8S wtmp, coeff7, tf2, 2
-        bn.subvm.8S coeff7, coeff6, wtmp
-        bn.addvm.8S coeff6, coeff6, wtmp
-        bn.mulvm.l.8S wtmp, coeff9, tf2, 3
-        bn.subvm.8S coeff9, coeff8, wtmp
-        bn.addvm.8S coeff8, coeff8, wtmp
-        bn.mulvm.l.8S wtmp, coeff11, tf2, 4
-        bn.subvm.8S coeff11, coeff10, wtmp
-        bn.addvm.8S coeff10, coeff10, wtmp
-        bn.mulvm.l.8S wtmp, coeff13, tf2, 5
-        bn.subvm.8S coeff13, coeff12, wtmp
-        bn.addvm.8S coeff12, coeff12, wtmp
-        bn.mulvm.l.8S wtmp, coeff15, tf2, 6
-        bn.subvm.8S coeff15, coeff14, wtmp
-        bn.addvm.8S coeff14, coeff14, wtmp
+       /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff1, coeff1.0, tf1.3, 0 /* a*bq' */
+        bn.and coeff1, mask, coeff1 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff1, coeff1, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff1, coeff1.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff1 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff1, coeff0, wtmp
+        bn.addvm.8S   coeff0, coeff0, wtmp
+
+        /* Load layer 4 layer 8 */
+        bn.lid tf1_idx, 0(twp++)
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff3, coeff3.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff3, mask, coeff3 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff3, coeff3, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff3, coeff3.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff3 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff3, coeff2, wtmp
+        bn.addvm.8S   coeff2, coeff2, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff5, coeff5.0, tf1.1, 0 /* a*bq' */
+        bn.and coeff5, mask, coeff5 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff5, coeff5, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff5, coeff5.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff5 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff5, coeff4, wtmp
+        bn.addvm.8S   coeff4, coeff4, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff7, coeff7.0, tf1.2, 0 /* a*bq' */
+        bn.and coeff7, mask, coeff7 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff7, coeff7, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff7, coeff7.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff7 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff7, coeff6, wtmp
+        bn.addvm.8S   coeff6, coeff6, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff9, coeff9.0, tf1.3, 0 /* a*bq' */
+        bn.and coeff9, mask, coeff9 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff9, coeff9, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff9, coeff9.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff9 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff9, coeff8, wtmp
+        bn.addvm.8S   coeff8, coeff8, wtmp
+
+        /* Load layer 4 layer 8 + padding */
+        bn.lid tf1_idx, 0(twp++)
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff11, coeff11.0, tf1.0, 0 /* a*bq' */
+        bn.and coeff11, mask, coeff11 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff11, coeff11, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff11, coeff11.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff11 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff11, coeff10, wtmp
+        bn.addvm.8S   coeff10, coeff10, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff13, coeff13.0, tf1.1, 0 /* a*bq' */
+        bn.and coeff13, mask, coeff13 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff13, coeff13, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff13, coeff13.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff13 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff13, coeff12, wtmp
+        bn.addvm.8S   coeff12, coeff12, wtmp
+            
+
+        /* Plantard multiplication: Twiddle * coeff */
+        bn.mulqacc.wo.z coeff15, coeff15.0, tf1.2, 0 /* a*bq' */
+        bn.and coeff15, mask, coeff15 >> 32 /* Implements mod 2l and >> l */
+        bn.addi coeff15, coeff15, 256 /* + 2^alpha = 2^8 */
+        bn.mulqacc.wo.z coeff15, coeff15.0, wtmp3.0, 0 /* *q */
+        bn.rshi wtmp, wtmp2, coeff15 >> 32 /* >> l */
+        /* Butterfly */
+        bn.subvm.8S   coeff15, coeff14, wtmp
+        bn.addvm.8S   coeff14, coeff14, wtmp
 
         /* Reassemble WDRs and store */
         bn.rshi buf0, coeff0, buf0 >> 32
