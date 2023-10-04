@@ -2500,15 +2500,19 @@ poly_reduce32_dilithium:
     bn.lid t4, 0(t3)
     bn.and w12, w12, w11 /* Only keep one word */
 
-    bn.subi w13, bn0, 1 /* All ones */
+    bn.addi w13, bn0, 1
+    bn.rshi w13, w13, bn0 >> 232
+    bn.subi w13, w13, 1
+    /* keep lower 9 bits 0 */
+    bn.rshi w13, w13, bn0 >> 247
     
     bn.addi w14, bn0, 1
     bn.rshi w14, w14, bn0 >> 225 /* MSB is 1 */
 
-    LOOPI 32, 13
+    LOOPI 32, 14
         bn.lid t0, 0(a0++)
 
-        LOOPI 8, 10
+        LOOPI 8, 11
             bn.and w3, w0, w11 /* Mask out one coefficient */
             bn.rshi w0, bn0, w0 >> 32 /* Remove from input */
 
@@ -2519,7 +2523,8 @@ poly_reduce32_dilithium:
             /* Imitate arithmetic shift */
             bn.and w4, w14, w2 /* FG0.Z <= 1, if w2 >= 0, else 0 */
             bn.sel w4, bn0, w13, FG0.Z
-            bn.rshi w2, w4, w2 >> 23 /* (a + (1 << 22)) >> 23 */
+            bn.rshi w2, bn0, w2 >> 23
+            bn.or w2, w4, w2 /* (a + (1 << 22)) >> 23 */
 
             bn.mulqacc.wo.z w2, w2.0, w12.0, 0 /* t*Q */
             bn.sub w2, w3, w2 /* a - t*Q */
