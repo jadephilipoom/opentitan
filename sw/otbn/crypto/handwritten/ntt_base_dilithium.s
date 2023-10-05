@@ -1395,25 +1395,6 @@ _aligned:
         bn.subm   coeff15, coeff14, wtmp
         bn.addm   coeff14, coeff14, wtmp
 
-        /* bn.xor wtmp, wtmp, wtmp
-        bn.addi wtmp, wtmp, 1
-        bn.mulvm.8S coeff0, coeff0, wtmp
-        bn.mulvm.8S coeff1, coeff1, wtmp
-        bn.mulvm.8S coeff2, coeff2, wtmp
-        bn.mulvm.8S coeff3, coeff3, wtmp
-        bn.mulvm.8S coeff4, coeff4, wtmp
-        bn.mulvm.8S coeff5, coeff5, wtmp
-        bn.mulvm.8S coeff6, coeff6, wtmp
-        bn.mulvm.8S coeff7, coeff7, wtmp
-        bn.mulvm.8S coeff8, coeff8, wtmp
-        bn.mulvm.8S coeff9, coeff9, wtmp
-        bn.mulvm.8S coeff10, coeff10, wtmp
-        bn.mulvm.8S coeff11, coeff11, wtmp
-        bn.mulvm.8S coeff12, coeff12, wtmp
-        bn.mulvm.8S coeff13, coeff13, wtmp
-        bn.mulvm.8S coeff14, coeff14, wtmp
-        bn.mulvm.8S coeff15, coeff15, wtmp */
-
         /* Reassemble WDRs and store */
         bn.rshi buf0, coeff0, buf0 >> 32
         bn.rshi buf0, coeff1, buf0 >> 32
