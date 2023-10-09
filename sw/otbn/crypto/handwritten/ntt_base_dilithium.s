@@ -197,11 +197,9 @@ _aligned:
     /* Zero out one register */
     bn.xor wtmp2, wtmp2, wtmp2
 
-    /* Set one register in the top WLEN/4 to 1s, use above for constants */
-    /* bn.rshi wtmp3, mask, wtmp2 >> 32 */
     /* Set second WLEN/4 quad word to modulus */
     la tmp_gpr, modulus
-    li tmp_gpr2, 20 /* Load to wtmp */
+    li tmp_gpr2, 20 /* Load q to wtmp */
     bn.lid tmp_gpr2, 0(tmp_gpr)
     bn.and wtmp, wtmp, mask
     bn.or wtmp3, wtmp2, wtmp
@@ -214,10 +212,6 @@ _aligned:
     bn.addi wtmp, wtmp2, 1
     bn.rshi wtmp, wtmp, wtmp2 >> 161
     bn.or wtmp3, wtmp3, wtmp
-
-    /* 2**32 in modulus to truncate results */
-    /* bn.addi coeff0, mask, 1
-    bn.wsrw 0x0, coeff0 */
 
     /* We can process 16 coefficients each iteration and need to process N=256, meaning we require 16 iterations. */
     LOOPI 2, 371
