@@ -35,6 +35,13 @@ otbn_library(
 )
 
 otbn_library(
+    name = "intt_base_dilithium",
+    srcs = [
+        "intt_base_dilithium.s",
+    ],
+)
+
+otbn_library(
     name = "poly_pointwise_dilithium",
     srcs = [
         "poly_pointwise_dilithium.s",

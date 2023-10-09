@@ -603,6 +603,17 @@ otbn_sim_test(
 )
 
 otbn_sim_test(
+    name = "intt_base_dilithium_test",
+    srcs = [
+        "intt_base_dilithium_test.s",
+    ],
+    exp = "intt_dilithium_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:intt_base_dilithium",
+    ],
+)
+
+otbn_sim_test(
     name = "modinv_f4_test",
     srcs = [
         "modinv_f4_test.s",
