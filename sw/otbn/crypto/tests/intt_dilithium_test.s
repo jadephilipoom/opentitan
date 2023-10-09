@@ -19,7 +19,7 @@ main:
   la      x3, modulus
   bn.lid  x2, 0(x3)
   bn.wsrw 0x0, w2
-
+  la x2, stack_end
   /* dmem[data] <= INTT(dmem[input]) */
   la  x10, input
   la  x11, twiddles
@@ -568,3 +568,6 @@ twiddles:
     .word 0x0000b662
     /* ninv */
     .word 0x007f6021
+.zero 512
+stack_end:
+.zero 1
