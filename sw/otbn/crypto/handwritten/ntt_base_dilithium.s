@@ -198,24 +198,29 @@ _aligned:
     bn.xor wtmp2, wtmp2, wtmp2
 
     /* Set one register in the top WLEN/4 to 1s, use above for constants */
-    bn.rshi wtmp3, mask, wtmp2 >> 32
+    /* bn.rshi wtmp3, mask, wtmp2 >> 32 */
     /* Set second WLEN/4 quad word to modulus */
     la tmp_gpr, modulus
     li tmp_gpr2, 20 /* Load to wtmp */
     bn.lid tmp_gpr2, 0(tmp_gpr)
     bn.and wtmp, wtmp, mask
-    bn.or wtmp3, wtmp3, wtmp
+    bn.or wtmp3, wtmp2, wtmp
+
+    bn.wsrw 0x0, wtmp /* set modulus to q only once */
+
+    bn.or wtmp3, wtmp3, wtmp << 192
+
     /* Set bit at index 127 to 1 so wtmp3>>64 can be used as mask for sign ext */
     bn.addi wtmp, wtmp2, 1
     bn.rshi wtmp, wtmp, wtmp2 >> 161
     bn.or wtmp3, wtmp3, wtmp
 
     /* 2**32 in modulus to truncate results */
-    bn.addi coeff0, mask, 1
-    bn.wsrw 0x0, coeff0
+    /* bn.addi coeff0, mask, 1
+    bn.wsrw 0x0, coeff0 */
 
     /* We can process 16 coefficients each iteration and need to process N=256, meaning we require 16 iterations. */
-    LOOPI 2, 403
+    LOOPI 2, 371
         /* Load coefficients into buffer registers */
         bn.lid buf0_idx, 0(inp)
         bn.lid buf1_idx, 64(inp)
@@ -225,7 +230,7 @@ _aligned:
         bn.lid buf5_idx, 320(inp)
         bn.lid buf6_idx, 384(inp)
         bn.lid buf7_idx, 448(inp)
-        LOOPI 8, 386
+        LOOPI 8, 354
             /* Extract coefficients from buffer registers into working state */
             bn.and coeff0, buf0, mask
             bn.and coeff1, buf1, mask
@@ -270,42 +275,75 @@ _aligned:
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff15_idx, STACK_WDR2GPR(fp)
 
-            
-            /* Layer 1, stride 128 */
-            /* Sign extend coefficients */
+            /* Bring coefficients to [0,q) */
+            bn.and wtmp, coeff0, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.add coeff0, coeff0, wtmp >> 192
+            bn.and wtmp, coeff1, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.add coeff1, coeff1, wtmp >> 192
+            bn.and wtmp, coeff2, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.add coeff2, coeff2, wtmp >> 192
+            bn.and wtmp, coeff3, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.add coeff3, coeff3, wtmp >> 192
+            bn.and wtmp, coeff4, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.add coeff4, coeff4, wtmp >> 192
+            bn.and wtmp, coeff5, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.add coeff5, coeff5, wtmp >> 192
+            bn.and wtmp, coeff6, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.add coeff6, coeff6, wtmp >> 192
+            bn.and wtmp, coeff7, wtmp3 >> 64
+            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+            bn.add coeff7, coeff7, wtmp >> 192
             bn.and wtmp, coeff8, wtmp3 >> 64
             bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff8, coeff8, wtmp >> 192
-
+            bn.add coeff8, coeff8, wtmp >> 192
             bn.and wtmp, coeff9, wtmp3 >> 64
             bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff9, coeff9, wtmp >> 192
-
+            bn.add coeff9, coeff9, wtmp >> 192
             bn.and wtmp, coeff10, wtmp3 >> 64
             bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff10, coeff10, wtmp >> 192
-
+            bn.add coeff10, coeff10, wtmp >> 192
             bn.and wtmp, coeff11, wtmp3 >> 64
             bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff11, coeff11, wtmp >> 192
-
+            bn.add coeff11, coeff11, wtmp >> 192
             bn.and wtmp, coeff12, wtmp3 >> 64
             bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff12, coeff12, wtmp >> 192
-
+            bn.add coeff12, coeff12, wtmp >> 192
             bn.and wtmp, coeff13, wtmp3 >> 64
             bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff13, coeff13, wtmp >> 192
-
+            bn.add coeff13, coeff13, wtmp >> 192
             bn.and wtmp, coeff14, wtmp3 >> 64
             bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff14, coeff14, wtmp >> 192
-
+            bn.add coeff14, coeff14, wtmp >> 192
             bn.and wtmp, coeff15, wtmp3 >> 64
             bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff15, coeff15, wtmp >> 192
+            bn.add coeff15, coeff15, wtmp >> 192
 
+            /* Hack for truncate TODO remove */
+            bn.and coeff0, coeff0, mask
+            bn.and coeff1, coeff1, mask
+            bn.and coeff2, coeff2, mask
+            bn.and coeff3, coeff3, mask
+            bn.and coeff4, coeff4, mask
+            bn.and coeff5, coeff5, mask
+            bn.and coeff6, coeff6, mask
+            bn.and coeff7, coeff7, mask
+            bn.and coeff8, coeff8, mask
+            bn.and coeff9, coeff9, mask
+            bn.and coeff10, coeff10, mask
+            bn.and coeff11, coeff11, mask
+            bn.and coeff12, coeff12, mask
+            bn.and coeff13, coeff13, mask
+            bn.and coeff14, coeff14, mask
+            bn.and coeff15, coeff15, mask
 
+            /* Layer 1, stride 128 */
             /* Plantard multiplication: Twiddle * coeff */
             bn.mulqacc.wo.z coeff8, coeff8.0, tf1.0, 0 /* a*bq' */
             bn.and coeff8, mask, coeff8 >> 32 /* Implements mod 2l and >> l */
@@ -392,47 +430,6 @@ _aligned:
             /* Butterfly */
             bn.subm  coeff15, coeff7, wtmp
             bn.addm  coeff7, coeff7, wtmp
-
-
-            bn.and wtmp, coeff4, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff4, coeff4, wtmp >> 192
-
-
-            bn.and wtmp, coeff5, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff5, coeff5, wtmp >> 192
-
-
-            bn.and wtmp, coeff6, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff6, coeff6, wtmp >> 192
-
-
-            bn.and wtmp, coeff7, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff7, coeff7, wtmp >> 192
-
-
-            bn.and wtmp, coeff12, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff12, coeff12, wtmp >> 192
-
-
-            bn.and wtmp, coeff13, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff13, coeff13, wtmp >> 192
-
-
-            bn.and wtmp, coeff14, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff14, coeff14, wtmp >> 192
-
-
-            bn.and wtmp, coeff15, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff15, coeff15, wtmp >> 192
-
 
             /* Plantard multiplication: Twiddle * coeff */
             bn.mulqacc.wo.z coeff4, coeff4.0, tf1.1, 0 /* a*bq' */
@@ -521,47 +518,6 @@ _aligned:
             bn.subm  coeff15, coeff11, wtmp
             bn.addm  coeff11, coeff11, wtmp
 
-
-            bn.and wtmp, coeff2, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff2, coeff2, wtmp >> 192
-
-
-            bn.and wtmp, coeff3, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff3, coeff3, wtmp >> 192
-
-
-            bn.and wtmp, coeff6, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff6, coeff6, wtmp >> 192
-
-
-            bn.and wtmp, coeff7, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff7, coeff7, wtmp >> 192
-
-
-            bn.and wtmp, coeff10, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff10, coeff10, wtmp >> 192
-
-
-            bn.and wtmp, coeff11, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff11, coeff11, wtmp >> 192
-
-
-            bn.and wtmp, coeff14, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff14, coeff14, wtmp >> 192
-
-
-            bn.and wtmp, coeff15, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff15, coeff15, wtmp >> 192
-
-
             /* Plantard multiplication: Twiddle * coeff */
             bn.mulqacc.wo.z coeff2, coeff2.0, tf1.3, 0 /* a*bq' */
             bn.and coeff2, mask, coeff2 >> 32 /* Implements mod 2l and >> l */
@@ -648,47 +604,6 @@ _aligned:
             /* Butterfly */
             bn.subm  coeff15, coeff13, wtmp
             bn.addm  coeff13, coeff13, wtmp
-
-
-            bn.and wtmp, coeff1, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff1, coeff1, wtmp >> 192
-
-
-            bn.and wtmp, coeff3, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff3, coeff3, wtmp >> 192
-
-
-            bn.and wtmp, coeff5, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff5, coeff5, wtmp >> 192
-
-
-            bn.and wtmp, coeff7, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff7, coeff7, wtmp >> 192
-
-
-            bn.and wtmp, coeff9, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff9, coeff9, wtmp >> 192
-
-
-            bn.and wtmp, coeff11, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff11, coeff11, wtmp >> 192
-
-
-            bn.and wtmp, coeff13, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff13, coeff13, wtmp >> 192
-
-
-            bn.and wtmp, coeff15, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.or coeff15, coeff15, wtmp >> 192
-
 
             /* Plantard multiplication: Twiddle * coeff */
             bn.mulqacc.wo.z coeff1, coeff1.0, tf2.3, 0 /* a*bq' */
@@ -852,7 +767,7 @@ _aligned:
     li tf3_idx, 18
     li tf4_idx, 19
 
-    LOOPI 16, 360
+    LOOPI 16, 328
         /* Load layer 5 + 2 layer 6 + 1 layer 7 twiddle */
         bn.lid tf1_idx, 0(twp++)
 
@@ -877,46 +792,75 @@ _aligned:
         bn.and  coeff14, mask, buf0 >> 192
         bn.and  coeff15, mask, buf0 >> 224
 
-        /* Layer 5, stride 8 */
+        /* Bring coefficients to [0,q) */
+        bn.and wtmp, coeff0, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.add coeff0, coeff0, wtmp >> 192
+        bn.and wtmp, coeff1, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.add coeff1, coeff1, wtmp >> 192
+        bn.and wtmp, coeff2, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.add coeff2, coeff2, wtmp >> 192
+        bn.and wtmp, coeff3, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.add coeff3, coeff3, wtmp >> 192
+        bn.and wtmp, coeff4, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.add coeff4, coeff4, wtmp >> 192
+        bn.and wtmp, coeff5, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.add coeff5, coeff5, wtmp >> 192
+        bn.and wtmp, coeff6, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.add coeff6, coeff6, wtmp >> 192
+        bn.and wtmp, coeff7, wtmp3 >> 64
+        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
+        bn.add coeff7, coeff7, wtmp >> 192
         bn.and wtmp, coeff8, wtmp3 >> 64
         bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff8, coeff8, wtmp >> 192
-            
-
+        bn.add coeff8, coeff8, wtmp >> 192
         bn.and wtmp, coeff9, wtmp3 >> 64
         bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff9, coeff9, wtmp >> 192
-            
-
+        bn.add coeff9, coeff9, wtmp >> 192
         bn.and wtmp, coeff10, wtmp3 >> 64
         bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff10, coeff10, wtmp >> 192
-            
-
+        bn.add coeff10, coeff10, wtmp >> 192
         bn.and wtmp, coeff11, wtmp3 >> 64
         bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff11, coeff11, wtmp >> 192
-            
-
+        bn.add coeff11, coeff11, wtmp >> 192
         bn.and wtmp, coeff12, wtmp3 >> 64
         bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff12, coeff12, wtmp >> 192
-            
-
+        bn.add coeff12, coeff12, wtmp >> 192
         bn.and wtmp, coeff13, wtmp3 >> 64
         bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff13, coeff13, wtmp >> 192
-            
-
+        bn.add coeff13, coeff13, wtmp >> 192
         bn.and wtmp, coeff14, wtmp3 >> 64
         bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff14, coeff14, wtmp >> 192
-            
-
+        bn.add coeff14, coeff14, wtmp >> 192
         bn.and wtmp, coeff15, wtmp3 >> 64
         bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff15, coeff15, wtmp >> 192
-            
+        bn.add coeff15, coeff15, wtmp >> 192
+
+        /* Hack for truncate TODO remove */
+        bn.and coeff0, coeff0, mask
+        bn.and coeff1, coeff1, mask
+        bn.and coeff2, coeff2, mask
+        bn.and coeff3, coeff3, mask
+        bn.and coeff4, coeff4, mask
+        bn.and coeff5, coeff5, mask
+        bn.and coeff6, coeff6, mask
+        bn.and coeff7, coeff7, mask
+        bn.and coeff8, coeff8, mask
+        bn.and coeff9, coeff9, mask
+        bn.and coeff10, coeff10, mask
+        bn.and coeff11, coeff11, mask
+        bn.and coeff12, coeff12, mask
+        bn.and coeff13, coeff13, mask
+        bn.and coeff14, coeff14, mask
+        bn.and coeff15, coeff15, mask
+
+        /* Layer 5, stride 8 */         
 
         /* Plantard multiplication: Twiddle * coeff */
         bn.mulqacc.wo.z coeff8, coeff8.0, tf1.0, 0 /* a*bq' */
@@ -1006,46 +950,7 @@ _aligned:
         bn.addm   coeff7, coeff7, wtmp 
 
         /* Layer 6, stride 4 */
-        /* Butterflies */
-        bn.and wtmp, coeff4, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff4, coeff4, wtmp >> 192
-            
-
-        bn.and wtmp, coeff5, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff5, coeff5, wtmp >> 192
-            
-
-        bn.and wtmp, coeff6, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff6, coeff6, wtmp >> 192
-            
-
-        bn.and wtmp, coeff7, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff7, coeff7, wtmp >> 192
-            
-
-        bn.and wtmp, coeff12, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff12, coeff12, wtmp >> 192
-            
-
-        bn.and wtmp, coeff13, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff13, coeff13, wtmp >> 192
-            
-
-        bn.and wtmp, coeff14, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff14, coeff14, wtmp >> 192
-            
-
-        bn.and wtmp, coeff15, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff15, coeff15, wtmp >> 192
-            
+                   
 
         /* Plantard multiplication: Twiddle * coeff */
         bn.mulqacc.wo.z coeff4, coeff4.0, tf1.1, 0 /* a*bq' */
@@ -1135,44 +1040,6 @@ _aligned:
         bn.addm   coeff11, coeff11, wtmp
 
         /* Layer 7, stride 2 */
-        bn.and wtmp, coeff2, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff2, coeff2, wtmp >> 192
-            
-
-        bn.and wtmp, coeff3, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff3, coeff3, wtmp >> 192
-            
-
-        bn.and wtmp, coeff6, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff6, coeff6, wtmp >> 192
-            
-
-        bn.and wtmp, coeff7, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff7, coeff7, wtmp >> 192
-            
-
-        bn.and wtmp, coeff10, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff10, coeff10, wtmp >> 192
-            
-
-        bn.and wtmp, coeff11, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff11, coeff11, wtmp >> 192
-            
-
-        bn.and wtmp, coeff14, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff14, coeff14, wtmp >> 192
-            
-
-        bn.and wtmp, coeff15, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff15, coeff15, wtmp >> 192
 
         /* Butterflies */
         /* Plantard multiplication: Twiddle * coeff */
@@ -1264,45 +1131,7 @@ _aligned:
         bn.subm   coeff15, coeff13, wtmp
         bn.addm   coeff13, coeff13, wtmp
 
-        /* Layer 8, stride 1 */
-        bn.and wtmp, coeff1, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff1, coeff1, wtmp >> 192
-            
-
-        bn.and wtmp, coeff3, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff3, coeff3, wtmp >> 192
-            
-
-        bn.and wtmp, coeff5, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff5, coeff5, wtmp >> 192
-            
-
-        bn.and wtmp, coeff7, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff7, coeff7, wtmp >> 192
-            
-
-        bn.and wtmp, coeff9, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff9, coeff9, wtmp >> 192
-            
-
-        bn.and wtmp, coeff11, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff11, coeff11, wtmp >> 192
-            
-
-        bn.and wtmp, coeff13, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff13, coeff13, wtmp >> 192
-            
-
-        bn.and wtmp, coeff15, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.or coeff15, coeff15, wtmp >> 192
+        /* Layer 8, stride 1 */            
         /* Butterflies */
        /* Plantard multiplication: Twiddle * coeff */
         bn.mulqacc.wo.z coeff1, coeff1.0, tf1.3, 0 /* a*bq' */
