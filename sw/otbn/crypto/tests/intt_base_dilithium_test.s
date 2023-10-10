@@ -661,6 +661,8 @@ twiddles:
 .word 0x4fb1e7db, 0x8cf87102
 /* Inv Layer 1 */
 .word 0xff35df7a, 0x6d1f44f6
+/* ninv * plant * qprime */
+.word 0x00801c07, 0xff000002
 .balign 32
 .global ninv
 ninv:
