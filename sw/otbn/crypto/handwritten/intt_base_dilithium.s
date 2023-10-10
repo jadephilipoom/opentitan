@@ -218,7 +218,7 @@ _aligned:
 
     LOOPI 16, 328
         /* Load Data */
-        bn.lid buf0_idx, 0(inp++)
+        bn.lid buf0_idx, 0(inp)
         bn.and  coeff0, mask, buf0 >> 0
         bn.and  coeff1, mask, buf0 >> 32
         bn.and  coeff2, mask, buf0 >> 64
@@ -228,7 +228,7 @@ _aligned:
         bn.and  coeff6, mask, buf0 >> 192
         bn.and  coeff7, mask, buf0 >> 224
 
-        bn.lid buf0_idx, 0(inp++)
+        bn.lid buf0_idx, 32(inp)
         bn.and  coeff8, mask, buf0 >> 0
         bn.and  coeff9, mask, buf0 >> 32
         bn.and  coeff10, mask, buf0 >> 64
@@ -620,7 +620,7 @@ _aligned:
         bn.rshi buf0, coeff5, buf0 >> 32
         bn.rshi buf0, coeff6, buf0 >> 32
         bn.rshi buf0, coeff7, buf0 >> 32
-        bn.sid buf0_idx, 0(outp++)
+        bn.sid buf0_idx, 0(inp++)
         
         bn.rshi buf0, coeff8, buf0 >> 32
         bn.rshi buf0, coeff9, buf0 >> 32
@@ -630,10 +630,10 @@ _aligned:
         bn.rshi buf0, coeff13, buf0 >> 32
         bn.rshi buf0, coeff14, buf0 >> 32
         bn.rshi buf0, coeff15, buf0 >> 32
-        bn.sid buf0_idx, 0(outp++)
+        bn.sid buf0_idx, 0(inp++)
 
     /* Restore output pointer */
-    addi outp, outp, -1024
+    addi inp, inp, -1024
 
     /* Set up constants for input/twiddle factors */
     li tf1_idx, 16
@@ -648,17 +648,17 @@ _aligned:
     bn.lid tf4_idx, 96(twp)
 
     /* We can process 16 coefficients each iteration and need to process N=256, meaning we require 16 iterations. */
-    LOOPI 2, 411
+    LOOPI 2, 410
         /* Load coefficients into buffer registers */
-        bn.lid buf0_idx, 0(outp)
-        bn.lid buf1_idx, 64(outp)
-        bn.lid buf2_idx, 128(outp)
-        bn.lid buf3_idx, 192(outp)
-        bn.lid buf4_idx, 256(outp)
-        bn.lid buf5_idx, 320(outp)
-        bn.lid buf6_idx, 384(outp)
-        bn.lid buf7_idx, 448(outp)
-        LOOPI 8, 394
+        bn.lid buf0_idx, 0(inp)
+        bn.lid buf1_idx, 64(inp)
+        bn.lid buf2_idx, 128(inp)
+        bn.lid buf3_idx, 192(inp)
+        bn.lid buf4_idx, 256(inp)
+        bn.lid buf5_idx, 320(inp)
+        bn.lid buf6_idx, 384(inp)
+        bn.lid buf7_idx, 448(inp)
+        LOOPI 8, 393
             /* Extract coefficients from buffer registers into working state */
             bn.and coeff0, buf0, mask
             bn.and coeff1, buf1, mask
@@ -671,35 +671,35 @@ _aligned:
 
             /* Load remaining coefficients using 32-bit loads */
             /* Coeff 8 */
-            lw tmp_gpr, 512(outp)
+            lw tmp_gpr, 512(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff8_idx, STACK_WDR2GPR(fp)
             /* Coeff 9 */
-            lw tmp_gpr, 576(outp)
+            lw tmp_gpr, 576(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff9_idx, STACK_WDR2GPR(fp)
             /* Coeff 10 */
-            lw tmp_gpr, 640(outp)
+            lw tmp_gpr, 640(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff10_idx, STACK_WDR2GPR(fp)
             /* Coeff 11 */
-            lw tmp_gpr, 704(outp)
+            lw tmp_gpr, 704(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff11_idx, STACK_WDR2GPR(fp)
             /* Coeff 12 */
-            lw tmp_gpr, 768(outp)
+            lw tmp_gpr, 768(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff12_idx, STACK_WDR2GPR(fp)
             /* Coeff 13 */
-            lw tmp_gpr, 832(outp)
+            lw tmp_gpr, 832(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff13_idx, STACK_WDR2GPR(fp)
             /* Coeff 14 */
-            lw tmp_gpr, 896(outp)
+            lw tmp_gpr, 896(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff14_idx, STACK_WDR2GPR(fp)
             /* Coeff 15 */
-            lw tmp_gpr, 960(outp)
+            lw tmp_gpr, 960(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff15_idx, STACK_WDR2GPR(fp)
 
@@ -1127,50 +1127,49 @@ _aligned:
             /* Coeff8 */
             bn.sid coeff8_idx, STACK_WDR2GPR(fp)
             lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 512(outp)
+            sw tmp_gpr, 512(inp)
             /* Coeff9 */
             bn.sid coeff9_idx, STACK_WDR2GPR(fp)
             lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 576(outp)
+            sw tmp_gpr, 576(inp)
             /* Coeff10 */
             bn.sid coeff10_idx, STACK_WDR2GPR(fp)
             lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 640(outp)
+            sw tmp_gpr, 640(inp)
             /* Coeff11 */
             bn.sid coeff11_idx, STACK_WDR2GPR(fp)
             lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 704(outp)
+            sw tmp_gpr, 704(inp)
             /* Coeff12 */
             bn.sid coeff12_idx, STACK_WDR2GPR(fp)
             lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 768(outp)
+            sw tmp_gpr, 768(inp)
             /* Coeff13 */
             bn.sid coeff13_idx, STACK_WDR2GPR(fp)
             lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 832(outp)
+            sw tmp_gpr, 832(inp)
             /* Coeff14 */
             bn.sid coeff14_idx, STACK_WDR2GPR(fp)
             lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 896(outp)
+            sw tmp_gpr, 896(inp)
             /* Coeff15 */
             bn.sid coeff15_idx, STACK_WDR2GPR(fp)
             lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 960(outp)
+            sw tmp_gpr, 960(inp)
             
             /* Go to next coefficient for the unbuffered loads/stores */
             addi inp, inp, 4
-            addi outp, outp, 4
             /* Inner Loop End */
 
         /* Subtract 32 from offset to account for the increment inside the LOOP 8 */
-        bn.sid buf0_idx, -32(outp)
-        bn.sid buf1_idx, 32(outp)
-        bn.sid buf2_idx, 96(outp)
-        bn.sid buf3_idx, 160(outp)
-        bn.sid buf4_idx, 224(outp)
-        bn.sid buf5_idx, 288(outp)
-        bn.sid buf6_idx, 352(outp)
-        bn.sid buf7_idx, 416(outp)
+        bn.sid buf0_idx, -32(inp)
+        bn.sid buf1_idx, 32(inp)
+        bn.sid buf2_idx, 96(inp)
+        bn.sid buf3_idx, 160(inp)
+        bn.sid buf4_idx, 224(inp)
+        bn.sid buf5_idx, 288(inp)
+        bn.sid buf6_idx, 352(inp)
+        bn.sid buf7_idx, 416(inp)
         /* Outer Loop End */
 
     .irp reg,s11,s10,s9,s8,s7,s6,s5,s4,s3,s2,s1,s0
@@ -1186,16 +1185,16 @@ _aligned:
     /* Zero w31 again */
     bn.xor w31, w31, w31
 
-    /* push a0
+    /*push a0
     push a1
     push a2
-    addi a2, a2, -1024
+    addi a2, a2, -64
     addi a0, a2, 0
     addi a1, a2, 0
     jal x1, poly_reduce32_dilithium
     pop a2
     pop a1
-    pop a0 */
+    pop a0*/
 
     /* sp <- fp */
     addi sp, fp, 0
