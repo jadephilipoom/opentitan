@@ -507,11 +507,9 @@ verify_base_dilithium:
     .endr
 
     LOOPI 4, 3
-        jal  x1, intt_dilithium
-        /* Reset the twiddle pointer */
-        addi a1, a1, -960
-        /* Go to next input polynomial */
-        addi a0, a0, 1024
+        jal  x1, intt_base_dilithium
+        addi a1, a1, -2048 /* Reset the twiddle pointer */
+        addi a0, a0, 960 /* Go to next input poly, +64 already to a0 in intt */
 
     .irp reg,a7,a6,a5,a4,a3,a2,a1,a0,t6,t5,t4,t3,t2,t1,t0
         pop \reg
