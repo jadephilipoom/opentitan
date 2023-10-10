@@ -659,22 +659,10 @@ twiddles:
 /* Inv Layer 2 */
 .word 0x0fd9f05d, 0x8d187503
 .word 0x4fb1e7db, 0x8cf87102
-/* Inv Layer 1 */
-.word 0xff35df7a, 0x6d1f44f6
-/* ninv * plant * qprime */
+/* Inv Layer 1 (including ninv) */
+.word 0xf6ff35e0, 0x016d1f44
+/* ninv in Plantard domain */
 .word 0x00801c07, 0xff000002
-.balign 32
-.global ninv
-ninv:
-    /* ninv */
-    .word 0x007f6021
-    .word 0x007f6021
-    .word 0x007f6021
-    .word 0x007f6021
-    .word 0x007f6021
-    .word 0x007f6021
-    .word 0x007f6021
-    .word 0x007f6021
 /* Padding */
 .word 0x00000000
 .zero 512
