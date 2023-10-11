@@ -464,10 +464,10 @@ verify_base_dilithium:
     li s1, 4096
 
     LOOPI 4, 7
-        jal  x1, poly_pointwise_dilithium
+        jal  x1, poly_pointwise_base_dilithium
         addi a2, a2, -1024
         LOOPI 3, 2
-            jal  x1, poly_pointwise_acc_dilithium
+            jal  x1, poly_pointwise_acc_base_dilithium
             addi a2, a2, -1024
         /* Reset input vector pointer */
         sub  a0, a0, s1
@@ -482,7 +482,7 @@ verify_base_dilithium:
     add a2, fp, a2
 
     LOOPI 4, 2
-        jal  x1, poly_pointwise_dilithium
+        jal  x1, poly_pointwise_base_dilithium
         addi a0, a0, -1024
 
     /* w1 = w1 - t1 */

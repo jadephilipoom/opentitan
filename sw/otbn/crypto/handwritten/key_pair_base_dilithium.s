@@ -262,11 +262,11 @@ key_pair_base_dilithium:
     li s1, 4096
 
     LOOPI 4, 7
-        jal  x1, poly_pointwise_dilithium
+        jal  x1, poly_pointwise_base_dilithium
         addi a2, a2, -1024
 
         LOOPI 3, 2
-            jal  x1, poly_pointwise_acc_dilithium
+            jal  x1, poly_pointwise_acc_base_dilithium
             addi a2, a2, -1024
 
         sub  a0, a0, s1   /* Reset input vector pointer */

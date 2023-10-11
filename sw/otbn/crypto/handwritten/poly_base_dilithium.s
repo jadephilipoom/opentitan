@@ -2534,3 +2534,173 @@ poly_reduce32_dilithium:
         bn.sid t1, 0(a1++)
 
     ret
+
+/**
+ * Constant Time Dilithium base multiplication (pointwise)
+ *
+ * Returns: poly_pointwise(input1, input2)
+ *
+ * This implements the base multiplication for Dilithium, where n=256,q=8380417.
+ *
+ * Flags: -
+ *
+ * @param[in]  x10: dptr_input1, dmem pointer to first word of input1 polynomial
+ * @param[in]  x11: dptr_input2, dmem pointer to first word of input2 polynomial
+ * @param[in]  w31: all-zero
+ * @param[out] x12: dmem pointer to result
+ *
+ * clobbered registers: x4-x6, w2-w4
+ */
+.globl poly_pointwise_base_dilithium
+poly_pointwise_base_dilithium:
+    #define mask w7
+    #define qprime w8.0
+    #define q w8.1
+    
+    /* Init constants */
+
+    /* Load mask */
+    bn.addi mask, bn0, 1
+    bn.or   mask, bn0, mask << 32
+    bn.subi mask, mask, 1
+
+    /* Load q' to w8.0 */
+    li t0, 8
+    la t1, qprime_single
+    bn.lid t0, 0(t1)
+
+    /* Load q to w8.1 */
+    li t0, 9
+    la t1, modulus
+    bn.lid t0, 0(t1)
+    bn.and w9, mask, w9
+    bn.or w8, w8, w9 << 64
+
+    /* Constants for WDRs */
+    li t0, 0
+    li t1, 1
+    li t2, 6
+
+    LOOPI 32, 15
+        bn.lid t0, 0(a0++)
+        bn.lid t1, 0(a1++)
+
+        LOOPI 8, 11
+            /* Mask one coefficient to working registers */
+            bn.and w4, w0, w7
+            bn.and w5, w1, w7
+            /* Shift out used coefficient */
+            bn.rshi w0, bn0, w0 >> 32
+            bn.rshi w1, bn0, w1 >> 32
+
+            /* Do operation */
+            /* c = a * b */
+            bn.mulqacc.wo.z w4, w4.0, w5.0, 0
+            /* Multiply q' */
+            bn.mulqacc.wo.z w4, w4.0, qprime, 0
+            /* Extract upper 32-bits of bottom result half */
+            bn.and w4, mask, w4 >> 32
+            /* + 2^alpha */
+            bn.addi w4, w4, 256
+            bn.mulqacc.wo.z w4, w4.0, q, 0
+            bn.rshi w4, bn0, w4 >> 32
+
+            /* Append result to output */
+            bn.rshi w6, w4, w6 >> 32
+        /* Store 8 coefficients */
+        bn.sid t2, 0(a2++)
+    ret
+
+/**
+ * Constant Time Dilithium base multiplication (pointwise) with accumulation
+ *
+ * Returns: poly_pointwise_acc(input1, input2)
+ *
+ * This implements the base multiplication for Dilithium, where n=256,q=8380417.
+ * Accumulates onto the output polynomial.
+ *
+ * Flags: -
+ * 
+ * @param[in]  x10: dptr_input1, dmem pointer to first word of input1 polynomial
+ * @param[in]  x11: dptr_input2, dmem pointer to first word of input2 polynomial
+ * @param[in]  w31: all-zero
+ * @param[in/out] x12: dmem pointer to result
+ *
+ * clobbered registers: x4-x6, w2-w4
+ */
+.globl poly_pointwise_acc_base_dilithium
+poly_pointwise_acc_base_dilithium:
+    #define mask w7
+    #define qprime w8.0
+    #define q w8.1
+    
+    /* Init constants */
+
+    /* Load mask */
+    bn.addi mask, bn0, 1
+    bn.or   mask, bn0, mask << 32
+    bn.subi mask, mask, 1
+
+    /* Load q' to w8.0 */
+    li t0, 8
+    la t1, qprime_single
+    bn.lid t0, 0(t1)
+
+    /* Load q to w8.1 */
+    li t0, 9
+    la t1, modulus
+    bn.lid t0, 0(t1)
+    bn.and w9, mask, w9
+    bn.or w8, w8, w9 << 64
+
+    /* Constants for WDRs */
+    li t0, 0
+    li t1, 1
+    li t2, 2
+    li t3, 6
+
+    LOOPI 32, 19
+        bn.lid t0, 0(a0++)
+        bn.lid t1, 0(a1++)
+        bn.lid t2, 0(a2)
+
+        LOOPI 8, 14
+            /* Mask one coefficient to working registers */
+            bn.and w4, w0, mask
+            bn.and w5, w1, mask
+            bn.and w3, w2, mask
+            /* Shift out used coefficient */
+            bn.rshi w0, bn0, w0 >> 32
+            bn.rshi w1, bn0, w1 >> 32
+            bn.rshi w2, bn0, w2 >> 32
+
+            /* Do operation */
+            /* c = a * b */
+            bn.mulqacc.wo.z w4, w4.0, w5.0, 0
+            /* Multiply q' */
+            bn.mulqacc.wo.z w4, w4.0, qprime, 0
+            /* Extract upper 32-bits of bottom result half */
+            bn.and w4, mask, w4 >> 32
+            /* + 2^alpha */
+            bn.addi w4, w4, 256
+            bn.mulqacc.wo.z w4, w4.0, q, 0
+            bn.rshi w4, bn0, w4 >> 32
+
+            /* Accumulate */
+            bn.addm w4, w4, w3
+
+            /* Append result to output */
+            bn.rshi w6, w4, w6 >> 32
+
+        /* Store 8 coefficients */
+        bn.sid t3, 0(a2++)
+    ret
+
+.data 
+.balign 32
+qprime_single:
+    /* qprime */
+    .word 0x03802001, 0x180a4060
+    .word 0x0, 0x0
+    .word 0x0, 0x0
+    .word 0x0, 0x0
