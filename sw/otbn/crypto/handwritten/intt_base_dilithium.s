@@ -216,7 +216,7 @@ _aligned:
     li tf3_idx, 18
     li tf4_idx, 19
 
-    LOOPI 16, 328
+    LOOPI 16, 264
         /* Load Data */
         bn.lid buf0_idx, 0(inp)
         bn.and  coeff0, mask, buf0 >> 0
@@ -237,74 +237,6 @@ _aligned:
         bn.and  coeff13, mask, buf0 >> 160
         bn.and  coeff14, mask, buf0 >> 192
         bn.and  coeff15, mask, buf0 >> 224
-
-        /* Bring coefficients to [0,q) */
-        bn.and wtmp, coeff0, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff0, coeff0, wtmp >> 192
-        bn.and wtmp, coeff1, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff1, coeff1, wtmp >> 192
-        bn.and wtmp, coeff2, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff2, coeff2, wtmp >> 192
-        bn.and wtmp, coeff3, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff3, coeff3, wtmp >> 192
-        bn.and wtmp, coeff4, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff4, coeff4, wtmp >> 192
-        bn.and wtmp, coeff5, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff5, coeff5, wtmp >> 192
-        bn.and wtmp, coeff6, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff6, coeff6, wtmp >> 192
-        bn.and wtmp, coeff7, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff7, coeff7, wtmp >> 192
-        bn.and wtmp, coeff8, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff8, coeff8, wtmp >> 192
-        bn.and wtmp, coeff9, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff9, coeff9, wtmp >> 192
-        bn.and wtmp, coeff10, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff10, coeff10, wtmp >> 192
-        bn.and wtmp, coeff11, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff11, coeff11, wtmp >> 192
-        bn.and wtmp, coeff12, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff12, coeff12, wtmp >> 192
-        bn.and wtmp, coeff13, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff13, coeff13, wtmp >> 192
-        bn.and wtmp, coeff14, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff14, coeff14, wtmp >> 192
-        bn.and wtmp, coeff15, wtmp3 >> 64
-        bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-        bn.add coeff15, coeff15, wtmp >> 192
-
-        /* Hack for truncate TODO remove */
-        bn.and coeff0, coeff0, mask
-        bn.and coeff1, coeff1, mask
-        bn.and coeff2, coeff2, mask
-        bn.and coeff3, coeff3, mask
-        bn.and coeff4, coeff4, mask
-        bn.and coeff5, coeff5, mask
-        bn.and coeff6, coeff6, mask
-        bn.and coeff7, coeff7, mask
-        bn.and coeff8, coeff8, mask
-        bn.and coeff9, coeff9, mask
-        bn.and coeff10, coeff10, mask
-        bn.and coeff11, coeff11, mask
-        bn.and coeff12, coeff12, mask
-        bn.and coeff13, coeff13, mask
-        bn.and coeff14, coeff14, mask
-        bn.and coeff15, coeff15, mask
 
         /* Load layer 8 twiddle 4x */
         bn.lid tf1_idx, 0(twp++)
@@ -648,7 +580,7 @@ _aligned:
     bn.lid tf4_idx, 96(twp)
 
     /* We can process 16 coefficients each iteration and need to process N=256, meaning we require 16 iterations. */
-    LOOPI 2, 410
+    LOOPI 2, 346
         /* Load coefficients into buffer registers */
         bn.lid buf0_idx, 0(inp)
         bn.lid buf1_idx, 64(inp)
@@ -658,7 +590,7 @@ _aligned:
         bn.lid buf5_idx, 320(inp)
         bn.lid buf6_idx, 384(inp)
         bn.lid buf7_idx, 448(inp)
-        LOOPI 8, 393
+        LOOPI 8, 329
             /* Extract coefficients from buffer registers into working state */
             bn.and coeff0, buf0, mask
             bn.and coeff1, buf1, mask
@@ -702,74 +634,6 @@ _aligned:
             lw tmp_gpr, 960(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff15_idx, STACK_WDR2GPR(fp)
-
-            /* Bring coefficients to [0,q) */
-            bn.and wtmp, coeff0, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff0, coeff0, wtmp >> 192
-            bn.and wtmp, coeff1, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff1, coeff1, wtmp >> 192
-            bn.and wtmp, coeff2, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff2, coeff2, wtmp >> 192
-            bn.and wtmp, coeff3, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff3, coeff3, wtmp >> 192
-            bn.and wtmp, coeff4, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff4, coeff4, wtmp >> 192
-            bn.and wtmp, coeff5, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff5, coeff5, wtmp >> 192
-            bn.and wtmp, coeff6, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff6, coeff6, wtmp >> 192
-            bn.and wtmp, coeff7, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff7, coeff7, wtmp >> 192
-            bn.and wtmp, coeff8, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff8, coeff8, wtmp >> 192
-            bn.and wtmp, coeff9, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff9, coeff9, wtmp >> 192
-            bn.and wtmp, coeff10, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff10, coeff10, wtmp >> 192
-            bn.and wtmp, coeff11, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff11, coeff11, wtmp >> 192
-            bn.and wtmp, coeff12, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff12, coeff12, wtmp >> 192
-            bn.and wtmp, coeff13, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff13, coeff13, wtmp >> 192
-            bn.and wtmp, coeff14, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff14, coeff14, wtmp >> 192
-            bn.and wtmp, coeff15, wtmp3 >> 64
-            bn.sel wtmp, wtmp2, wtmp3, z /* If z -> sign bit was not set */
-            bn.add coeff15, coeff15, wtmp >> 192
-
-            /* Hack for truncate TODO remove */
-            bn.and coeff0, coeff0, mask
-            bn.and coeff1, coeff1, mask
-            bn.and coeff2, coeff2, mask
-            bn.and coeff3, coeff3, mask
-            bn.and coeff4, coeff4, mask
-            bn.and coeff5, coeff5, mask
-            bn.and coeff6, coeff6, mask
-            bn.and coeff7, coeff7, mask
-            bn.and coeff8, coeff8, mask
-            bn.and coeff9, coeff9, mask
-            bn.and coeff10, coeff10, mask
-            bn.and coeff11, coeff11, mask
-            bn.and coeff12, coeff12, mask
-            bn.and coeff13, coeff13, mask
-            bn.and coeff14, coeff14, mask
-            bn.and coeff15, coeff15, mask
 
             /* Layer 0 */
             bn.subm wtmp, coeff0, coeff1
