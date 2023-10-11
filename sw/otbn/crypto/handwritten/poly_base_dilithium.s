@@ -1341,7 +1341,7 @@ _inner_polyeta_pack_dilithium:
         .rept 8
             /* Mask */
             bn.and w7, w1, w5
-            /* Subtract coefficient from gamma1 */
+            /* Subtract coefficient from eta */
             bn.sub w7, w3, w7
             /* Move coefficient into the output register */
             bn.rshi w2, w7, w2 >> 3
