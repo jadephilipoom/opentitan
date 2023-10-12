@@ -201,8 +201,6 @@ _aligned:
     bn.and wtmp, wtmp, mask
     bn.or wtmp3, wtmp2, wtmp
 
-    bn.wsrw 0x0, wtmp /* set modulus to q only once */
-
     bn.or wtmp3, wtmp3, wtmp << 192
 
     /* Set bit at index 127 to 1 so wtmp3>>64 can be used as mask for sign ext */
@@ -1040,25 +1038,8 @@ _aligned:
         pop \reg
     .endr
 
-    /* Restore modulus */
-    la tf3_idx, modulus
-    li t0, 31
-    bn.lid t0, 0(tf3_idx)
-    bn.wsrw 0x0, w31
-
     /* Zero w31 again */
     bn.xor w31, w31, w31
-
-    /*push a0
-    push a1
-    push a2
-    addi a2, a2, -64
-    addi a0, a2, 0
-    addi a1, a2, 0
-    jal x1, poly_reduce32_dilithium
-    pop a2
-    pop a1
-    pop a0*/
 
     /* sp <- fp */
     addi sp, fp, 0

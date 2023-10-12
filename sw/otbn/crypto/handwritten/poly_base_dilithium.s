@@ -250,16 +250,6 @@ _inner_polyt1_unpack_dilithium:
  */
 .global polyz_unpack_base_dilithium
 polyz_unpack_base_dilithium:
-    /* Load mask */
-    bn.addi w2, bn0, 1
-    bn.or   w2, bn0, w2 << 32
-    bn.subi w2, w2, 1
-
-    la t2, modulus
-    li t3, 3 /* Load q to wtmp */
-    bn.lid t3, 0(t2)
-    bn.and w3, w3, w2
-    bn.wsrw 0x0, w3 /* set modulus to q only once */
 
     /* Load gamma1 as a vector into w4 */
     li t2, 4
@@ -334,12 +324,6 @@ polyz_unpack_base_dilithium:
         bn.rshi w1, bn0, w6 >> 112
         jal     x1, _inner_polyz_unpack_base_dilithium
         nop /* Must not end on branch */
-
-    /* Restore modulus */
-    la t2, modulus
-    li t3, 3 /* Load q to wtmp */
-    bn.lid t3, 0(t2)
-    bn.wsrw 0x0, w3 /* set modulus to q only once */
 
     ret
 
@@ -493,17 +477,6 @@ poly_challenge:
     /* save output pointer */
     addi a4, a0, 0
 
-    /* Load mask */
-    bn.addi w20, bn0, 1
-    bn.or   w20, bn0, w20 << 32
-    bn.subi w20, w20, 1
-
-    la t0, modulus
-    li t1, 21 /* Load q to wtmp */
-    bn.lid t1, 0(t0)
-    bn.and w21, w21, w20
-    bn.wsrw 0x0, w21 /* set modulus to q only once */
-
     /* Initialize a SHAKE256 operation. */
     addi  t0, zero, SHAKE256_START_CMD
     csrrw zero, KECCAK_CMD_REG, t0
@@ -604,12 +577,6 @@ _loop_inner_skip_load_poly_challenge:
     /* Finish the SHAKE-256 operation. */
     addi  t0, zero, KECCAK_DONE_CMD
     csrrw zero, KECCAK_CMD_REG, t0
-
-    /* Restore modulus */
-    la t0, modulus
-    li t1, 21 /* Load q to wtmp */
-    bn.lid t1, 0(t0)
-    bn.wsrw 0x0, w21 /* set modulus to q only once */
 
     /* sp <- fp */
     addi sp, fp, 0
@@ -1330,12 +1297,6 @@ polyeta_pack_dilithium:
     bn.or   w20, bn0, w20 << 32
     bn.subi w20, w20, 1
 
-    la t0, modulus
-    li t1, 21 /* Load q to wtmp */
-    bn.lid t1, 0(t0)
-    bn.and w21, w21, w20
-    bn.wsrw 0x0, w21 /* set modulus to q only once */
-
     /* Compute ETA - coeff */
     /* Setup WDRs */
     li t1, 1
@@ -1369,12 +1330,6 @@ polyeta_pack_dilithium:
     jal     x1, _inner_polyeta_pack_dilithium
     bn.rshi w4, w2, w4 >> 192
     bn.sid  t4, 0(a0++)
-
-    /* Restore modulus */
-    la t0, modulus
-    li t1, 21 /* Load q to wtmp */
-    bn.lid t1, 0(t0)
-    bn.wsrw 0x0, w21 /* set modulus to q only once */
 
     ret
 
@@ -1600,17 +1555,6 @@ _inner_polyw1_pack_dilithium:
 .global polyeta_unpack_base_dilithium
 polyeta_unpack_base_dilithium:
 
-    /* Load mask */
-    bn.addi w5, bn0, 1
-    bn.or   w5, bn0, w5 << 32
-    bn.subi w5, w5, 1
-
-    la t0, modulus
-    li t1, 1 /* Load q to w1 */
-    bn.lid t1, 0(t0)
-    bn.and w1, w1, w5
-    bn.wsrw 0x0, w1 /* set modulus to q only once */
-
     /* Setup WDR */ 
     li t1, 1
     li t2, 2
@@ -1642,12 +1586,6 @@ polyeta_unpack_base_dilithium:
     /* w1 = |0|w3.3|w3.2|w3.1 */
     bn.rshi w1, bn0, w3 >> 64
     jal     x1, _inner_polyeta_unpack_base_dilithium
-
-    /* Restore modulus */
-    la t0, modulus
-    li t1, 1 /* Load q to wtmp */
-    bn.lid t1, 0(t0)
-    bn.wsrw 0x0, w1 /* set modulus to q only once */
 
     ret
 
@@ -1833,16 +1771,6 @@ _ret1_decode_h_dilithium:
  */
 .global polyt0_unpack_base_dilithium
 polyt0_unpack_base_dilithium:
-    /* Load mask */
-    bn.addi w20, bn0, 1
-    bn.or   w20, bn0, w20 << 32
-    bn.subi w20, w20, 1
-
-    la t0, modulus
-    li t1, 21 /* Load q to wtmp */
-    bn.lid t1, 0(t0)
-    bn.and w21, w21, w20
-    bn.wsrw 0x0, w21 /* set modulus to q only once */
 
     li t4, 4
     /* Load precomputed (1 << (D-1)) */
@@ -1919,12 +1847,6 @@ polyt0_unpack_base_dilithium:
 
     bn.rshi w1, bn0, w6 >> 48
     jal     x1, _inner_polyt0_unpack_base_dilithium
-   
-    /* Restore modulus */
-    la t0, modulus
-    li t1, 21 /* Load q to wtmp */
-    bn.lid t1, 0(t0)
-    bn.wsrw 0x0, w21 /* set modulus to q only once */
 
     ret
 
@@ -1982,17 +1904,6 @@ poly_uniform_gamma1_base_dilithium:
 
     /* Reserve space for tmp buffer to hold a WDR */
     #define STACK_WDR2GPR -32
-
-    /* Load mask */
-    bn.addi w20, bn0, 1
-    bn.or   w20, bn0, w20 << 32
-    bn.subi w20, w20, 1
-
-    la t0, modulus
-    li t1, 21 /* Load q to wtmp */
-    bn.lid t1, 0(t0)
-    bn.and w21, w21, w20
-    bn.wsrw 0x0, w21 /* set modulus to q only once */
 
     push a0
     push a1
@@ -2089,12 +2000,6 @@ poly_uniform_gamma1_base_dilithium:
     /* Finish the SHAKE-256 operation. */
     addi  t0, zero, KECCAK_DONE_CMD
     csrrw zero, KECCAK_CMD_REG, t0
-
-    /* Restore modulus */
-    la t0, modulus
-    li t1, 21 /* Load q to wtmp */
-    bn.lid t1, 0(t0)
-    bn.wsrw 0x0, w21 /* set modulus to q only once */
 
     /* sp <- fp */
     addi sp, fp, 0

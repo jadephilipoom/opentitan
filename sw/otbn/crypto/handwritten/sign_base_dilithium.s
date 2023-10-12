@@ -667,7 +667,7 @@ _rej_sign_dilithium:
     add a2, fp, a2
 
     LOOPI L, 2
-        jal x1, poly_sub_dilithium
+        jal x1, poly_sub_base_dilithium
         nop 
 
     /* reduce32 w0 */

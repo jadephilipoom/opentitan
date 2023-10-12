@@ -501,7 +501,7 @@ verify_base_dilithium:
     add a2, fp, a2
 
     LOOPI 4, 2
-        jal x1, poly_sub_dilithium
+        jal x1, poly_sub_base_dilithium
         nop
 
     /* Inverse NTT on w1 */

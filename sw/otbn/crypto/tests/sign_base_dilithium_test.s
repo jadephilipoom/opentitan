@@ -18,6 +18,7 @@ main:
   li      x5, 2
   la      x6, modulus
   bn.lid  x5, 0(x6)
+  bn.rshi w2, w31, w2 >> 224
   bn.wsrw 0x0, w2
 
   /* Load stack address */
