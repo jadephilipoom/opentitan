@@ -17,15 +17,23 @@
  */
 .global poly_add_base_dilithium
 poly_add_base_dilithium:
-    /* Set up constants for input/state */
-    li x6, 2
-    li x5, 3
-    li x4, 6
+    
 
     /* Init mask */
     bn.addi w7, w31, 1
     bn.or w7, w31, w7 << 32
     bn.subi w7, w7, 1
+
+    la x4, modulus
+    li x5, 21 /* Load q to wtmp */
+    bn.lid x5, 0(x4)
+    bn.and w21, w21, w7
+    bn.wsrw 0x0, w21 /* set modulus to q only once */
+
+    /* Set up constants for input/state */
+    li x6, 2
+    li x5, 3
+    li x4, 6
 
     LOOPI 32, 10
         bn.lid x6, 0(x10++)
@@ -43,5 +51,11 @@ poly_add_base_dilithium:
             bn.rshi w6, w4, w6 >> 32
         
         bn.sid x4, 0(x12++)
+
+    /* Restore modulus */
+    la x4, modulus
+    li x5, 21 /* Load q to wtmp */
+    bn.lid x5, 0(x4)
+    bn.wsrw 0x0, w21 /* set modulus to q only once */
 
     ret

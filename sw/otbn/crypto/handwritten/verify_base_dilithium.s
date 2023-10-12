@@ -364,6 +364,13 @@ verify_base_dilithium:
             addi a2, a2, 1
         addi a2, a2, 252
 
+    /* Move z to unsigned domain in [0, q-1] */
+    li   a0, STACK_Z
+    add  a0, fp, a0
+    LOOPI 4, 2
+        jal x1, poly_caddq_base_dilithium
+        nop
+
     /* NTT(z) */
     li   a0, STACK_Z
     add  a0, fp, a0
