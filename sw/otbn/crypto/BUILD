@@ -316,6 +316,32 @@ otbn_binary(
     ],
 )
 
+otbn_binary(
+    name = "p384_ecdh_shared_key",
+    srcs = [
+        "p384_ecdh_shared_key.s",
+    ],
+    deps = [
+        ":p384_a2b",
+        ":p384_base",
+        ":p384_internal_mult",
+        ":p384_scalar_mult",
+    ],
+)
+
+otbn_binary(
+    name = "p384_ecdh_keypair",
+    srcs = [
+        "p384_ecdh_keypair.s",
+    ],
+    deps = [
+        ":p384_base",
+        ":p384_internal_mult",
+        ":p384_keygen",
+        ":p384_scalar_mult",
+    ],
+)
+
 otbn_library(
     name = "sha256",
     srcs = [

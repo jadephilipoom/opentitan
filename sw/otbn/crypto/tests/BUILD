@@ -401,6 +401,20 @@ otbn_sim_test(
 )
 
 otbn_sim_test(
+    name = "p384_ecdh_shared_key_test",
+    srcs = [
+        "p384_ecdh_shared_key_test.s",
+    ],
+    exp = "p384_ecdh_shared_key_test.exp",
+    deps = [
+        "//sw/otbn/crypto:p384_a2b",
+        "//sw/otbn/crypto:p384_base",
+        "//sw/otbn/crypto:p384_internal_mult",
+        "//sw/otbn/crypto:p384_scalar_mult",
+    ],
+)
+
+otbn_sim_test(
     name = "p384_ecdsa_sign_test",
     srcs = [
         "p384_ecdsa_sign_test.s",
