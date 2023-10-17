@@ -695,12 +695,12 @@
 
     // Give IMEM and DMEM 16 KiB address space, each, to allow for easy expansion
     // of the actual IMEM and DMEM sizes without changing the address map.
-    { skipto: "0x4000" }
+    { skipto: "0x8000" }
 
     // Imem size (given as `items` below) must be a power of two.
     { window: {
         name: "IMEM",
-        items: "4096", // 4 kB
+        items: "8192", // 4 kB
         swaccess: "rw",
         data-intg-passthru: "true",
         byte-write: "false",
@@ -718,7 +718,7 @@
       }
     }
 
-    { skipto: "0x8000" }
+    { skipto: "0x10000" }
 
     // Dmem size (given as `items` below) must be a power of two.
     { window: {
