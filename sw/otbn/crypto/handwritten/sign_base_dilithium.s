@@ -619,15 +619,15 @@ _rej_sign_dilithium:
     li  s0, STACK_Z
     add s0, fp, s0
 
-    LOOPI L, 5
+    /* Cannot use hardware loop due to branch to _rej_sign_dilithium */
+    .rept 4
         addi a0, s0, 0
         jal x1, poly_chknorm_base_dilithium
         addi s0, s0, 1024
         
         /* Reject */
         bne a0, zero, _rej_sign_dilithium
-        nop /* Loops cannot end on a branch */
-
+    .endr
     /* h = cp * s2 */
     li  a0, STACK_CP
     add a0, fp, a0
@@ -685,13 +685,15 @@ _rej_sign_dilithium:
     li  s0, STACK_W0
     add s0, fp, s0
 
-    LOOPI K, 4
+    /* Cannot use hardware loop due to branch to _rej_sign_dilithium */
+    .rept 4
         addi a0, s0, 0
         jal  x1, poly_chknorm_base_dilithium
         /* reject */
         bne  a0, zero, _rej_sign_dilithium
         addi s0, s0, 1024
-    
+    .endr 
+
     /* h = cp * t0 */
     li  a0, STACK_CP
     add a0, fp, a0
@@ -736,12 +738,14 @@ _rej_sign_dilithium:
     li  s0, STACK_H
     add s0, fp, s0
 
-    LOOPI K, 4
+    /* Cannot use hardware loop due to branch to _rej_sign_dilithium */
+    .rept 4
         addi a0, s0, 0
         jal  x1, poly_chknorm_base_dilithium
         /* reject */
         bne  a0, zero, _rej_sign_dilithium
         addi s0, s0, 1024
+    .endr
 
     /* w0 = w0 + h */
     li  a0, STACK_W0
