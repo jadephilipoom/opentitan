@@ -435,6 +435,7 @@ otbn_sim_test(
     exp = "p384_ecdsa_verify_test.exp",
     deps = [
         "//sw/otbn/crypto:p384_base",
+        "//sw/otbn/crypto:p384_isoncurve",
         "//sw/otbn/crypto:p384_verify",
     ],
 )
@@ -447,7 +448,7 @@ otbn_sim_test(
     exp = "p384_isoncurve_test.exp",
     deps = [
         "//sw/otbn/crypto:p384_base",
-        "//sw/otbn/crypto:p384_verify",
+        "//sw/otbn/crypto:p384_isoncurve",
     ],
 )
 
