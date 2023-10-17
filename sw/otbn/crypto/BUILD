@@ -332,7 +332,6 @@ otbn_binary(
         ":p384_a2b",
         ":p384_base",
         ":p384_internal_mult",
-        ":p384_isoncurve",
         ":p384_scalar_mult",
     ],
 )
@@ -347,6 +346,17 @@ otbn_binary(
         ":p384_internal_mult",
         ":p384_keygen",
         ":p384_scalar_mult",
+    ],
+)
+
+otbn_binary(
+    name = "p384_public_key_check",
+    srcs = [
+        "p384_public_key_check.s",
+    ],
+    deps = [
+        ":p384_base",
+        ":p384_isoncurve",
     ],
 )
 
