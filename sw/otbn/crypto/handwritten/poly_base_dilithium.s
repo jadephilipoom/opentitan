@@ -2570,7 +2570,7 @@ poly_reduce32_dilithium:
 .globl poly_pointwise_base_dilithium
 poly_pointwise_base_dilithium:
     #define mask w7
-    #define qprime w8.0
+    #define barrconst w8.0
     #define q w8.1
     
     /* Init constants */
@@ -2582,7 +2582,7 @@ poly_pointwise_base_dilithium:
 
     /* Load q' to w8.0 */
     li t0, 8
-    la t1, qprime_single
+    la t1, barrett_const
     bn.lid t0, 0(t1)
 
     /* Load q to w8.1 */
@@ -2597,11 +2597,11 @@ poly_pointwise_base_dilithium:
     li t1, 1
     li t2, 6
 
-    LOOPI 32, 15
+    LOOPI 32, 13
         bn.lid t0, 0(a0++)
         bn.lid t1, 0(a1++)
 
-        LOOPI 8, 11
+        LOOPI 8, 9
             /* Mask one coefficient to working registers */
             bn.and w4, w0, w7
             bn.and w5, w1, w7
@@ -2611,15 +2611,24 @@ poly_pointwise_base_dilithium:
 
             /* Do operation */
             /* c = a * b */
+            /* bn.mulqacc.wo.z w4, w4.0, w5.0, 0 */
+            /* Multiply q' */
+            /* bn.mulqacc.wo.z w4, w4.0, qprime, 0 */
+            /* Extract upper 32-bits of bottom result half */
+            /* bn.and w4, mask, w4 >> 32 */
+            /* + 2^alpha */
+            /* bn.addi w4, w4, 256
+            bn.mulqacc.wo.z w4, w4.0, q, 0
+            bn.rshi w4, bn0, w4 >> 32 */
+
+            /* Barrett */
+            /* c = a * b */
             bn.mulqacc.wo.z w4, w4.0, w5.0, 0
             /* Multiply q' */
-            bn.mulqacc.wo.z w4, w4.0, qprime, 0
-            /* Extract upper 32-bits of bottom result half */
-            bn.and w4, mask, w4 >> 32
-            /* + 2^alpha */
-            bn.addi w4, w4, 256
-            bn.mulqacc.wo.z w4, w4.0, q, 0
-            bn.rshi w4, bn0, w4 >> 32
+            bn.mulqacc.wo.z w9, w4.0, barrconst, 0
+            /* Implicit >> of 64 */
+            bn.mulqacc.wo.z w9, q, w9.1, 0
+            bn.sub w4, w4, w9
 
             /* Append result to output */
             bn.rshi w6, w4, w6 >> 32
@@ -2647,7 +2656,7 @@ poly_pointwise_base_dilithium:
 .globl poly_pointwise_acc_base_dilithium
 poly_pointwise_acc_base_dilithium:
     #define mask w7
-    #define qprime w8.0
+    #define barrconst w8.0
     #define q w8.1
     
     /* Init constants */
@@ -2659,7 +2668,7 @@ poly_pointwise_acc_base_dilithium:
 
     /* Load q' to w8.0 */
     li t0, 8
-    la t1, qprime_single
+    la t1, barrett_const
     bn.lid t0, 0(t1)
 
     /* Load q to w8.1 */
@@ -2675,12 +2684,12 @@ poly_pointwise_acc_base_dilithium:
     li t2, 2
     li t3, 6
 
-    LOOPI 32, 19
+    LOOPI 32, 17
         bn.lid t0, 0(a0++)
         bn.lid t1, 0(a1++)
         bn.lid t2, 0(a2)
 
-        LOOPI 8, 14
+        LOOPI 8, 12
             /* Mask one coefficient to working registers */
             bn.and w4, w0, mask
             bn.and w5, w1, mask
@@ -2692,15 +2701,24 @@ poly_pointwise_acc_base_dilithium:
 
             /* Do operation */
             /* c = a * b */
+            /* bn.mulqacc.wo.z w4, w4.0, w5.0, 0 */
+            /* Multiply q' */
+            /* bn.mulqacc.wo.z w4, w4.0, qprime, 0 */
+            /* Extract upper 32-bits of bottom result half */
+            /* bn.and w4, mask, w4 >> 32 */
+            /* + 2^alpha */
+            /* bn.addi w4, w4, 256
+            bn.mulqacc.wo.z w4, w4.0, q, 0
+            bn.rshi w4, bn0, w4 >> 32 */
+
+            /* Barrett */
+            /* c = a * b */
             bn.mulqacc.wo.z w4, w4.0, w5.0, 0
             /* Multiply q' */
-            bn.mulqacc.wo.z w4, w4.0, qprime, 0
-            /* Extract upper 32-bits of bottom result half */
-            bn.and w4, mask, w4 >> 32
-            /* + 2^alpha */
-            bn.addi w4, w4, 256
-            bn.mulqacc.wo.z w4, w4.0, q, 0
-            bn.rshi w4, bn0, w4 >> 32
+            bn.mulqacc.wo.z w9, w4.0, barrconst, 0
+            /* Implicit >> of 64 */
+            bn.mulqacc.wo.z w9, q, w9.1, 0
+            bn.sub w4, w4, w9
 
             /* Accumulate */
             bn.addm w4, w4, w3
@@ -2779,3 +2797,12 @@ qprime_single:
     .word 0x0, 0x0
     .word 0x0, 0x0
     .word 0x0, 0x0
+barrett_const:
+    .word 0x801c0601
+    .word 0x00000200
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0
+    .word 0

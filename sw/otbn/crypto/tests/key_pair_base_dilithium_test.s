@@ -75,7 +75,7 @@ modulus_base:
 .global twiddles_fwd
 twiddles_fwd:
   /* Layers 1-4 */
-    .word 0x00ca2087, 0x92e0bb09
+    .word 0x00495e02, 0x00000000
     .word 0xb04e1826, 0x73078efd
     .word 0xf0260fa4, 0x72e78afc
     .word 0x073e5788, 0x9e33e1bc
@@ -785,10 +785,10 @@ twiddles_fwd:
     /* Inv Layer 2 */
     .word 0x0fd9f05d, 0x8d187503
     .word 0x4fb1e7db, 0x8cf87102
-    /* Inv Layer 1 (Including ninv and plant for conversion to normal domain) */
-    .word 0x78196f6c, 0x868d624b
-    /* ninv * plant**2 * qprime */
-    .word 0x0ccf51bb, 0xfeb7b9f1
+    /* Inv Layer 1 */
+    .word 0xf6ff35e0, 0x016d1f44
+    /* ninv * plant (-> normal domain) */
+    .word 0x00801c07, 0xff000002
 
 .global reduce32_const
 reduce32_const:
