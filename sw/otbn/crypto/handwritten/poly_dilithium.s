@@ -1621,7 +1621,7 @@ _loop_decode_h_dilithium:
     /* Load sig[OMEGA + i] to t2 */
     addi t2, t1, OMEGA /* i + OMEGA */
     add  t6, t2, a1    /* (sig + OMEGA + i) */
-    and  a4, t6, 0x3   /* get lower two bits */
+    andi  a4, t6, 0x3   /* get lower two bits */
     and  t6, t6, a2    /* set lowest two bits to 0 */
     lw   t6, 0(t6)     /* aligned load */
     slli a4, a4, 3
@@ -1704,10 +1704,11 @@ _loop_inner_skip_decode_h_dilithium:
 
     /* Extra indices zero  */
     addi t5, t0, 0 /* j = k */
+    beq  t5, t4, _ret0_decode_h_dilithium
 _loop_extra_decode_h_dilithium:
     /* Load sig[j] */
     add  t6, t5, a1   /* (sig + j) */
-    and  a4, t6, 0x3  /* get lower two bits */
+    andi a4, t6, 0x3  /* get lower two bits */
     and  t6, t6, a2   /* set lowest two bits to 0 */
     lw   t6, 0(t6)    /* aligned load */
     slli a4, a4, 3
