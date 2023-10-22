@@ -2598,11 +2598,11 @@ poly_pointwise_base_dilithium:
     li t1, 1
     li t2, 6
 
-    LOOPI 32, 13
+    LOOPI 32, 14
         bn.lid t0, 0(a0++)
         bn.lid t1, 0(a1++)
 
-        LOOPI 8, 9
+        LOOPI 8, 10
             /* Mask one coefficient to working registers */
             bn.and w4, w0, w7
             bn.and w5, w1, w7
@@ -2630,6 +2630,8 @@ poly_pointwise_base_dilithium:
             /* Implicit >> of 64 */
             bn.mulqacc.wo.z w9, q, w9.1, 0
             bn.sub w4, w4, w9
+            /* conditional subtract q */
+            bn.addm w4, w4, bn0
 
             /* Append result to output */
             bn.rshi w6, w4, w6 >> 32
@@ -2685,12 +2687,12 @@ poly_pointwise_acc_base_dilithium:
     li t2, 2
     li t3, 6
 
-    LOOPI 32, 17
+    LOOPI 32, 18
         bn.lid t0, 0(a0++)
         bn.lid t1, 0(a1++)
         bn.lid t2, 0(a2)
 
-        LOOPI 8, 12
+        LOOPI 8, 13
             /* Mask one coefficient to working registers */
             bn.and w4, w0, mask
             bn.and w5, w1, mask
@@ -2720,6 +2722,8 @@ poly_pointwise_acc_base_dilithium:
             /* Implicit >> of 64 */
             bn.mulqacc.wo.z w9, q, w9.1, 0
             bn.sub w4, w4, w9
+            /* conditional subtract q */
+            bn.addm w4, w4, bn0
 
             /* Accumulate */
             bn.addm w4, w4, w3
