@@ -1019,3 +1019,63 @@ otbn_sim_py_test(
         ],
     sim_test_wrapper = "dilithiumpy_otbn/run_dilithium.py",
 )
+
+otbn_sim_py_test(
+    name = "dilithium_key_pair_base_bench",
+    srcs = [
+    ],
+    deps = [
+        ":key_pair_base_dilithium_test",
+        ],
+    sim_test_wrapper = "dilithiumpy_bench_otbn/run_dilithium.py",
+)
+
+otbn_sim_py_test(
+    name = "dilithium_sign_base_bench",
+    srcs = [
+    ],
+    deps = [
+        ":sign_base_dilithium_test",
+        ],
+    sim_test_wrapper = "dilithiumpy_bench_otbn/run_dilithium.py",
+)
+
+otbn_sim_py_test(
+    name = "dilithium_verify_base_bench",
+    srcs = [
+    ],
+    deps = [
+        ":verify_base_dilithium_test",
+        ],
+    sim_test_wrapper = "dilithiumpy_bench_otbn/run_dilithium.py",
+)
+
+otbn_sim_py_test(
+    name = "dilithium_key_pair_bench",
+    srcs = [
+    ],
+    deps = [
+        ":key_pair_dilithium_test",
+        ],
+    sim_test_wrapper = "dilithiumpy_bench_otbn/run_dilithium.py",
+)
+
+otbn_sim_py_test(
+    name = "dilithium_sign_bench",
+    srcs = [
+    ],
+    deps = [
+        ":sign_dilithium_test",
+        ],
+    sim_test_wrapper = "dilithiumpy_bench_otbn/run_dilithium.py",
+)
+
+otbn_sim_py_test(
+    name = "dilithium_verify_bench",
+    srcs = [
+    ],
+    deps = [
+        ":verify_dilithium_test",
+        ],
+    sim_test_wrapper = "dilithiumpy_bench_otbn/run_dilithium.py",
+)
