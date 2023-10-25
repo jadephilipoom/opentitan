@@ -691,7 +691,7 @@ _rej_sign_dilithium:
     li  t0, GAMMA2
     li  t1, BETA
     sub a1, t0, t1
-    li  s0, STACK_TMP_POLYVEC
+    li  s0, STACK_TMP_POLYVEC /* reduce32(STACK_W0) */
     add s0, fp, s0
 
     /* Cannot use hardware loop due to branch to _rej_sign_dilithium */
@@ -745,7 +745,7 @@ _rej_sign_dilithium:
 
     /* chknorm */
     li  a1, GAMMA2
-    li  s0, STACK_TMP_POLYVEC
+    li  s0, STACK_TMP_POLYVEC /* reduce32(STACK_H) */
     add s0, fp, s0
 
     /* Cannot use hardware loop due to branch to _rej_sign_dilithium */
