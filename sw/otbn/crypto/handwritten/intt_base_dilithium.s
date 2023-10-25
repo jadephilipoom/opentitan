@@ -122,13 +122,13 @@ _aligned:
     #define buf7 w24
     /* Twiddle Factors */
     #define tf1 w16
-    #define tf2 w17
-    #define tf3 w18
-    #define tf4 w19
+    #define buf8 w17
+    #define buf9 w18
+    #define buf10 w19
 
     /* Other */
     #define wtmp w20
-    #define wtmp2 w21
+    #define buf11 w21
     #define wtmp3 w22
     #define mask w23
     
@@ -153,20 +153,18 @@ _aligned:
     #define coeff14_idx x21
     #define coeff15_idx x22
     #define tf1_idx x23
-    #define tf2_idx x24
-    #define tf3_idx x25
-    #define tf4_idx x26
+    #define buf8_idx x24
+    #define buf9_idx x25
+    #define buf10_idx x26
     #define tmp_gpr x27
     #define tmp_gpr2 x28
+    #define buf11_idx x29
 
     /* In place */
     addi outp, inp, 0
 
     /* Set up constants for input/twiddle factors */
     li tf1_idx, 16
-    li tf2_idx, 17
-    li tf3_idx, 18
-    li tf4_idx, 19
 
     /* w18 <= 0xFFFFFFFF for masking */
     bn.addi mask, w31, 1
@@ -190,29 +188,24 @@ _aligned:
     li buf5_idx, 26
     li buf6_idx, 25
     li buf7_idx, 24
+    li buf8_idx, 17
+    li buf9_idx, 18
+    li buf10_idx, 19
+    li buf11_idx, 21
 
     /* Zero out one register */
-    bn.xor wtmp2, wtmp2, wtmp2
+    bn.xor wtmp3, wtmp3, wtmp3
 
     /* Set second WLEN/4 quad word to modulus */
     la tmp_gpr, modulus
     li tmp_gpr2, 20 /* Load q to wtmp */
     bn.lid tmp_gpr2, 0(tmp_gpr)
     bn.and wtmp, wtmp, mask
-    bn.or wtmp3, wtmp2, wtmp
-
-    bn.or wtmp3, wtmp3, wtmp << 192
-
-    /* Set bit at index 127 to 1 so wtmp3>>64 can be used as mask for sign ext */
-    bn.addi wtmp, wtmp2, 1
-    bn.rshi wtmp, wtmp, wtmp2 >> 161
-    bn.or wtmp3, wtmp3, wtmp
+    bn.or wtmp3, wtmp3, wtmp << 64
 
     /* Set up constants for input/twiddle factors */
     li tf1_idx, 16
-    li tf2_idx, 17
-    li tf3_idx, 18
-    li tf4_idx, 19
+    
 
     LOOPI 16, 264
         /* Load Data */
@@ -246,8 +239,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff1, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff1, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff2, coeff3
         bn.addm coeff2, coeff2, coeff3
@@ -255,8 +248,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff3, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff3, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff4, coeff5
         bn.addm coeff4, coeff4, coeff5
@@ -264,8 +257,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff5, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff5, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff6, coeff7
         bn.addm coeff6, coeff6, coeff7
@@ -273,8 +266,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.3, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff7, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff7, wtmp3, wtmp >> 32 /* >> l */
             
         /* Load layer 8 twiddle 4x */
         bn.lid tf1_idx, 0(twp++)
@@ -285,8 +278,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff9, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff9, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff10, coeff11
         bn.addm coeff10, coeff10, coeff11
@@ -294,8 +287,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff11, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff11, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff12, coeff13
         bn.addm coeff12, coeff12, coeff13
@@ -303,8 +296,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff13, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff13, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff14, coeff15
         bn.addm coeff14, coeff14, coeff15
@@ -312,8 +305,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.3, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff15, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff15, wtmp3, wtmp >> 32 /* >> l */
 
         /* Layer 7, stride 2 */
         /* Load layer 7 4x */
@@ -325,8 +318,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff2, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff2, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff1, coeff3
         bn.addm coeff1, coeff1, coeff3
@@ -334,8 +327,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff3, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff3, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff4, coeff6
         bn.addm coeff4, coeff4, coeff6
@@ -343,8 +336,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff6, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff6, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff5, coeff7
         bn.addm coeff5, coeff5, coeff7
@@ -352,8 +345,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff7, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff7, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff8, coeff10
         bn.addm coeff8, coeff8, coeff10
@@ -361,8 +354,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff10, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff10, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff9, coeff11
         bn.addm coeff9, coeff9, coeff11
@@ -370,8 +363,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff11, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff11, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff12, coeff14
         bn.addm coeff12, coeff12, coeff14
@@ -379,8 +372,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.3, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff14, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff14, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff13, coeff15
         bn.addm coeff13, coeff13, coeff15
@@ -388,8 +381,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.3, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff15, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff15, wtmp3, wtmp >> 32 /* >> l */
 
         /* Layer 6, stride 4 */
         /* Load layer 6 x2 + layer 5 x1 + pad */
@@ -401,8 +394,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff4, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff4, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff1, coeff5
         bn.addm coeff1, coeff1, coeff5
@@ -410,8 +403,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff5, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff5, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff2, coeff6
         bn.addm coeff2, coeff2, coeff6
@@ -419,8 +412,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff6, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff6, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff3, coeff7
         bn.addm coeff3, coeff3, coeff7
@@ -428,8 +421,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff7, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff7, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff8, coeff12
         bn.addm coeff8, coeff8, coeff12
@@ -437,8 +430,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff12, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff12, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff9, coeff13
         bn.addm coeff9, coeff9, coeff13
@@ -446,8 +439,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff13, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff13, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff10, coeff14
         bn.addm coeff10, coeff10, coeff14
@@ -455,8 +448,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff14, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff14, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff11, coeff15
         bn.addm coeff11, coeff11, coeff15
@@ -464,8 +457,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff15, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff15, wtmp3, wtmp >> 32 /* >> l */
 
         /* Layer 5, stride 8 */         
 
@@ -475,8 +468,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff8, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff8, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff1, coeff9
         bn.addm coeff1, coeff1, coeff9
@@ -484,8 +477,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff9, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff9, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff2, coeff10
         bn.addm coeff2, coeff2, coeff10
@@ -493,8 +486,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff10, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff10, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff3, coeff11
         bn.addm coeff3, coeff3, coeff11
@@ -502,8 +495,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff11, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff11, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff4, coeff12
         bn.addm coeff4, coeff4, coeff12
@@ -511,8 +504,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff12, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff12, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff5, coeff13
         bn.addm coeff5, coeff5, coeff13
@@ -520,8 +513,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff13, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff13, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff6, coeff14
         bn.addm coeff6, coeff6, coeff14
@@ -529,8 +522,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff14, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff14, wtmp3, wtmp >> 32 /* >> l */
             
         bn.subm wtmp, coeff7, coeff15
         bn.addm coeff7, coeff7, coeff15
@@ -538,8 +531,8 @@ _aligned:
         bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
         bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
         bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-        bn.rshi coeff15, wtmp2, wtmp >> 32 /* >> l */
+        bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+        bn.rshi coeff15, wtmp3, wtmp >> 32 /* >> l */
 
         /* Reassemble WDRs and store */
         bn.rshi buf0, coeff0, buf0 >> 32
@@ -566,19 +559,10 @@ _aligned:
     addi inp, inp, -1024
 
     /* Set up constants for input/twiddle factors */
-    li tf1_idx, 16
-    li tf2_idx, 17
-    li tf3_idx, 18
-    li tf4_idx, 19
-
-    /* Load twiddle factors for layers 1--4 */
-    bn.lid tf1_idx, 0(twp)
-    bn.lid tf2_idx, 32(twp)
-    bn.lid tf3_idx, 64(twp)
-    bn.lid tf4_idx, 96(twp)
+    li tf1_idx, 16  
 
     /* We can process 16 coefficients each iteration and need to process N=256, meaning we require 16 iterations. */
-    LOOPI 2, 346
+    LOOPI 2, 342
         /* Load coefficients into buffer registers */
         bn.lid buf0_idx, 0(inp)
         bn.lid buf1_idx, 64(inp)
@@ -588,7 +572,11 @@ _aligned:
         bn.lid buf5_idx, 320(inp)
         bn.lid buf6_idx, 384(inp)
         bn.lid buf7_idx, 448(inp)
-        LOOPI 8, 329
+        bn.lid buf8_idx, 512(inp)
+        bn.lid buf9_idx, 576(inp)
+        bn.lid buf10_idx, 640(inp)
+        bn.lid buf11_idx, 704(inp)
+        LOOPI 8, 317
             /* Extract coefficients from buffer registers into working state */
             bn.and coeff0, buf0, mask
             bn.and coeff1, buf1, mask
@@ -598,24 +586,12 @@ _aligned:
             bn.and coeff5, buf5, mask
             bn.and coeff6, buf6, mask
             bn.and coeff7, buf7, mask
+            bn.and coeff8, buf8, mask
+            bn.and coeff9, buf9, mask
+            bn.and coeff10, buf10, mask
+            bn.and coeff11, buf11, mask
 
             /* Load remaining coefficients using 32-bit loads */
-            /* Coeff 8 */
-            lw tmp_gpr, 512(inp)
-            sw tmp_gpr, STACK_WDR2GPR(fp)
-            bn.lid coeff8_idx, STACK_WDR2GPR(fp)
-            /* Coeff 9 */
-            lw tmp_gpr, 576(inp)
-            sw tmp_gpr, STACK_WDR2GPR(fp)
-            bn.lid coeff9_idx, STACK_WDR2GPR(fp)
-            /* Coeff 10 */
-            lw tmp_gpr, 640(inp)
-            sw tmp_gpr, STACK_WDR2GPR(fp)
-            bn.lid coeff10_idx, STACK_WDR2GPR(fp)
-            /* Coeff 11 */
-            lw tmp_gpr, 704(inp)
-            sw tmp_gpr, STACK_WDR2GPR(fp)
-            bn.lid coeff11_idx, STACK_WDR2GPR(fp)
             /* Coeff 12 */
             lw tmp_gpr, 768(inp)
             sw tmp_gpr, STACK_WDR2GPR(fp)
@@ -633,6 +609,8 @@ _aligned:
             sw tmp_gpr, STACK_WDR2GPR(fp)
             bn.lid coeff15_idx, STACK_WDR2GPR(fp)
 
+            bn.lid tf1_idx, 0(twp)
+
             /* Layer 0 */
             bn.subm wtmp, coeff0, coeff1
             bn.addm coeff0, coeff0, coeff1
@@ -640,8 +618,8 @@ _aligned:
             bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff1, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff1, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff2, coeff3
             bn.addm coeff2, coeff2, coeff3
@@ -649,8 +627,8 @@ _aligned:
             bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff3, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff3, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff4, coeff5
             bn.addm coeff4, coeff4, coeff5
@@ -658,8 +636,8 @@ _aligned:
             bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff5, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff5, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff6, coeff7
             bn.addm coeff6, coeff6, coeff7
@@ -667,312 +645,318 @@ _aligned:
             bn.mulqacc.wo.z wtmp, wtmp.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff7, wtmp2, wtmp >> 32 /* >> l */
-              
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff7, wtmp3, wtmp >> 32 /* >> l */
+            
+            bn.lid tf1_idx, 32(twp)
+
             bn.subm wtmp, coeff8, coeff9
             bn.addm coeff8, coeff8, coeff9
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf2.0, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff9, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff9, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff10, coeff11
             bn.addm coeff10, coeff10, coeff11
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf2.1, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff11, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff11, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff12, coeff13
             bn.addm coeff12, coeff12, coeff13
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf2.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff13, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff13, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff14, coeff15
             bn.addm coeff14, coeff14, coeff15
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf2.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff15, wtmp2, wtmp >> 32 /* >> l */
-              
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff15, wtmp3, wtmp >> 32 /* >> l */
+            
+            bn.lid tf1_idx, 64(twp)
+
 /* Layer 1 */
             bn.subm wtmp, coeff0, coeff2
             bn.addm coeff0, coeff0, coeff2
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf3.0, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff2, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff2, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff1, coeff3
             bn.addm coeff1, coeff1, coeff3
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf3.0, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff3, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff3, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff4, coeff6
             bn.addm coeff4, coeff4, coeff6
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf3.1, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff6, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff6, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff5, coeff7
             bn.addm coeff5, coeff5, coeff7
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf3.1, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff7, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff7, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff8, coeff10
             bn.addm coeff8, coeff8, coeff10
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf3.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff10, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff10, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff9, coeff11
             bn.addm coeff9, coeff9, coeff11
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf3.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff11, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff11, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff12, coeff14
             bn.addm coeff12, coeff12, coeff14
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf3.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff14, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff14, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff13, coeff15
             bn.addm coeff13, coeff13, coeff15
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf3.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff15, wtmp2, wtmp >> 32 /* >> l */
-              
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff15, wtmp3, wtmp >> 32 /* >> l */
+            
+            bn.lid tf1_idx, 96(twp)
+
 /* Layer 2 */
             bn.subm wtmp, coeff0, coeff4
             bn.addm coeff0, coeff0, coeff4
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.0, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff4, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff4, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff1, coeff5
             bn.addm coeff1, coeff1, coeff5
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.0, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff5, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff5, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff2, coeff6
             bn.addm coeff2, coeff2, coeff6
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.0, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff6, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff6, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff3, coeff7
             bn.addm coeff3, coeff3, coeff7
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.0, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.0, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff7, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff7, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff8, coeff12
             bn.addm coeff8, coeff8, coeff12
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.1, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff12, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff12, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff9, coeff13
             bn.addm coeff9, coeff9, coeff13
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.1, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff13, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff13, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff10, coeff14
             bn.addm coeff10, coeff10, coeff14
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.1, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff14, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff14, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff11, coeff15
             bn.addm coeff11, coeff11, coeff15
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.1, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.1, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff15, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff15, wtmp3, wtmp >> 32 /* >> l */
               
 /* Layer 3 */
             bn.subm wtmp, coeff0, coeff8
             bn.addm coeff0, coeff0, coeff8
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff8, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff8, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff1, coeff9
             bn.addm coeff1, coeff1, coeff9
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff9, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff9, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff2, coeff10
             bn.addm coeff2, coeff2, coeff10
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff10, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff10, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff3, coeff11
             bn.addm coeff3, coeff3, coeff11
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff11, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff11, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff4, coeff12
             bn.addm coeff4, coeff4, coeff12
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff12, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff12, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff5, coeff13
             bn.addm coeff5, coeff5, coeff13
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff13, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff13, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff6, coeff14
             bn.addm coeff6, coeff6, coeff14
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff14, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff14, wtmp3, wtmp >> 32 /* >> l */
               
             bn.subm wtmp, coeff7, coeff15
             bn.addm coeff7, coeff7, coeff15
             /* Plantard multiplication: Twiddle * (a-b) */
-            bn.mulqacc.wo.z wtmp, wtmp.0, tf4.2, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, wtmp.0, tf1.2, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff15, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff15, wtmp3, wtmp >> 32 /* >> l */
 
             /* Mul ninv */
-            bn.mulqacc.wo.z wtmp, coeff0.0, tf4.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, coeff0.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff0, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff0, wtmp3, wtmp >> 32 /* >> l */
 
-            bn.mulqacc.wo.z wtmp, coeff1.0, tf4.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, coeff1.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff1, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff1, wtmp3, wtmp >> 32 /* >> l */
 
-            bn.mulqacc.wo.z wtmp, coeff2.0, tf4.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, coeff2.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff2, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff2, wtmp3, wtmp >> 32 /* >> l */
 
-            bn.mulqacc.wo.z wtmp, coeff3.0, tf4.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, coeff3.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff3, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff3, wtmp3, wtmp >> 32 /* >> l */
 
-            bn.mulqacc.wo.z wtmp, coeff4.0, tf4.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, coeff4.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff4, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff4, wtmp3, wtmp >> 32 /* >> l */
 
-            bn.mulqacc.wo.z wtmp, coeff5.0, tf4.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, coeff5.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff5, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff5, wtmp3, wtmp >> 32 /* >> l */
 
-            bn.mulqacc.wo.z wtmp, coeff6.0, tf4.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, coeff6.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff6, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff6, wtmp3, wtmp >> 32 /* >> l */
 
-            bn.mulqacc.wo.z wtmp, coeff7.0, tf4.3, 0 /* a*bq' */
+            bn.mulqacc.wo.z wtmp, coeff7.0, tf1.3, 0 /* a*bq' */
             bn.and wtmp, mask, wtmp >> 32 /* Implements mod 2l and >> l */
             bn.addi wtmp, wtmp, 256 /* + 2^alpha = 2^8 */
-            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.0, 0 /* *q */
-            bn.rshi coeff7, wtmp2, wtmp >> 32 /* >> l */
+            bn.mulqacc.wo.z wtmp, wtmp.0, wtmp3.1, 0 /* *q */
+            bn.rshi coeff7, wtmp3, wtmp >> 32 /* >> l */
 
             /* Shift result values into the top of buffer registers */
             /* implicitly removes the old value */
@@ -984,24 +968,12 @@ _aligned:
             bn.rshi buf5, coeff5, buf5 >> 32
             bn.rshi buf6, coeff6, buf6 >> 32
             bn.rshi buf7, coeff7, buf7 >> 32
+            bn.rshi buf8, coeff8, buf8 >> 32
+            bn.rshi buf9, coeff9, buf9 >> 32
+            bn.rshi buf10, coeff10, buf10 >> 32
+            bn.rshi buf11, coeff11, buf11 >> 32
 
             /* Store unbuffered values */
-            /* Coeff8 */
-            bn.sid coeff8_idx, STACK_WDR2GPR(fp)
-            lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 512(inp)
-            /* Coeff9 */
-            bn.sid coeff9_idx, STACK_WDR2GPR(fp)
-            lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 576(inp)
-            /* Coeff10 */
-            bn.sid coeff10_idx, STACK_WDR2GPR(fp)
-            lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 640(inp)
-            /* Coeff11 */
-            bn.sid coeff11_idx, STACK_WDR2GPR(fp)
-            lw tmp_gpr, STACK_WDR2GPR(fp)
-            sw tmp_gpr, 704(inp)
             /* Coeff12 */
             bn.sid coeff12_idx, STACK_WDR2GPR(fp)
             lw tmp_gpr, STACK_WDR2GPR(fp)
@@ -1032,6 +1004,10 @@ _aligned:
         bn.sid buf5_idx, 288(inp)
         bn.sid buf6_idx, 352(inp)
         bn.sid buf7_idx, 416(inp)
+        bn.sid buf8_idx, 480(inp)
+        bn.sid buf9_idx, 544(inp)
+        bn.sid buf10_idx, 608(inp)
+        bn.sid buf11_idx, 672(inp)
         /* Outer Loop End */
 
     .irp reg,s11,s10,s9,s8,s7,s6,s5,s4,s3,s2,s1,s0
