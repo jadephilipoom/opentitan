@@ -176,6 +176,7 @@ sign_base_dilithium:
     #define STACK_Y -33024
     #define STACK_Z -37120
     #define STACK_W1 -41216
+    #define STACK_TMP_POLYVEC  -41216
     #define STACK_W0 -45312
     #define STACK_CP -46336
     #define STACK_H -50432
@@ -498,6 +499,13 @@ _rej_sign_dilithium:
         jal x1, poly_decompose_dilithium
         nop
 
+    /* Move w0 to unsigned domain in [0, q-1] */
+    li   a0, STACK_W0
+    add  a0, fp, a0
+    LOOPI 4, 2
+        jal x1, poly_caddq_base_dilithium
+        nop
+
     /* Pack w1 */
     li  a1, STACK_W1 /* Get *w1 */
     add a1, fp, a1
@@ -673,7 +681,8 @@ _rej_sign_dilithium:
     /* reduce32 w0 */
     li   a0, STACK_W0
     add  a0, fp, a0
-    addi a1, a0, 0
+    li a1, STACK_TMP_POLYVEC
+    add  a1, fp, a1
     LOOPI 4, 2
         jal x1, poly_reduce32_dilithium
         nop
@@ -682,7 +691,7 @@ _rej_sign_dilithium:
     li  t0, GAMMA2
     li  t1, BETA
     sub a1, t0, t1
-    li  s0, STACK_W0
+    li  s0, STACK_TMP_POLYVEC
     add s0, fp, s0
 
     /* Cannot use hardware loop due to branch to _rej_sign_dilithium */
@@ -727,7 +736,8 @@ _rej_sign_dilithium:
     /* reduce32 h */
     li   a0, STACK_H
     add  a0, fp, a0
-    addi a1, a0, 0
+    li   a1, STACK_TMP_POLYVEC
+    add  a1, fp, a1
 
     LOOPI 4, 2
         jal x1, poly_reduce32_dilithium
@@ -735,7 +745,7 @@ _rej_sign_dilithium:
 
     /* chknorm */
     li  a1, GAMMA2
-    li  s0, STACK_H
+    li  s0, STACK_TMP_POLYVEC
     add s0, fp, s0
 
     /* Cannot use hardware loop due to branch to _rej_sign_dilithium */
@@ -760,7 +770,6 @@ _rej_sign_dilithium:
         nop
 
     /* make hint */
-    
 
     /* TODO: get rid of this reduction by modifying make_hint like in python */
     /* reduce32 w0 */

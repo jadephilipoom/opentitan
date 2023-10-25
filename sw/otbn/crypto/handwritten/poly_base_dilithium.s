@@ -2487,23 +2487,20 @@ poly_power2round_base_dilithium:
  */
 .globl poly_reduce32_dilithium
 poly_reduce32_dilithium:
+    /* Load 4194304 to w10 */
+    la t0, reduce32_cmp_const
+    li t1, 10
+    bn.lid t1, 0(t0)
+
     /* Set up constants for input/state */
     li t0, 0
     li t1, 1
     li t2, 2
 
-    /* Setup constant 1 << 22 */
-    bn.addi w10, bn0, 1
-    bn.rshi w10, w10, bn0 >> 234
-
     /* w11 <= 0xFFFFFFFF for masking */
     bn.addi w11, bn0, 1
     bn.rshi w11, w11, bn0 >> 224
     bn.subi w11, w11, 1 
-
-    /* Set modulus to 2**32 for implicit masking after addition */
-    bn.addi w12, w11, 1
-    bn.wsrw 0x0, w12
 
     /* Load q */
     li     t4, 12
@@ -2511,44 +2508,20 @@ poly_reduce32_dilithium:
     bn.lid t4, 0(t3)
     bn.and w12, w12, w11 /* Only keep one word */
 
-    bn.addi w13, bn0, 1
-    bn.rshi w13, w13, bn0 >> 232
-    bn.subi w13, w13, 1
-    /* keep lower 9 bits 0 */
-    bn.rshi w13, w13, bn0 >> 247
-    
-    bn.addi w14, bn0, 1
-    bn.rshi w14, w14, bn0 >> 225 /* MSB is 1 */
-
-    LOOPI 32, 13
+    LOOPI 32, 9
         bn.lid t0, 0(a0++)
 
-        LOOPI 8, 10
+        LOOPI 8, 6
             bn.and w3, w0, w11 /* Mask out one coefficient */
             bn.rshi w0, bn0, w0 >> 32 /* Remove from input */
 
-            /* TODO: Use addm with 0xFFFFFF as modulus */
-            bn.addm w2, w3, w10 /* (a + (1 << 22)) */
-            
-            /* Imitate arithmetic shift */
-            bn.and w4, w14, w2 /* FG0.Z <= 1, if w2 >= 0, else 0 */
-            bn.sel w4, bn0, w13, FG0.Z
-            bn.rshi w2, bn0, w2 >> 23
-            bn.or w2, w4, w2 /* (a + (1 << 22)) >> 23 */
-
-            bn.mulqacc.wo.z w2, w2.0, w12.0, 0 /* t*Q */
-            bn.sub w2, w3, w2 /* a - t*Q */
+            bn.cmp w3, w10
+            bn.sel w4, bn0, w12, C
+            bn.sub w2, w3, w4
 
             bn.rshi w1, w2, w1 >> 32
 
         bn.sid t1, 0(a1++)
-
-    /* Restore modulus q */
-    la t0, modulus
-    li t1, 0
-    bn.lid t1, 0(t0)
-    bn.and w0, w0, w11
-    bn.wsrw 0x0, w0
 
     ret
 
@@ -2780,9 +2753,9 @@ qprime_single:
     .word 0x0, 0x0
     .word 0x0, 0x0
     .word 0x0, 0x0
-barrett_const:
-    .word 0x801c0601
-    .word 0x00000200
+reduce32_cmp_const:
+    .word 4194304
+    .word 0
     .word 0
     .word 0
     .word 0
