@@ -196,6 +196,9 @@ class ExecutionStatAnalyzer:
         self._elf_file = ELFFile(open(elf_file_path, 'rb'))
         self._stats = stats
         self._addr_symbol_map = _get_addr_symbol_map(self._elf_file)
+        self.func_cycles = None
+        self.func_instrs = None
+        self.func_calls = None
 
     def _describe_imem_addr(self, address: int, name_only: bool = False) -> str:
         symbol_name = None
@@ -265,6 +268,18 @@ class ExecutionStatAnalyzer:
 
         return out
 
+    def get_stat_data(self) -> Dict:
+        assert self.func_cycles is not None
+        assert self.func_instrs is not None
+        stat_data = {
+            "insn_count": self._stats.get_insn_count(),
+            "stall_count": self._stats.stall_count,
+            "func_cycles": self.func_cycles,
+            "func_instrs": self.func_instrs,
+            "func_calls": self.func_calls
+        }
+        return stat_data
+
     def _dump_execution_time(self) -> str:
         insn_count = self._stats.get_insn_count()
         stall_count = self._stats.stall_count
@@ -303,7 +318,7 @@ class ExecutionStatAnalyzer:
             return "No functions were called.\n"
 
         out = ""
-
+        self.func_calls = {}
         # TODO: Add the start address as function?
 
         # Build function call graphs and a call site index
@@ -334,10 +349,18 @@ class ExecutionStatAnalyzer:
         for rev_callee_func, rev_caller_funcs in rev_callgraph.items():
             has_one_callsite = False
             func = self._describe_imem_addr(rev_callee_func)
+            callee = func
+            if callee not in self.func_calls:
+                self.func_calls[callee] = {}
             out += f"Function {func}\n"
             out += "  is called from the following functions\n"
             for rev_caller_func, cnt in rev_caller_funcs.most_common():
                 func = self._describe_imem_addr(rev_caller_func)
+                caller = func
+                if caller not in self.func_calls[callee]:
+                    self.func_calls[callee][caller] = 1
+                else:
+                    self.func_calls[callee][caller] += 1
                 out += f"    * {cnt} times by function {func}\n"
             out += "  from the following call sites\n"
             for rc, cnt in rev_callsites[rev_callee_func].most_common():
@@ -429,7 +452,7 @@ class ExecutionStatAnalyzer:
                 else:
                     accumulated[func_name] = []
                     accumulated[func_name] = counts
-
+        self.func_cycles = accumulated
         assert sum(sum(accumulated.values(), [])) == (sum(self._stats.insn_histo.values()) + self._stats.stall_count)
         return tabulate([[k, v] for k, v in sorted(accumulated.items(), key=lambda item: item[1], reverse=True)], headers=['function', '[instr., stall]']) + "\n"
 
@@ -462,6 +485,7 @@ class ExecutionStatAnalyzer:
         # level.
         total_cycles_incl_stalls = sum(sum(sum([list(a.values()) for a in accumulated.values()], []), []))
         assert (sum(self._stats.insn_histo.values()) + self._stats.stall_count) == total_cycles_incl_stalls
+        self.func_instrs = accumulated
         for func_name, data in accumulated.items():
             out += f'\n{func_name}\n'
             out += tabulate([[k, v] for k, v in sorted(data.items(), key=lambda item: item[1], reverse=True)], headers=['instruction', '[count, stalls]']) + "\n"
