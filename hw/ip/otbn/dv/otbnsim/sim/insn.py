@@ -292,15 +292,19 @@ class LW(OTBNInsn):
             return
 
         result = state.dmem.load_u32(addr)
-        if DEBUG_MEM:
-            print(f"lw {base} {self.offset}: {format(result, '08x')}", file=sys.stderr)
 
         # Stall for a single cycle for memory to respond
         yield
 
+        if DEBUG_MEM:
+            print(f"lw {base} {self.offset}", file=sys.stderr)
+
         if result is None:
             state.stop_at_end_of_cycle(ErrBits.DMEM_INTG_VIOLATION)
             return
+    
+        if DEBUG_MEM:
+            print(f"\t{format(result, '08x')}", file=sys.stderr)
 
         state.gprs.get_reg(self.grd).write_unsigned(result)
 
@@ -600,6 +604,9 @@ class BNADD(OTBNInsn):
         carry_flag = bool((full_result >> 256) & 1)
         flags = FlagReg.mlz_for_result(carry_flag, masked_result)
 
+        if DEBUG_ARITH:
+            eprint(f"bn.add 0x{format(a, '064x')} + 0x{format(b, '064x')} = {format(a+b, '064x')} = {format(masked_result, '064x')}")
+
         state.wdrs.get_reg(self.wrd).write_unsigned(masked_result)
         state.set_flags(self.flag_group, flags)
 
@@ -674,10 +681,16 @@ class BNADDM(OTBNInsn):
 
         result = a + b
 
-        if result >= mod_val and not self.nored:
+        if result >= mod_val:
             result -= mod_val
 
         result = result & ((1 << 256) - 1)
+
+        if DEBUG_ARITH:
+            eprint(f"bn.addm 0x{format(a, '064x')} + 0x{format(b, '064x')} = {format(a+b, '064x')} = {format(result, '064x')}")
+            if result >= mod_val:
+                eprint("incomplete reduction")
+
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
 
 
@@ -753,6 +766,7 @@ class BNMULV(OTBNInsn):
 
             resulti = (ai * bi)  # TODO: match to hw implementation
             if DEBUG_ARITH:
+                eprint(f"modulus {mod_val}")
                 eprint(f"mulmv {ai} * {bi} = {resulti} = {resulti % mod_val}")
 
             if red:  # TODO: add mask incase of nored
@@ -792,6 +806,10 @@ class BNMULQACC(OTBNInsn):
         acc += (mul_res << self.acc_shift_imm)
 
         truncated = acc & ((1 << 256) - 1)
+
+        if DEBUG_ARITH:
+            eprint(f"mulqacc {a_qw} * {b_qw} = {truncated}")
+
         state.wsrs.ACC.write_unsigned(truncated)
 
 
@@ -827,6 +845,8 @@ class BNMULQACCWO(OTBNInsn):
         truncated = acc & ((1 << 256) - 1)
         state.wdrs.get_reg(self.wrd).write_unsigned(truncated)
         state.wsrs.ACC.write_unsigned(truncated)
+        if DEBUG_ARITH:
+            eprint(f"mulqacc.wo {a_qw} * {b_qw} = {truncated}")
         state.set_mlz_flags(self.flag_group, truncated)
 
 
@@ -860,6 +880,9 @@ class BNMULQACCSO(OTBNInsn):
 
         acc += (mul_res << self.acc_shift_imm)
         truncated = acc & ((1 << 256) - 1)
+
+        if DEBUG_ARITH:
+            eprint(f"mulqacc.so {a_qw} * {b_qw} = {truncated}")
 
         # Split the result into low and high parts
         lo_part = truncated & ((1 << 128) - 1)
@@ -911,6 +934,9 @@ class BNSUB(OTBNInsn):
         masked_result = full_result & mask256
         carry_flag = bool((full_result >> 256) & 1)
         flags = FlagReg.mlz_for_result(carry_flag, masked_result)
+
+        if DEBUG_ARITH:
+            eprint(f"bn.sub 0x{format(a, '064x')} - 0x{format(b, '064x')} = {format(a-b, '064x')} = {format(masked_result, '064x')}")
 
         state.wdrs.get_reg(self.wrd).write_unsigned(masked_result)
         state.set_flags(self.flag_group, flags)
@@ -987,6 +1013,10 @@ class BNSUBM(OTBNInsn):
             result += mod_val
 
         result = result & ((1 << 256) - 1)
+
+        if DEBUG_ARITH:
+            eprint(f"bn.subm 0x{format(a, '064x')} - 0x{format(b, '064x')} = {format(a-b, '064x')} = {format(result, '064x')}")
+
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
 
 
@@ -1225,13 +1255,13 @@ class BNXOR(OTBNInsn):
         self.flag_group = op_vals['flag_group']
 
     def execute(self, state: OTBNState) -> None:
-        if DEBUG_ARITH:
-            eprint("bn.xor")
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
         b_shifted = logical_byte_shift(b, self.shift_type, self.shift_bytes)
 
         result = a ^ b_shifted
+        if DEBUG_ARITH:
+            eprint(f"bn.xor 0x{format(a, '064x')} ^ 0x{format(b, '064x')} = {format(a^b, '064x')} = {format(result, '064x')}")
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
         state.set_mlz_flags(self.flag_group, result)
 
@@ -1271,6 +1301,8 @@ class BNSEL(OTBNInsn):
         flag_is_set = state.csrs.flags[self.flag_group].get_by_idx(self.flag)
         wrs = self.wrs1 if flag_is_set else self.wrs2
         value = state.wdrs.get_reg(wrs).read_unsigned()
+        if DEBUG_ARITH:
+            eprint(f"bn.sel {flag_is_set} -> {format(value, '064x')}")
         state.wdrs.get_reg(self.wrd).write_unsigned(value)
 
 
@@ -1392,7 +1424,8 @@ class BNLID(OTBNInsn):
         if value is None:
             state.stop_at_end_of_cycle(ErrBits.DMEM_INTG_VIOLATION)
             return
-
+        if DEBUG_MEM:
+            print(f"\t {format(value, '064x')}", file=sys.stderr)
         state.wdrs.get_reg(wrd).write_unsigned(value)
 
 
@@ -1419,7 +1452,7 @@ class BNSID(OTBNInsn):
         bad_grs1 = state.gprs.call_stack_err and (self.grs1 == 1)
         bad_grs2 = state.gprs.call_stack_err and (self.grs2 == 1)
         if DEBUG_MEM:
-            print(f"bn.sid {grs1_val} {self.offset}", file=sys.stderr)
+            print(f"bn.sid {grs1_val} {self.offset} <- {grs2_val}", file=sys.stderr)
         saw_err = False
 
         if state.gprs.call_stack_err:
@@ -1627,7 +1660,7 @@ class BNWSRW(OTBNInsn):
 
     def execute(self, state: OTBNState) -> None:
         val = state.wdrs.get_reg(self.wrs).read_unsigned()
-        if DEBUG_KMAC:
+        if DEBUG_KMAC or DEBUG_ARITH:
             eprint(f"write WSR: {format(val, '064x')}")
         state.wsrs.write_at_idx(self.wsr, val)
 
