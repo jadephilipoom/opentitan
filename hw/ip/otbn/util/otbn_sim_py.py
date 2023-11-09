@@ -104,6 +104,7 @@ def run_sim(elf: str, additional_data: List[Tuple[int, int, bytes]]) -> Tuple[
     sim.run(verbose=False, dump_file=reg_dump)
     analyzer = ExecutionStatAnalyzer(sim.stats, otbn_sim_py_shared.ELF_MAP[elf])
     print(analyzer.dump())
+    stat_data = analyzer.get_stat_data()
     if exp_end_addr is not None:
         if sim.state.pc != exp_end_addr:
             print('Run stopped at PC {:#x}, but _expected_end_addr was {:#x}.'
@@ -117,4 +118,4 @@ def run_sim(elf: str, additional_data: List[Tuple[int, int, bytes]]) -> Tuple[
     if result.has_errors() or result.has_warnings():
         print(result.report())
 
-    return (actual_regs, raw_dmem)
+    return (actual_regs, raw_dmem, stat_data)
