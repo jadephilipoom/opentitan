@@ -2133,7 +2133,7 @@ poly_make_hint_dilithium:
         beq t3, t4, _loop_end_poly_make_hint_dilithium
 
         bne t5, zero, _return0
-        beq a1, zero, _return0
+        beq t1, zero, _return0
         li t3, 1
         beq zero, zero, _loop_end_poly_make_hint_dilithium
 _return0:
