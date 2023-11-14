@@ -2544,8 +2544,8 @@ poly_reduce32_dilithium:
 .globl poly_pointwise_base_dilithium
 poly_pointwise_base_dilithium:
     #define mask w7
-    #define qprime w8.0
-    #define q w8.1
+    #define qprime w8.2
+    #define q w8.3
     
     /* Init constants */
 
@@ -2558,24 +2558,28 @@ poly_pointwise_base_dilithium:
     li t0, 8
     la t1, qprime_single
     bn.lid t0, 0(t1)
+    bn.or w8, bn0, w8 << 128
 
-    /* Load q to w8.1 */
+    /* Load q to w8.2 */
     li t0, 9
     la t1, modulus
     bn.lid t0, 0(t1)
     bn.and w9, mask, w9
-    bn.or w8, w8, w9 << 64
+    bn.or w8, w8, w9 << 192
 
+    /* Load alpha = 256 */
+    bn.addi w10, bn0, 256
+    bn.or w8, w8, w10 << 64
     /* Constants for WDRs */
     li t0, 0
     li t1, 1
     li t2, 6
 
-    LOOPI 32, 15
+    LOOPI 32, 14
         bn.lid t0, 0(a0++)
         bn.lid t1, 0(a1++)
 
-        LOOPI 8, 11
+        LOOPI 8, 10
             /* Mask one coefficient to working registers */
             bn.and w4, w0, w7
             bn.and w5, w1, w7
@@ -2587,13 +2591,12 @@ poly_pointwise_base_dilithium:
             /* c = a * b */
             bn.mulqacc.wo.z w4, w4.0, w5.0, 0
             /* Multiply q' */
-            bn.mulqacc.wo.z w4, w4.0, qprime, 0
+            bn.mulqacc.wo.z w4, w4.0, qprime, 192
             /* Extract upper 32-bits of bottom result half */
-            bn.and w4, mask, w4 >> 32
             /* + 2^alpha */
-            bn.addi w4, w4, 256
-            bn.mulqacc.wo.z w4, w4.0, q, 0
-            bn.rshi w4, bn0, w4 >> 32
+            bn.add w4, w8, w4 >> 160
+            bn.mulqacc.wo.z w4, w4.1, q, 0
+            bn.rshi w4, w8, w4 >> 32
 
             /* Append result to output */
             bn.rshi w6, w4, w6 >> 32
@@ -2621,8 +2624,8 @@ poly_pointwise_base_dilithium:
 .globl poly_pointwise_acc_base_dilithium
 poly_pointwise_acc_base_dilithium:
     #define mask w7
-    #define qprime w8.0
-    #define q w8.1
+    #define qprime w8.2
+    #define q w8.3
     
     /* Init constants */
 
@@ -2635,13 +2638,18 @@ poly_pointwise_acc_base_dilithium:
     li t0, 8
     la t1, qprime_single
     bn.lid t0, 0(t1)
+    bn.or w8, bn0, w8 << 128
 
-    /* Load q to w8.1 */
+    /* Load q to w8.2 */
     li t0, 9
     la t1, modulus
     bn.lid t0, 0(t1)
     bn.and w9, mask, w9
-    bn.or w8, w8, w9 << 64
+    bn.or w8, w8, w9 << 192
+
+    /* Load alpha = 256 */
+    bn.addi w10, bn0, 256
+    bn.or w8, w8, w10 << 64
 
     /* Constants for WDRs */
     li t0, 0
@@ -2649,12 +2657,12 @@ poly_pointwise_acc_base_dilithium:
     li t2, 2
     li t3, 6
 
-    LOOPI 32, 19
+    LOOPI 32, 18
         bn.lid t0, 0(a0++)
         bn.lid t1, 0(a1++)
         bn.lid t2, 0(a2)
 
-        LOOPI 8, 14
+        LOOPI 8, 13
             /* Mask one coefficient to working registers */
             bn.and w4, w0, mask
             bn.and w5, w1, mask
@@ -2668,13 +2676,11 @@ poly_pointwise_acc_base_dilithium:
             /* c = a * b */
             bn.mulqacc.wo.z w4, w4.0, w5.0, 0
             /* Multiply q' */
-            bn.mulqacc.wo.z w4, w4.0, qprime, 0
-            /* Extract upper 32-bits of bottom result half */
-            bn.and w4, mask, w4 >> 32
+            bn.mulqacc.wo.z w4, w4.0, qprime, 192
             /* + 2^alpha */
-            bn.addi w4, w4, 256
-            bn.mulqacc.wo.z w4, w4.0, q, 0
-            bn.rshi w4, bn0, w4 >> 32
+            bn.add w4, w8, w4 >> 160
+            bn.mulqacc.wo.z w4, w4.1, q, 0
+            bn.rshi w4, w8, w4 >> 32
 
             /* Accumulate */
             bn.addm w4, w4, w3

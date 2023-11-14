@@ -10,29 +10,26 @@ for c in range(4):
     idxs = to_be_mult[c]
     offset = bf_offsets[c]
     # Butterflies
-    
+    print(f"\n            /* Layer {c+1+4} */")
     for pos, i in enumerate(idxs):
-        # print(f'''
-        #     /* Plantard multiplication: Twiddle * coeff */
-        #     bn.mulqacc.wo.z coeff{i}, coeff{i}.0, tf1.{tf_idx}, 0 /* a*bq' */
-        #     bn.and coeff{i}, mask, coeff{i} >> 32 /* Implements mod 2l and >> l */
-        #     bn.addi coeff{i}, coeff{i}, 256 /* + 2^alpha = 2^8 */
-        #     bn.mulqacc.wo.z coeff{i}, coeff{i}.0, wtmp3.0, 0 /* *q */
-        #     bn.rshi wtmp, wtmp2, coeff{i} >> 32 /* >> l */
-        #     /* Butterfly */
-        #     bn.sub   coeff{i}, coeff{i-offset}, wtmp
-        #     bn.and   coeff{i}, coeff{i}, mask
-        #     bn.add   coeff{i-offset}, coeff{i-offset}, wtmp
-        #       ''')
         print(f'''
-            /* Barrett */
-            bn.mulqacc.wo.z coeff{i}, coeff{i}.0, tf{tf_reg}.{tf_idx}, 0 /* coeff{i} * twiddle */
-            bn.mulqacc.wo.z wtmp, coeff{i}.0, wtmp3.1, 0 /* * barrett const */
-            bn.mulqacc.wo.z wtmp, wtmp3.0, wtmp.1, 0 /* q * (wtmp >> 64) */
-            bn.sub          wtmp, coeff{i}, wtmp
+            /* Plantard multiplication: Twiddle * coeff */
+            bn.mulqacc.wo.z coeff{i}, coeff{i}.0, tf1.{tf_idx}, 192 /* a*bq' */
+            bn.add coeff{i}, wtmp3, coeff{i} >> 160 /* + 2^alpha = 2^8 */
+            bn.mulqacc.wo.z coeff{i}, coeff{i}.1, wtmp3.2, 0 /* *q */
+            bn.rshi wtmp, wtmp3, coeff{i} >> 32 /* >> l */
             /* Butterfly */
-            bn.subm  coeff{i}, coeff{i-offset}, wtmp
-            bn.addm  coeff{i-offset}, coeff{i-offset}, wtmp''')
+            bn.subm coeff{i}, coeff{i-offset}, wtmp
+            bn.addm coeff{i-offset}, coeff{i-offset}, wtmp''')
+        # print(f'''
+        #     /* Barrett */
+        #     bn.mulqacc.wo.z coeff{i}, coeff{i}.0, tf{tf_reg}.{tf_idx}, 0 /* coeff{i} * twiddle */
+        #     bn.mulqacc.wo.z wtmp, coeff{i}.0, wtmp3.1, 0 /* * barrett const */
+        #     bn.mulqacc.wo.z wtmp, wtmp3.0, wtmp.1, 0 /* q * (wtmp >> 64) */
+        #     bn.sub          wtmp, coeff{i}, wtmp
+        #     /* Butterfly */
+        #     bn.subm  coeff{i}, coeff{i-offset}, wtmp
+        #     bn.addm  coeff{i-offset}, coeff{i-offset}, wtmp''')
         tf_used += 1
         if tf_used == offset:
             tf_used = 0
