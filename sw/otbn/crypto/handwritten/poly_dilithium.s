@@ -2089,10 +2089,6 @@ poly_make_hint_dilithium:
     /* Constants for condition checking */ 
     li   t6, 94208
     addi t6, t6, 1024 /* gamma */
-    li   a6, 192512
-    addi a6, a6, -2048 /* 2*gamma */
-    li   a7, -94208 /* -gamma */
-    addi a7, a7, -1024
 
     /* Loop over every coefficient pair of the input */
     LOOPI 256, 18
@@ -2103,7 +2099,7 @@ poly_make_hint_dilithium:
         srli t3, t5, 31
         beq t3, t4, _loop_end_poly_make_hint_dilithium
 
-        sub t5, t0, a7
+        add t5, t0, t6
         srli t3, t5, 31
         beq t3, t4, _loop_end_poly_make_hint_dilithium
 
