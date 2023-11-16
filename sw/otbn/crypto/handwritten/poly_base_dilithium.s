@@ -2635,17 +2635,16 @@ poly_pointwise_base_dilithium:
     li t1, 1
     li t2, 6
 
-    LOOPI 32, 14
+    LOOPI 32, 13
         bn.lid t0, 0(a0++)
         bn.lid t1, 0(a1++)
 
-        LOOPI 8, 10
+        LOOPI 8, 9
             /* Mask one coefficient to working registers */
             bn.and w4, w0, w7
             bn.and w5, w1, w7
             /* Shift out used coefficient */
             bn.rshi w0, bn0, w0 >> 32
-            bn.rshi w1, bn0, w1 >> 32
 
             /* Do operation */
             /* c = a * b */
@@ -2659,9 +2658,9 @@ poly_pointwise_base_dilithium:
             bn.rshi w4, w8, w4 >> 32
 
             /* Append result to output */
-            bn.rshi w6, w4, w6 >> 32
+            bn.rshi w1, w4, w1 >> 32
         /* Store 8 coefficients */
-        bn.sid t2, 0(a2++)
+        bn.sid t1, 0(a2++)
     ret
 
 /**
@@ -2717,12 +2716,12 @@ poly_pointwise_acc_base_dilithium:
     li t2, 2
     li t3, 6
 
-    LOOPI 32, 18
+    LOOPI 32, 17
         bn.lid t0, 0(a0++)
         bn.lid t1, 0(a1++)
         bn.lid t2, 0(a2)
 
-        LOOPI 8, 13
+        LOOPI 8, 12
             /* Mask one coefficient to working registers */
             bn.and w4, w0, mask
             bn.and w5, w1, mask
@@ -2730,7 +2729,6 @@ poly_pointwise_acc_base_dilithium:
             /* Shift out used coefficient */
             bn.rshi w0, bn0, w0 >> 32
             bn.rshi w1, bn0, w1 >> 32
-            bn.rshi w2, bn0, w2 >> 32
 
             /* Do operation */
             /* c = a * b */
@@ -2746,10 +2744,10 @@ poly_pointwise_acc_base_dilithium:
             bn.addm w4, w4, w3
 
             /* Append result to output */
-            bn.rshi w6, w4, w6 >> 32
+            bn.rshi w2, w4, w2 >> 32
 
         /* Store 8 coefficients */
-        bn.sid t3, 0(a2++)
+        bn.sid t2, 0(a2++)
     ret
 
 /**
@@ -2790,14 +2788,12 @@ poly_caddq_base_dilithium:
     li x5, 3
     li x4, 6
 
-    LOOPI 32, 9
+    LOOPI 32, 8
         bn.lid x6, 0(x10)
 
-        LOOPI 8, 6
+        LOOPI 8, 5
             /* Mask one coefficient to working registers */
             bn.and w4, w2, w7
-            /* Shift out used coefficient */
-            bn.rshi w2, w31, w2 >> 32
 
             /* Test sign */
             bn.and w5, w4, w9
@@ -2805,9 +2801,9 @@ poly_caddq_base_dilithium:
             bn.sel w5, bn0, w8, z
             bn.add w4, w4, w5
 
-            bn.rshi w6, w4, w6 >> 32
+            bn.rshi w2, w4, w2 >> 32
         
-        bn.sid x4, 0(x10++)
+        bn.sid x6, 0(x10++)
 
     ret
 
