@@ -2511,20 +2511,19 @@ poly_reduce32_dilithium:
     bn.lid t4, 0(t3)
     bn.and w12, w12, w11 /* Only keep one word */
 
-    LOOPI 32, 9
+    LOOPI 32, 8
         bn.lid t0, 0(a0++)
 
-        LOOPI 8, 6
+        LOOPI 8, 5
             bn.and w3, w0, w11 /* Mask out one coefficient */
-            bn.rshi w0, bn0, w0 >> 32 /* Remove from input */
 
             bn.cmp w3, w10
             bn.sel w4, bn0, w12, C
             bn.sub w2, w3, w4
 
-            bn.rshi w1, w2, w1 >> 32
+            bn.rshi w0, w2, w0 >> 32
 
-        bn.sid t1, 0(a1++)
+        bn.sid t0, 0(a1++)
 
     ret
 
