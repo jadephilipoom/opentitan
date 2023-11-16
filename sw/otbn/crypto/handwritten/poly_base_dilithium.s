@@ -2480,6 +2480,8 @@ poly_power2round_base_dilithium:
  *
  * This implements reduce32 for Dilithium, where n=256,q=8380417.
  *
+ * Note: This is a modified version that only takes small inputs. Used for 
+ *       obtaining centralized representative
  * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
  *
  * @param[in]  a0: dptr_input1, dmem pointer to first word of input1 polynomial
@@ -2488,8 +2490,8 @@ poly_power2round_base_dilithium:
  *
  * clobbered registers: x4-x7, x10-x11, w2-w6
  */
-.globl poly_reduce32_dilithium
-poly_reduce32_dilithium:
+.globl poly_reduce32_short_dilithium
+poly_reduce32_short_dilithium:
     /* Load 4194304 to w10 */
     la t0, reduce32_cmp_const
     li t1, 10
@@ -2522,6 +2524,62 @@ poly_reduce32_dilithium:
             bn.sub w2, w3, w4
 
             bn.rshi w0, w2, w0 >> 32
+
+        bn.sid t0, 0(a1++)
+
+    ret
+
+
+/**
+ * Constant Time Dilithium reduce32
+ *
+ * Returns: reduce32(input1)
+ *
+ * This implements reduce32 for Dilithium, where n=256,q=8380417.
+ *
+ * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
+ *
+ * @param[in]  a0: dptr_input1, dmem pointer to first word of input1 polynomial
+ * @param[in]  w31: all-zero
+ * @param[out] a1: dmem pointer to result
+ *
+ * clobbered registers: x4-x7, x10-x11, w2-w6
+ */
+.globl poly_reduce32_dilithium
+poly_reduce32_dilithium:
+    /* Load 4194304 to w10 */
+    la t0, reduce32_cmp_const
+    li t1, 10
+    bn.lid t1, 0(t0)
+
+    /* Set up constants for input/state */
+    li t0, 0
+    li t1, 1
+    li t2, 2
+
+    /* w11 <= 0xFFFFFFFF for masking */
+    bn.addi w11, bn0, 1
+    bn.rshi w11, w11, bn0 >> 224
+    bn.subi w11, w11, 1 
+
+    /* Load q */
+    li     t4, 12
+    la     t3, modulus
+    bn.lid t4, 0(t3)
+    bn.and w12, w12, w11 /* Only keep one word */
+
+    LOOPI 32, 9
+        bn.lid t0, 0(a0++)
+
+        LOOPI 8, 6
+            bn.and w3, w0, w11
+            
+            bn.add w4, w3, w10 /* Add (1<<22) */
+            bn.rshi w4, bn0, w4 >> 23
+            bn.mulqacc.wo.z w4, w4.0, w12.0, 0
+            bn.sub w3, w3, w4
+
+            bn.rshi w0, w3, w0 >> 32 /* Capture result and advance input */
 
         bn.sid t0, 0(a1++)
 

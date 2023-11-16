@@ -608,7 +608,7 @@ _rej_sign_dilithium:
     add a2, fp, a2
 
     LOOPI 4, 2
-        jal x1, poly_add_base_dilithium
+        jal x1, poly_add_pseudovec_base_dilithium
         nop
     
     /* reduce32 z */
@@ -684,7 +684,7 @@ _rej_sign_dilithium:
     li a1, STACK_TMP_POLYVEC
     add  a1, fp, a1
     LOOPI 4, 2
-        jal x1, poly_reduce32_dilithium
+        jal x1, poly_reduce32_short_dilithium
         nop
 
     /* chknorm */
@@ -740,7 +740,7 @@ _rej_sign_dilithium:
     add  a1, fp, a1
 
     LOOPI 4, 2
-        jal x1, poly_reduce32_dilithium
+        jal x1, poly_reduce32_short_dilithium
         nop /* TODO: remove */
 
     /* chknorm */
