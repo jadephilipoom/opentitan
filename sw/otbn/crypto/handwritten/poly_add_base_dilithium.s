@@ -47,6 +47,46 @@ poly_add_base_dilithium:
 
     ret
 
+/**
+ * Constant Time Dilithium polynomial addition - pseudo vectorized
+ *
+ * Returns: add(input1, input2) NOT reduced
+ *
+ * This implements the polynomial addition for e.g. Dilithium, where n=256.
+ *
+ * Flags: -
+ *
+ * @param[in]  x10: dptr_input1, dmem pointer to first word of input1 polynomial
+ * @param[in]  x11: dptr_input2, dmem pointer to first word of input2 polynomial
+ * @param[in]  w31: all-zero
+ * @param[out] x12: dmem pointer to result
+ *
+ * clobbered registers: x4-x6, w2-w4
+ */
+.global poly_add_pseudovec_base_dilithium
+poly_add_pseudovec_base_dilithium:
+    
+
+    /* Init mask */
+    bn.addi w7, w31, 1
+    bn.or w7, w31, w7 << 32
+    bn.subi w7, w7, 1
+
+    /* Set up constants for input/state */
+    li x6, 2
+    li x5, 3
+    li x4, 6
+
+    LOOPI 32, 4
+        bn.lid x6, 0(x10++)
+        bn.lid x5, 0(x11++)
+
+        bn.add w6, w2, w3
+        
+        bn.sid x4, 0(x12++)
+
+    ret
+
 .text
 /**
  * Constant Time Dilithium polynomial addition
