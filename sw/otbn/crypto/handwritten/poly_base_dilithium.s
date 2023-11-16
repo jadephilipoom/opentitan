@@ -2097,6 +2097,7 @@ poly_decompose_dilithium:
  *  Compute hint polynomial. The coefficients of which indicate whether the low
  *  bits of the corresponding coefficient of the input polynomial overflow into
  *  the high bits.
+ *  The function accepts inputs mod^+ q.
  * 
  * Returns: Number of one bits
  *
@@ -2115,25 +2116,31 @@ poly_make_hint_dilithium:
     li   t6, 94208
     addi t6, t6, 1024  /* gamma */
 
+    la t0, modulus
+    lw a7, 0(t0)
+    sub a7, a7, t6 /* q - gamma2 */
+
+    addi t6, t6, 1 /* gamma2 + 1 */
+
     /* Loop over every coefficient pair of the input */
     LOOPI 256, 18
         lw t0, 0(a1)
         lw t1, 0(a2)
 
-        sub t5, t6, t0 /* Check gamma < t0 <=> gamma - t0 < 0 */
+        sub t5, t6, t0 /* Check t0 < (gamma2 + 1) <=> 0 < (gamma2 + 1) - t0 */
         srli t3, t5, 31
-        beq t3, t4, _loop_end_poly_make_hint_dilithium
+        beq t3, zero, _loop_end_poly_make_hint_dilithium
 
-        add t5, t0, t6 /* Check t0 < -gamma <=> t0 + gamma < 0 */
+        sub t5, t0, a7 /* Check t0 > (q - gamma) <=> t0 - (q - gamma) > 0 */
         srli t3, t5, 31
-        beq t3, t4, _loop_end_poly_make_hint_dilithium
+        beq t3, zero, _loop_end_poly_make_hint_dilithium
 
-        bne t5, zero, _return0
-        beq t1, zero, _return0
-        li t3, 1
-        beq zero, zero, _loop_end_poly_make_hint_dilithium
-_return0:
+        bne t0, a7, _return1
+        bne t1, zero, _return1
         li t3, 0
+        beq zero, zero, _loop_end_poly_make_hint_dilithium
+_return1:
+        li t3, 1
         /* Fall through to loop end */
 _loop_end_poly_make_hint_dilithium:
         sw   t3, 0(a0) /* Write to output polynomial */

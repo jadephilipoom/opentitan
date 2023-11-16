@@ -770,15 +770,6 @@ _rej_sign_dilithium:
         nop
 
     /* make hint */
-
-    /* TODO: get rid of this reduction by modifying make_hint like in python */
-    /* reduce32 w0 */
-    li   a0, STACK_W0
-    add  a0, fp, a0
-    addi a1, a0, 0
-    LOOPI 4, 2
-        jal x1, poly_reduce32_dilithium
-        nop
     
     li  s0, 0
     li  s1, STACK_H
