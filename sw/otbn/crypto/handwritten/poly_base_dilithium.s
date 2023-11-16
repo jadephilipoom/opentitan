@@ -2592,9 +2592,9 @@ poly_pointwise_base_dilithium:
 
             /* Do operation */
             /* c = a * b */
-            bn.mulqacc.wo.z w4, w4.0, w5.0, 0
+            bn.mulqacc.wo.z w5, qprime, w5.0, 0
             /* Multiply q' */
-            bn.mulqacc.wo.z w4, w4.0, qprime, 192
+            bn.mulqacc.wo.z w4, w4.0, w5.0, 192
             /* Extract upper 32-bits of bottom result half */
             /* + 2^alpha */
             bn.add w4, w8, w4 >> 160
@@ -2677,9 +2677,9 @@ poly_pointwise_acc_base_dilithium:
 
             /* Do operation */
             /* c = a * b */
-            bn.mulqacc.wo.z w4, w4.0, w5.0, 0
+            bn.mulqacc.wo.z w5, qprime, w5.0, 0
             /* Multiply q' */
-            bn.mulqacc.wo.z w4, w4.0, qprime, 192
+            bn.mulqacc.wo.z w4, w5.0, w4.0, 192
             /* + 2^alpha */
             bn.add w4, w8, w4 >> 160
             bn.mulqacc.wo.z w4, w4.1, q, 0
