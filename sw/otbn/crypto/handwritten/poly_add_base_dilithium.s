@@ -29,22 +29,21 @@ poly_add_base_dilithium:
     li x5, 3
     li x4, 6
 
-    LOOPI 32, 10
+    LOOPI 32, 9
         bn.lid x6, 0(x10++)
         bn.lid x5, 0(x11++)
 
-        LOOPI 8, 6
+        LOOPI 8, 5
             /* Mask one coefficient to working registers */
             bn.and w4, w2, w7
             bn.and w5, w3, w7
             /* Shift out used coefficient */
             bn.rshi w2, w31, w2 >> 32
-            bn.rshi w3, w31, w3 >> 32
 
             bn.addm w4, w4, w5
-            bn.rshi w6, w4, w6 >> 32
+            bn.rshi w3, w4, w3 >> 32
         
-        bn.sid x4, 0(x12++)
+        bn.sid x5, 0(x12++)
 
     ret
 
@@ -79,21 +78,20 @@ poly_sub_base_dilithium:
     li x5, 3
     li x4, 6
 
-    LOOPI 32, 10
+    LOOPI 32, 9
         bn.lid x6, 0(x10++)
         bn.lid x5, 0(x11++)
 
-        LOOPI 8, 6
+        LOOPI 8, 5
             /* Mask one coefficient to working registers */
             bn.and w4, w2, w7
             bn.and w5, w3, w7
             /* Shift out used coefficient */
             bn.rshi w2, w31, w2 >> 32
-            bn.rshi w3, w31, w3 >> 32
 
             bn.subm w4, w4, w5
-            bn.rshi w6, w4, w6 >> 32
+            bn.rshi w3, w4, w3 >> 32
         
-        bn.sid x4, 0(x12++)
+        bn.sid x5, 0(x12++)
 
     ret
