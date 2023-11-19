@@ -2449,12 +2449,14 @@ poly_power2round_base_dilithium:
     bn.rshi w11, w11, bn0 >> 224
     bn.subi w11, w11, 1 
 
-    LOOPI 32, 11
+    LOOPI 32, 12
         /* Load input */
         bn.lid t0, 0(a0++)
 
-        LOOPI 8, 7
+        LOOPI 8, 8
             bn.and w3, w0, w11 /* Mask out one coefficient */
+
+            bn.addm w3, w3, bn0 /* Reduce q to 0 */
 
             bn.add w4, w3, w10
             bn.rshi w4, bn0, w4 >> D
