@@ -2449,18 +2449,17 @@ poly_power2round_base_dilithium:
     bn.rshi w11, w11, bn0 >> 224
     bn.subi w11, w11, 1 
 
-    LOOPI 32, 12
+    LOOPI 32, 11
         /* Load input */
         bn.lid t0, 0(a0++)
 
-        LOOPI 8, 8
+        LOOPI 8, 7
             bn.and w3, w0, w11 /* Mask out one coefficient */
-            bn.rshi w0, bn0, w0 >> 32 /* Remove from input */
 
             bn.add w4, w3, w10
             bn.rshi w4, bn0, w4 >> D
 
-            bn.rshi w2, w4, w2 >> 32 /* Accumulate to output register */
+            bn.rshi w0, w4, w0 >> 32 /* Accumulate to output register */
 
             bn.rshi w4, w4, bn0 >> Dinv /* << by D */
             bn.sub w4, w3, w4
@@ -2468,7 +2467,7 @@ poly_power2round_base_dilithium:
             bn.rshi w1, w4, w1 >> 32 /* Accumulate to output register */
 
         /* Store */
-        bn.sid t2, 0(a2++)
+        bn.sid t0, 0(a2++)
         bn.sid t1, 0(a1++)
 
     ret
