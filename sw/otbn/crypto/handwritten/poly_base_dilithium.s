@@ -2117,8 +2117,8 @@ poly_make_hint_dilithium:
     addi t6, t6, 1024  /* gamma */
 
     la t0, modulus
-    lw a7, 0(t0)
-    sub a7, a7, t6 /* q - gamma2 */
+    lw a6, 0(t0)
+    sub a7, a6, t6 /* q - gamma2 */
 
     addi t6, t6, 1 /* gamma2 + 1 */
 
@@ -2136,9 +2136,9 @@ poly_make_hint_dilithium:
         beq t3, zero, _loop_end_poly_make_hint_dilithium
 
         bne t0, a7, _return1
-        bne t1, zero, _return1
         li t3, 0
-        beq zero, zero, _loop_end_poly_make_hint_dilithium
+        beq t1, zero, _loop_end_poly_make_hint_dilithium
+        beq t1, a6, _loop_end_poly_make_hint_dilithium
 _return1:
         li t3, 1
         /* Fall through to loop end */
