@@ -22,6 +22,32 @@ crypto_status_t otcrypto_rsa_keygen(rsa_key_size_t required_key_len,
   return otcrypto_rsa_keygen_async_finalize(rsa_public_key, rsa_private_key);
 }
 
+crypto_status_t otcrypto_rsa_private_key_from_exponents(
+    rsa_size_t size, crypto_const_word32_buf_t modulus, uint32_t e,
+    crypto_const_word32_buf_t d_share0, crypto_const_word32_buf_t d_share1,
+    hardened_bool_t check_key_validity, crypto_blinded_key_t *private_key) {
+  // TODO: implement RSA private key construction.
+  return OTCRYPTO_NOT_IMPLEMENTED;
+}
+
+crypto_status_t otcrypto_rsa_private_key_from_primes(
+    rsa_size_t size, crypto_const_word32_buf_t p_share0,
+    crypto_const_word32_buf_t p_share1, crypto_const_word32_buf_t q_share0,
+    crypto_const_word32_buf_t q_share1, hardened_bool_t check_key_validity,
+    crypto_blinded_key_t *private_key) {
+  // TODO: implement RSA private key construction.
+  return OTCRYPTO_NOT_IMPLEMENTED;
+}
+
+crypto_status_t otcrypto_rsa_private_key_from_cofactor(
+    rsa_size_t size, crypto_const_word32_buf_t modulus,
+    crypto_const_word32_buf_t prime_share0,
+    crypto_const_word32_buf_t prime_share1, hardened_bool_t check_key_validity,
+    crypto_blinded_key_t *private_key) {
+  // TODO: implement RSA private key construction.
+  return OTCRYPTO_NOT_IMPLEMENTED;
+}
+
 crypto_status_t otcrypto_rsa_sign(const rsa_private_key_t *rsa_private_key,
                                   const hash_digest_t *message_digest,
                                   rsa_padding_t padding_mode,
@@ -273,6 +299,49 @@ crypto_status_t otcrypto_rsa_keygen_async_finalize(
   }
 
   return OTCRYPTO_OK;
+}
+
+crypto_status_t otcrypto_rsa_private_key_from_exponents_async_start(
+    rsa_size_t size, crypto_const_word32_buf_t modulus, uint32_t e,
+    crypto_const_word32_buf_t d_share0, crypto_const_word32_buf_t d_share1,
+    hardened_bool_t check_key_validity) {
+  // TODO: implement RSA private key construction.
+  return OTCRYPTO_NOT_IMPLEMENTED;
+}
+
+crypto_status_t otcrypto_rsa_private_key_from_exponents_async_finalize(
+    crypto_blinded_key_t *private_key) {
+  // TODO: implement RSA private key construction.
+  return OTCRYPTO_NOT_IMPLEMENTED;
+}
+
+crypto_status_t otcrypto_rsa_private_key_from_primes_async_start(
+    rsa_size_t size, crypto_const_word32_buf_t p_share0,
+    crypto_const_word32_buf_t p_share1, crypto_const_word32_buf_t q_share0,
+    crypto_const_word32_buf_t q_share1, hardened_bool_t check_key_validity) {
+  // TODO: implement RSA private key construction.
+  return OTCRYPTO_NOT_IMPLEMENTED;
+}
+
+crypto_status_t otcrypto_rsa_private_key_from_primes_async_finalize(
+    crypto_blinded_key_t *private_key) {
+  // TODO: implement RSA private key construction.
+  return OTCRYPTO_NOT_IMPLEMENTED;
+}
+
+crypto_status_t otcrypto_rsa_private_key_from_cofactor_async_start(
+    rsa_size_t size, crypto_const_word32_buf_t modulus,
+    crypto_const_word32_buf_t prime_share0,
+    crypto_const_word32_buf_t prime_share1,
+    hardened_bool_t check_key_validity) {
+  // TODO: implement RSA private key construction.
+  return OTCRYPTO_NOT_IMPLEMENTED;
+}
+
+crypto_status_t otcrypto_rsa_private_key_from_cofactor_async_finalize(
+    crypto_blinded_key_t *private_key) {
+  // TODO: implement RSA private key construction.
+  return OTCRYPTO_NOT_IMPLEMENTED;
 }
 
 crypto_status_t otcrypto_rsa_sign_async_start(

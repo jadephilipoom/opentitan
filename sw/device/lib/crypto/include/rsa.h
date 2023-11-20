@@ -96,6 +96,90 @@ crypto_status_t otcrypto_rsa_keygen(rsa_key_size_t required_key_len,
                                     rsa_private_key_t *rsa_private_key);
 
 /**
+ * Constructs an RSA private key from the private exponent.
+ *
+ * The caller should fully populate the blinded key configuration and allocate
+ * space for the keyblob, setting `config.key_length` and `keyblob_length`
+ * accordingly. Use `otcrypto_rsa_private_key_length` to get the expected
+ * lengths.
+ *
+ * If `check_key_validity` is true, then this routine will infer the two primes
+ * p and q and and ensure they are both prime, within the allowed range,
+ * relatively prime to the exponent, and not too close together. It will also
+ * ensure that d and e meet RSA requirements as per FIPS 186-5.
+ *
+ * @param size RSA size parameter.
+ * @param modulus RSA modulus (n).
+ * @param e RSA public exponent.
+ * @param d_share0 First share of the private exponent d.
+ * @param d_share1 Second share of the private exponent d.
+ * @param check_key_validity Whether to check that the key is valid.
+ * @param[out] private_key Destination private key struct.
+ * @return Result of the RSA key construction.
+ */
+crypto_status_t otcrypto_rsa_private_key_from_exponents(
+    rsa_size_t size, crypto_const_word32_buf_t modulus, uint32_t e,
+    crypto_const_word32_buf_t d_share0, crypto_const_word32_buf_t d_share1,
+    hardened_bool_t check_key_validity, crypto_blinded_key_t *private_key);
+
+/**
+ * Constructs an RSA private key from two blinded primes.
+ *
+ * The caller should fully populate the blinded key configuration and allocate
+ * space for the keyblob, setting `config.key_length` and `keyblob_length`
+ * accordingly. Use `otcrypto_rsa_private_key_length` to get the expected
+ * lengths.
+ *
+ * This routine will divide n by the provided prime factor to get the other
+ * prime and derive the RSA private key from there. If `check_key_validity` is
+ * true, then this routine will run primality tests on the two primes and also
+ * ensure they are both within the allowed range, relatively prime to the
+ * exponent, and not too close together.
+ *
+ * @param size RSA size parameter.
+ * @param p_share0 First share of the blinded prime factor p.
+ * @param p_share1 Second share of the blinded prime factor p.
+ * @param q_share0 First share of the blinded prime factor q.
+ * @param q_share1 Second share of the blinded prime factor q.
+ * @param check_key_validity Whether to check that the key is valid.
+ * @param[out] private_key Destination private key struct.
+ * @return Result of the RSA key construction.
+ */
+crypto_status_t otcrypto_rsa_private_key_from_primes(
+    rsa_size_t size, crypto_const_word32_buf_t p_share0,
+    crypto_const_word32_buf_t p_share1, crypto_const_word32_buf_t q_share0,
+    crypto_const_word32_buf_t q_share1, hardened_bool_t check_key_validity,
+    crypto_blinded_key_t *private_key);
+
+/**
+ * Constructs an RSA private key from the modulus and one blinded prime.
+ *
+ * The caller should fully populate the blinded key configuration and allocate
+ * space for the keyblob, setting `config.key_length` and `keyblob_length`
+ * accordingly. Use `otcrypto_rsa_private_key_length` to get the expected
+ * lengths.
+ *
+ * This routine will divide n by the provided prime factor to get the other
+ * prime and derive the RSA private key from there. If `check_key_validity` is
+ * true, then this routine will run primality tests on the two primes and also
+ * ensure they are both within the allowed range, relatively prime to the
+ * exponent, and not too close together.
+ *
+ * @param size RSA size parameter.
+ * @param modulus RSA modulus (n).
+ * @param prime_share0 First share of the blinded prime factor (p or q).
+ * @param prime_share1 Second share of the blinded prime factor (p or q).
+ * @param check_key_validity Whether to check that the key is valid.
+ * @param[out] private_key Destination private key struct.
+ * @return Result of the RSA key construction.
+ */
+crypto_status_t otcrypto_rsa_private_key_from_cofactor(
+    rsa_size_t size, crypto_const_word32_buf_t modulus,
+    crypto_const_word32_buf_t prime_share0,
+    crypto_const_word32_buf_t prime_share1, hardened_bool_t check_key_validity,
+    crypto_blinded_key_t *private_key);
+
+/**
  * Computes the digital signature on the input message data.
  *
  * The caller should allocate space for the `signature` buffer,
@@ -165,6 +249,98 @@ crypto_status_t otcrypto_rsa_keygen_async_start(
  */
 crypto_status_t otcrypto_rsa_keygen_async_finalize(
     rsa_public_key_t *rsa_public_key, rsa_private_key_t *rsa_private_key);
+
+/**
+ * Begins an asynchronous RSA private key construction.
+ *
+ * See `otcrypto_rsa_private_key_from_exponents` for details on the requirements
+ * and guarantees of this routine.
+ *
+ * @param size RSA size parameter.
+ * @param modulus RSA modulus (n).
+ * @param e RSA public exponent.
+ * @param d_share0 First share of the private exponent d.
+ * @param d_share1 Second share of the private exponent d.
+ * @param check_key_validity Whether to check that the key is valid.
+ * @return Result of the RSA key construction start operation.
+ */
+crypto_status_t otcrypto_rsa_private_key_from_exponents_async_start(
+    rsa_size_t size, crypto_const_word32_buf_t modulus, uint32_t e,
+    crypto_const_word32_buf_t d_share0, crypto_const_word32_buf_t d_share1,
+    hardened_bool_t check_key_validity);
+
+/**
+ * Finalizes an asynchronous RSA private key construction.
+ *
+ * See `otcrypto_rsa_private_key_from_exponents` for details on the requirements
+ * and guarantees of this routine.
+ *
+ * @param[out] private_key Destination private key struct.
+ * @return Result of the RSA key construction finalize operation.
+ */
+crypto_status_t otcrypto_rsa_private_key_from_exponents_async_finalize(
+    crypto_blinded_key_t *private_key);
+
+/**
+ * Begins an asynchronous RSA private key construction.
+ *
+ * See `otcrypto_rsa_private_key_from_primes` for details on the requirements
+ * and guarantees of this routine.
+ *
+ * @param size RSA size parameter.
+ * @param p_share0 First share of the blinded prime factor p.
+ * @param p_share1 Second share of the blinded prime factor p.
+ * @param q_share0 First share of the blinded prime factor q.
+ * @param q_share1 Second share of the blinded prime factor q.
+ * @param check_key_validity Whether to check that the key is valid.
+ * @return Result of the RSA key construction.
+ */
+crypto_status_t otcrypto_rsa_private_key_from_primes_async_start(
+    rsa_size_t size, crypto_const_word32_buf_t p_share0,
+    crypto_const_word32_buf_t p_share1, crypto_const_word32_buf_t q_share0,
+    crypto_const_word32_buf_t q_share1, hardened_bool_t check_key_validity);
+
+/**
+ * Finalizes an asynchronous RSA private key construction.
+ *
+ * See `otcrypto_rsa_private_key_from_primes` for details on the requirements
+ * and guarantees of this routine.
+ *
+ * @param[out] private_key Destination private key struct.
+ * @return Result of the RSA key construction finalize operation.
+ */
+crypto_status_t otcrypto_rsa_private_key_from_primes_async_finalize(
+    crypto_blinded_key_t *private_key);
+
+/**
+ * Begins an asynchronous RSA private key construction.
+ *
+ * See `otcrypto_rsa_private_key_from_cofactor` for details on the requirements
+ * and guarantees of this routine.
+ *
+ * @param size RSA size parameter.
+ * @param modulus RSA modulus (n).
+ * @param prime_share0 First share of the blinded prime factor (p or q).
+ * @param prime_share1 Second share of the blinded prime factor (p or q).
+ * @param check_key_validity Whether to check that the key is valid.
+ * @return Result of the RSA key construction start operation.
+ */
+crypto_status_t otcrypto_rsa_private_key_from_cofactor_async_start(
+    rsa_size_t size, crypto_const_word32_buf_t modulus,
+    crypto_const_word32_buf_t prime_share0,
+    crypto_const_word32_buf_t prime_share1, hardened_bool_t check_key_validity);
+
+/**
+ * Finalizes an asynchronous RSA private key construction.
+ *
+ * See `otcrypto_rsa_private_key_from_cofactor` for details on the requirements
+ * and guarantees of this routine.
+ *
+ * @param[out] private_key Destination private key struct.
+ * @return Result of the RSA key construction finalize operation.
+ */
+crypto_status_t otcrypto_rsa_private_key_from_cofactor_async_finalize(
+    crypto_blinded_key_t *private_key);
 
 /**
  * Starts the asynchronous digital signature generation function.
