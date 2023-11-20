@@ -2120,10 +2120,8 @@ poly_make_hint_dilithium:
     lw a6, 0(t0)
     sub a7, a6, t6 /* q - gamma2 */
 
-    addi t6, t6, 1 /* gamma2 + 1 */
-
     /* Loop over every coefficient pair of the input */
-    LOOPI 256, 18
+    LOOPI 256, 21
         lw t0, 0(a1)
         lw t1, 0(a2)
 
@@ -2131,14 +2129,18 @@ poly_make_hint_dilithium:
         srli t3, t5, 31
         beq t3, zero, _loop_end_poly_make_hint_dilithium
 
-        sub t5, t0, a7 /* Check t0 > (q - gamma) <=> t0 - (q - gamma) > 0 */
+        sub t5, a7, t0 /* Check t0 > (q - gamma) <=> t0 - (q - gamma) > 0 */
         srli t3, t5, 31
-        beq t3, zero, _loop_end_poly_make_hint_dilithium
+        beq t3, t4, _return0
 
         bne t0, a7, _return1
         li t3, 0
         beq t1, zero, _loop_end_poly_make_hint_dilithium
         beq t1, a6, _loop_end_poly_make_hint_dilithium
+        beq zero, zero, _return1
+_return0:
+        li t3, 0
+        beq zero, zero, _loop_end_poly_make_hint_dilithium
 _return1:
         li t3, 1
         /* Fall through to loop end */
