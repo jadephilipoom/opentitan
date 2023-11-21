@@ -2589,6 +2589,62 @@ poly_reduce32_dilithium:
     ret
 
 /**
+ * Constant Time Dilithium reduce32
+ *
+ * Returns: reduce32(input1)
+ *
+ * This implements reduce32 for Dilithium, where n=256,q=8380417.
+ *
+ * Note: This is a modified version giving a result in [0,6283007]
+ * Flags: Clobbers FG0, has no meaning beyond the scope of this subroutine.
+ *
+ * @param[in]  a0: dptr_input1, dmem pointer to first word of input1 polynomial
+ * @param[in]  w31: all-zero
+ * @param[out] a1: dmem pointer to result
+ *
+ * clobbered registers: x4-x7, x10-x11, w2-w6
+ */
+.globl poly_reduce32_pos_dilithium
+poly_reduce32_pos_dilithium:
+    /* Load 4194304 to w10 */
+    la t0, reduce32_cmp_const
+    li t1, 10
+    bn.lid t1, 0(t0)
+
+    /* Set up constants for input/state */
+    li t0, 0
+    li t1, 1
+    li t2, 2
+
+    /* w11 <= 0xFFFFFFFF for masking */
+    bn.addi w11, bn0, 1
+    bn.rshi w11, w11, bn0 >> 224
+    bn.subi w11, w11, 1 
+
+    /* Load q */
+    li     t4, 12
+    la     t3, modulus
+    bn.lid t4, 0(t3)
+    bn.and w12, w12, w11 /* Only keep one word */
+
+    LOOPI 32, 9
+        bn.lid t0, 0(a0++)
+
+        LOOPI 8, 6
+            bn.and w3, w0, w11
+            
+            bn.add w4, w3, w10 /* Add (1<<22) */
+            bn.rshi w4, bn0, w4 >> 23
+            bn.mulqacc.wo.z w4, w4.0, w12.0, 0
+            bn.subm w3, w3, w4
+
+            bn.rshi w0, w3, w0 >> 32 /* Capture result and advance input */
+
+        bn.sid t0, 0(a1++)
+
+    ret
+
+/**
  * Constant Time Dilithium base multiplication (pointwise)
  *
  * Returns: poly_pointwise(input1, input2)
@@ -2719,19 +2775,17 @@ poly_pointwise_acc_base_dilithium:
     li t2, 2
     li t3, 6
 
-    LOOPI 32, 17
+    LOOPI 32, 15
         bn.lid t0, 0(a0++)
         bn.lid t1, 0(a1++)
         bn.lid t2, 0(a2)
 
-        LOOPI 8, 12
+        LOOPI 8, 9
             /* Mask one coefficient to working registers */
             bn.and w4, w0, mask
             bn.and w5, w1, mask
-            bn.and w3, w2, mask
             /* Shift out used coefficient */
             bn.rshi w0, bn0, w0 >> 32
-            bn.rshi w1, bn0, w1 >> 32
 
             /* Do operation */
             /* c = a * b */
@@ -2743,14 +2797,13 @@ poly_pointwise_acc_base_dilithium:
             bn.mulqacc.wo.z w4, w4.1, q, 0
             bn.rshi w4, w8, w4 >> 32
 
-            /* Accumulate */
-            bn.addm w4, w4, w3
-
             /* Append result to output */
-            bn.rshi w2, w4, w2 >> 32
+            bn.rshi w1, w4, w1 >> 32
+
+        bn.add w1, w1, w2 /* Accumulate */
 
         /* Store 8 coefficients */
-        bn.sid t2, 0(a2++)
+        bn.sid t1, 0(a2++)
     ret
 
 /**

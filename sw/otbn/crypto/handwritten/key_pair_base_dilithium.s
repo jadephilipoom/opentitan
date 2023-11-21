@@ -274,6 +274,15 @@ key_pair_base_dilithium:
 
     /* TODO: Do we need reduce32? Do range analysis! */
 
+    /* reduce32 t1 */
+    li   a0, STACK_T1
+    add  a0, fp, a0
+    addi a1, a0, 0
+
+    LOOPI 4, 2
+        jal x1, poly_reduce32_pos_dilithium
+        nop
+
     /* Inverse NTT on t1 */
     li  a0, STACK_T1
     add a0, fp, a0
@@ -309,17 +318,6 @@ key_pair_base_dilithium:
     LOOPI 4, 2
         jal x1, poly_add_base_dilithium
         nop
-
-    /* caddq(t1) */
-
-    /* TODO: is this needed? */
-    /* Load source pointers */
-    /* li a0, STACK_T1
-    add a0, fp, a0
-
-    LOOPI 4, 2
-        jal x1, poly_caddq_dilithium
-        nop */
 
     /* power2round */
 

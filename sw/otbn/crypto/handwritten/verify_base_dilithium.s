@@ -480,6 +480,15 @@ verify_base_dilithium:
         sub  a0, a0, s1
         addi a2, a2, 1024
 
+    /* reduce32 w1 */
+    li   a0, STACK_W1
+    add  a0, fp, a0
+    addi a1, a0, 0
+
+    LOOPI 4, 2
+        jal x1, poly_reduce32_pos_dilithium
+        nop
+
     /* t1 = cp * t1 */
     li  a0, STACK_CP
     add a0, fp, a0
