@@ -2,9 +2,10 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-from collections import Counter
+from collections import Counter, defaultdict
 import typing
 from typing import Dict, List, Optional, Tuple
+import re
 
 from elftools.dwarf.dwarfinfo import DWARFInfo  # type: ignore
 from elftools.elf.elffile import ELFFile  # type: ignore
@@ -276,7 +277,7 @@ class ExecutionStatAnalyzer:
             "stall_count": self._stats.stall_count,
             "func_cycles": self.func_cycles,
             "func_instrs": self.func_instrs,
-            "func_calls": self.func_calls
+            "func_calls": {l: dict(m) for l, m in self.func_calls.items()}
         }
         return stat_data
 
@@ -350,17 +351,16 @@ class ExecutionStatAnalyzer:
             has_one_callsite = False
             func = self._describe_imem_addr(rev_callee_func)
             callee = func
-            if callee not in self.func_calls:
-                self.func_calls[callee] = {}
+            callee_func_only = re.findall(r'\(([^]]*)\)', callee)[0]
+            if callee_func_only not in self.func_calls:
+                self.func_calls[callee_func_only] = {}
+                self.func_calls[callee_func_only] = defaultdict(lambda: 0, self.func_calls[callee_func_only])
             out += f"Function {func}\n"
             out += "  is called from the following functions\n"
             for rev_caller_func, cnt in rev_caller_funcs.most_common():
                 func = self._describe_imem_addr(rev_caller_func)
                 caller = func
-                if caller not in self.func_calls[callee]:
-                    self.func_calls[callee][caller] = 1
-                else:
-                    self.func_calls[callee][caller] += 1
+                self.func_calls[callee_func_only][caller] += cnt
                 out += f"    * {cnt} times by function {func}\n"
             out += "  from the following call sites\n"
             for rc, cnt in rev_callsites[rev_callee_func].most_common():
