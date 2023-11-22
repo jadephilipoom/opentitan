@@ -799,12 +799,10 @@ _end_rej_sample_loop:
     ret
 
 _poly_uniform_base_inner_loop:
-    li t4, 1
-    LOOPI 10, 13
+    LOOPI 10, 12
         beq a1, t0, _skip_store1
         /* Mask shake output */
-        /* bn.and cand, shake_reg, coeff_mask */
-        /* Get the candidate coefficient, multiplied by 2 (see below) */
+        /* Get the candidate coefficient */
         bn.and cand, coeff_mask, shake_reg
         
         bn.cmp cand, mod
@@ -812,11 +810,6 @@ _poly_uniform_base_inner_loop:
 
         /* Z L M C */
         andi a4, a4, 3 /* Mask flags */
-        /* In this comparison, the L flag will never be set. We avoid this by
-           multiplying the coefficient and q by 2 before the comparison. This
-           assures that both numbers will be even and thus, after a subtraction
-           the LSB will never be set. Therefore, we do not need to mask the
-           flags. */
         bne  a4, a6, _skip_store1 /* Reject if M, C are NOT set to 1, meaning
                                      NOT (q > cand) = (q <= cand) */
         
@@ -825,8 +818,6 @@ _poly_uniform_base_inner_loop:
 
         bne accumulator_count, t3, _skip_store1 /* Accumulator not full yet */
         
-        /* Shift out the artificial zero bit used to avoid LSB flag */
-        bn.or accumulator, bn0, accumulator
         bn.sid    t5, 0(a1++) /* Store to memory */
         li        accumulator_count, 0
 _skip_store1:
