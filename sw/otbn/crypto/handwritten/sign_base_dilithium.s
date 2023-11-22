@@ -174,9 +174,9 @@ sign_base_dilithium:
     #define STACK_RHOPRIME  -12544
     #define STACK_MAT -28928
     #define STACK_Y -33024
+    #define STACK_TMP_POLYVEC  -33024
     #define STACK_Z -37120
     #define STACK_W1 -41216
-    #define STACK_TMP_POLYVEC  -41216
     #define STACK_W0 -45312
     #define STACK_CP -46336
     #define STACK_H -50432
