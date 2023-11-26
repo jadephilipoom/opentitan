@@ -477,6 +477,14 @@ _rej_sign_dilithium:
         pop \reg
     .endr
 
+    /* Load source pointers */
+    li a0, STACK_W1
+    add a0, fp, a0
+
+    LOOPI 4, 2
+        jal x1, poly_caddq_dilithium
+        nop
+
     /* Decompose */
     li   a2, STACK_W1 /* Input */
     add  a2, fp, a2
@@ -594,16 +602,6 @@ _rej_sign_dilithium:
     LOOPI 4, 2
         jal x1, poly_add_dilithium
         nop
-    
-    /* reduce32 z */
-    li   a0, STACK_Z
-    add  a0, fp, a0
-    addi a1, a0, 0
-
-    LOOPI 4, 2
-        jal x1, poly_reduce32_dilithium
-        nop
-
     /* chknorm */
     li  t0, GAMMA1
     li  t1, BETA
@@ -665,14 +663,6 @@ _rej_sign_dilithium:
         jal x1, poly_sub_dilithium
         nop 
 
-    /* reduce32 w0 */
-    li   a0, STACK_W0
-    add  a0, fp, a0
-    addi a1, a0, 0
-    LOOPI 4, 2
-        jal x1, poly_reduce32_dilithium
-        nop
-
     /* chknorm */
     li  t0, GAMMA2
     li  t1, BETA
@@ -721,15 +711,6 @@ _rej_sign_dilithium:
         pop \reg
     .endr
 
-    /* reduce32 h */
-    li   a0, STACK_H
-    add  a0, fp, a0
-    addi a1, a0, 0
-
-    LOOPI 4, 2
-        jal x1, poly_reduce32_dilithium
-        nop /* TODO: remove */
-
     /* chknorm */
     li  a1, GAMMA2
     li  s0, STACK_H
@@ -757,16 +738,6 @@ _rej_sign_dilithium:
         nop
 
     /* make hint */
-    
-
-    /* TODO: get rid of this reduction by modifying make_hint like in python */
-    /* reduce32 w0 */
-    li   a0, STACK_W0
-    add  a0, fp, a0
-    addi a1, a0, 0
-    LOOPI 4, 2
-        jal x1, poly_reduce32_dilithium
-        nop
     
     li  s0, 0
     li  s1, STACK_H

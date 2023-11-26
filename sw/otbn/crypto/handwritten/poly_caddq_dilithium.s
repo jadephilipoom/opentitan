@@ -28,18 +28,16 @@ poly_caddq_dilithium:
     /* Set up WDR constants for input/state */
     li x7, 2    
 
-    LOOPI 32, 8
+    LOOPI 32, 5
         bn.lid x7, 0(x10)
         
         /* (a >> 31) */
-        bn.orv.8S w3, w31, w2 >> 31
+        bn.orv.8S w3, w31, w2 a >> 31
         /* (a >> 31) & Q */
         bn.and w3, w3, w6
         /* a += (a >> 31) & Q */
-        bn.add w2, w2, w3
+        bn.addv.8S w2, w2, w3
 
-        bn.sid x7, 0(x10)
-
-        addi x10, x10, 32
+        bn.sid x7, 0(x10++)
 
     ret

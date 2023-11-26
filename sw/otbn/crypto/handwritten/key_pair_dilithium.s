@@ -312,12 +312,12 @@ key_pair_dilithium:
 
     /* TODO: is this needed? */
     /* Load source pointers */
-    /* li a0, STACK_T1
+    li a0, STACK_T1
     add a0, fp, a0
 
     LOOPI 4, 2
         jal x1, poly_caddq_dilithium
-        nop */
+        nop
 
     /* power2round */
 

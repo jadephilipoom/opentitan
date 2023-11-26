@@ -25,6 +25,24 @@ def eprint(text):
     print(text, file=sys.stderr)
 
 
+def cmod(n, q):
+    assert q % 2 == 1
+    t = n % q
+    if t > (q - 1) // 2:
+        t -= q
+    return t
+
+
+def cmod_single(n, q):
+    assert q % 2 == 1
+    if n < -(q - 1)//2:
+        return n + q
+    elif n > (q - 1)//2:
+        return n - q
+    else:
+        return n
+
+
 class ADD(RV32RegReg):
     insn = insn_for_mnemonic('add', 3)
 
@@ -717,10 +735,8 @@ class BNADDV(OTBNInsn):
             ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
             bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
             resulti = ai + bi
-            if resulti >= mod_val and red:
-                resulti -= mod_val
-            elif resulti < 0 and red:
-                resulti += mod_val
+            if red:
+                resulti = cmod_single(resulti, mod_val)
             if DEBUG_ARITH:
                 eprint(f"addvm {ai} + {bi} = {ai + bi} = {resulti}")
             result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))
@@ -769,8 +785,8 @@ class BNMULV(OTBNInsn):
                 eprint(f"modulus {mod_val}")
                 eprint(f"mulmv {ai} * {bi} = {resulti} = {resulti % mod_val}")
 
-            if red:  # TODO: add mask incase of nored
-                resulti = resulti % mod_val
+            if red:
+                resulti = cmod(resulti, mod_val)
 
             result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))
 
@@ -1043,10 +1059,8 @@ class BNSUBV(OTBNInsn):
             ai = OTBNInsn.from_2s_complement(extract_sub_word(a, size, i))
             bi = OTBNInsn.from_2s_complement(extract_sub_word(b, size, i))
             resulti = ai - bi
-            if resulti < 0 and red:
-                resulti += mod_val
-            elif resulti >= mod_val and red:
-                resulti -= mod_val
+            if red:
+                resulti = cmod_single(resulti, mod_val)
             if DEBUG_ARITH:
                 eprint(f"subvm {ai} - {bi} = {ai - bi} = {resulti}")
             result = (result << size) | (OTBNInsn.to_2s_complement(resulti, size) & ((1 << size) - 1))

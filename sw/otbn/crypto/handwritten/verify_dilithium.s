@@ -502,6 +502,14 @@ verify_dilithium:
         pop \reg
     .endr
 
+    /* Load source pointers */
+    li a0, STACK_W1
+    add a0, fp, a0
+
+    LOOPI 4, 2
+        jal x1, poly_caddq_dilithium
+        nop
+
     /* Use hint */
     li  a0, STACK_W1
     add a0, fp, a0
