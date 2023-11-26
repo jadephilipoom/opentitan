@@ -405,7 +405,8 @@ _loop_poly_chknorm_dilithium:
     /* w2 <= 0, if w1 >=? 0, else 0xFFFFFFFF */ 
     bn.orv.8S   w2, bn0, w1 a >> 31
     /* w2 <= w2 & (2 * w1) */
-    bn.andv.8S  w2, w2, w1 a << 1
+    bn.orv.8S  w3, bn0, w1 a << 1
+    bn.and    w2, w2, w3
     /* w2 <= w1 - w2 */
     bn.subv.8S  w2, w1, w2
     bn.sid      t2, STACK_WDR2GPR(fp)
@@ -602,7 +603,7 @@ _loop_inner_skip_load_poly_challenge:
  * @param[in]  a2: nonce
  * @param[out] a1: dmem pointer to polynomial
  *
- * clobbered registers: a0-a5, t0-t5, w8
+ * clobbered registers: a0-a5, t0-t5, w8, w16
  */
 .global poly_uniform
 poly_uniform:
@@ -727,7 +728,8 @@ _rej_sample_loop:
     bn.or   shake_reg, bn0, shake_reg >> 8
 
     /* mask candidate */
-    bn.andv.8S cand, coeff_mask_shl1, cand << 1
+    bn.orv.8S w16, bn0, cand << 1
+    bn.and cand, coeff_mask_shl1, w16
 
     bn.cmp cand, mod_shl1
     csrrs  a4, 0x7C0, zero      /* Read flags */
@@ -765,7 +767,8 @@ _skip_store2:
     bn.or  shake_reg, bn0, shake_reg >> 16
 
     /* mask candidate */
-    bn.andv.8S cand, coeff_mask_shl1, cand << 1
+    bn.orv.8S w16, bn0, cand << 1
+    bn.and cand, coeff_mask_shl1, w16
 
     bn.cmp cand, mod_shl1
     csrrs a4, 0x7C0, zero /* Read flags */
@@ -810,12 +813,13 @@ _end_rej_sample_loop:
 
 _poly_uniform_inner_loop:
     li t4, 1
-    LOOPI 10, 12
+    LOOPI 10, 13
         beq a1, t0, _skip_store1
         /* Mask shake output */
         /* bn.and cand, shake_reg, coeff_mask */
         /* Get the candidate coefficient, multiplied by 2 (see below) */
-        bn.andv.8S cand, coeff_mask_shl1, shake_reg << 1
+        bn.orv.8S w16, bn0, shake_reg << 1
+        bn.and cand, coeff_mask_shl1, w16
         
         bn.cmp cand, mod_shl1
         csrrs  a4, 0x7C0, zero /* Read flags */

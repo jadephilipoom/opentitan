@@ -124,8 +124,9 @@ decompose_dilithium:
     bn.addv.8S w2, w2, w4         /* ("a1" * 11275) + (1 << 23) */ 
     bn.orv.8S  w2, bn0, w2 >> 24  /* (("a1" * 11275) + (1 << 23)) >> 24 */ 
     bn.subv.8S w3, w8, w2         /* 43 - "a1" */
-    bn.andv.8S w3, w2, w3 a >> 31 /* ((43 - "a1") >> 31) & "a1" */
-    bn.xorv.8S w2, w2, w3         /* "a1" ^= ((43 - "a1") >> 31) & "a1" */
+    bn.orv.8S w30, bn0, w3 a >> 31
+    bn.and w3, w2, w30           /* ((43 - "a1") >> 31) & "a1" */
+    bn.xor w2, w2, w3            /* "a1" ^= ((43 - "a1") >> 31) & "a1" */
 
 
     /* Compute "a0" */
@@ -133,7 +134,8 @@ decompose_dilithium:
     bn.orv.8S  w4, bn0, w4 << 1    /* "a1" * GAMMA2 * 2 */
     bn.subv.8S w1, w0, w4          /* a - "a1" * GAMMA2 * 2 */
     bn.subv.8S w4, w10, w1         /* (Q-1)/2 - "a0" */
-    bn.andv.8S w4, w11, w4 a >> 31 /* (((Q-1)/2 - "a0") >> 31) & Q */ 
+    bn.orv.8S  w30, bn0, w4 a >> 31
+    bn.and     w4, w11, w30        /* (((Q-1)/2 - "a0") >> 31) & Q */ 
     bn.subv.8S w1, w1, w4          /* a0 -= (((Q-1)/2 - "a0") >> 31) & Q */
     
     ret
