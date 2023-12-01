@@ -284,8 +284,8 @@ bnam:
     - wdr3
     - funct3
   fields:
-    vec: 26
-    type: 27,25
+    vec: 25
+    type: 27-26
     sub: 30
     fixed:
       bits: 31,29-28
@@ -298,8 +298,8 @@ bnammv:
     - wdr3
     - funct3
   fields:
-    type: 31,26-25  # .8S or .16H, lane or not, reduce or not
-    lane: 30-27
+    type: 27-25  # .8S or .16H, lane or not, reduce or not
+    lane: 31-28
 
 # Used for bn.mulqacc
 bnaq:
