@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import Dict, Iterator, Optional
+from math import floor
 import sys
 import struct
 
@@ -26,18 +27,16 @@ def eprint(text):
 
 
 def cmod(n, q):
-    assert q % 2 == 1
     t = n % q
-    if t > (q - 1) // 2:
+    if t > floor(q / 2):
         t -= q
     return t
 
 
 def cmod_single(n, q):
-    assert q % 2 == 1
-    if n < -(q - 1)//2:
+    if n < -floor(q / 2):
         return n + q
-    elif n > (q - 1)//2:
+    elif n > floor(q / 2):
         return n - q
     else:
         return n
