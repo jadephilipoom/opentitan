@@ -258,12 +258,17 @@ bnaf:
 bnav:
   parents:
     - custom4
-    - wdr3
-    - funct2
+    - funct3
     - shift
+    - wrd
   fields:
-    shift_arith: 14
-    type: 31
+    wrs1: 24-20
+    shift_arith: 15
+    type: 16
+    fixed:
+      bits: 31,19-17
+      value: bxxxx
+
 
 # Used for the wide bn.addi and bn.subi instructions.
 bnai:

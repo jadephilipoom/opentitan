@@ -657,9 +657,9 @@
       funct3: b101
       wrd: wrd
 
-- mnemonic: bn.andv
-  synopsis: Bitwise AND
-  operands: &bn-andv-operands
+- mnemonic: bn.shv
+  synopsis: vector shift
+  operands: &bn-shv-operands
     - name: type
       abbrev: t
       type: enum(.8S,.16H)
@@ -669,9 +669,7 @@
     - name: wrd
       doc: Name of the destination WDR
     - name: wrs1
-      doc: Name of the first source WDR
-    - name: wrs2
-      doc: Name of the second source WDR
+      doc: Name of the source WDR
     - *bn-shift-type-operand
     - name: shift_bits
       type: uimm5<<0
@@ -680,48 +678,24 @@
       type: option(a)
       doc: Arithmetic shifting instead of logical
   glued-ops: true
-  syntax: &bn-andv-syntax |
-    <type> <wrd>, <wrs1>, <wrs2>[<shift_arith>][ <shift_type> <shift_bits>]
+  syntax: &bn-shv-syntax |
+    <type> <wrd>, <wrs1> [<shift_arith> ]<shift_type> <shift_bits>
   doc: |
-    Performs a bitwise and operation.
+    Performs a bitwise shift operation.
     Takes the values stored in registers referenced by `wrs1` and `wrs2` and stores the result in the register referenced by `wrd`.
     The content of the second source register can be shifted by an immediate before it is consumed by the operation.
   errs: []
-  iflow: &bn-andv-iflow
+  iflow: &bn-shv-iflow
     - to: [wrd]
-      from: [wrs1, wrs2]
+      from: [wrs1]
   encoding:
     scheme: bnav
     mapping:
       shift_type: shift_type
       shift_bits: shift_bits
       shift_arith: shift_arith
-      wrs2: wrs2
       wrs1: wrs1
-      funct2: b00
-      type: type
-      wrd: wrd
-
-- mnemonic: bn.orv
-  synopsis: Bitwise OR
-  operands: *bn-andv-operands
-  glued-ops: true
-  syntax: *bn-andv-syntax 
-  doc: |
-    Performs a bitwise or operation.
-    Takes the values stored in registers referenced by `wrs1` and `wrs2` and stores the result in the register referenced by `wrd`.
-    The content of the second source register can be shifted by an immediate before it is consumed by the operation.
-  errs: []
-  iflow: *bn-andv-iflow
-  encoding:
-    scheme: bnav
-    mapping:
-      shift_type: shift_type
-      shift_bits: shift_bits
-      shift_arith: shift_arith
-      wrs2: wrs2
-      wrs1: wrs1
-      funct2: b01
+      funct3: b011
       type: type
       wrd: wrd
 
@@ -831,29 +805,6 @@
       wrs2: wrs2
       wrs1: wrs1
       funct3: b110
-      wrd: wrd
-
-- mnemonic: bn.xorv
-  synopsis: Bitwise XOR vector
-  operands: *bn-andv-operands
-  glued-ops: true
-  syntax: *bn-andv-syntax 
-  doc: |
-    Performs a bitwise or operation.
-    Takes the values stored in registers referenced by `wrs1` and `wrs2` and stores the result in the register referenced by `wrd`.
-    The content of the second source register can be shifted by an immediate before it is consumed by the operation.
-  errs: []
-  iflow: *bn-andv-iflow
-  encoding:
-    scheme: bnav
-    mapping:
-      shift_type: shift_type
-      shift_bits: shift_bits
-      shift_arith: shift_arith
-      wrs2: wrs2
-      wrs1: wrs1
-      funct2: b10
-      type: type
       wrd: wrd
 
 - mnemonic: bn.rshi

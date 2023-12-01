@@ -32,7 +32,7 @@ poly_caddq_dilithium:
         bn.lid x7, 0(x10)
         
         /* (a >> 31) */
-        bn.orv.8S w3, w31, w2 a >> 31
+        bn.shv.8S w3, w2 a >> 31
         /* (a >> 31) & Q */
         bn.and w3, w3, w6
         /* a += (a >> 31) & Q */

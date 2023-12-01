@@ -411,7 +411,7 @@ verify_dilithium:
     LOOPI 4, 5
         LOOPI 32, 3
             bn.lid    t0, 0(a0)
-            bn.orv.8S w0, bn0, w0 << D
+            bn.shv.8S w0, w0 << D
             bn.sid    t0, 0(a0++)
         nop /* Nested loops must not end on the same instruciton  */
 

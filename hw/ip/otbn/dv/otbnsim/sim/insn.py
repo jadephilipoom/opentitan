@@ -1093,14 +1093,13 @@ class BNAND(OTBNInsn):
         state.set_mlz_flags(self.flag_group, result)
 
 
-class BNANDV(OTBNInsn):
-    insn = insn_for_mnemonic('bn.andv', 7)
+class BNSHV(OTBNInsn):
+    insn = insn_for_mnemonic('bn.shv', 6)
 
     def __init__(self, raw: int, op_vals: Dict[str, int]):
         super().__init__(raw, op_vals)
         self.wrd = op_vals['wrd']
         self.wrs1 = op_vals['wrs1']
-        self.wrs2 = op_vals['wrs2']
         self.type = op_vals['type']
         self.shift_type = op_vals['shift_type']
         self.shift_bits = op_vals['shift_bits']
@@ -1108,46 +1107,6 @@ class BNANDV(OTBNInsn):
 
     def execute(self, state: OTBNState) -> None:
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
-        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
-
-        size = 32 if self.type == 0 else 16
-
-        result = 0
-
-        for i in range(256 // size-1, -1, -1):
-            ai = extract_sub_word(a, size, i)
-            bi = extract_sub_word(b, size, i)
-            if self.shift_arith:
-                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size, arith=True)
-            else:
-                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size)
-
-            resulti = ai & bi_shifted
-
-            if DEBUG_ARITH:
-                eprint(f"bn.andv {ai} & ({bi} {'<<' if self.shift_type == 0 else '>>'}{'a' if self.shift_arith else ''} {self.shift_bits}) = {ai} & {bi_shifted} = {resulti} = {format(resulti, '08x')}")
-
-            result = (result << size) | (resulti & ((1 << size) - 1))
-
-        state.wdrs.get_reg(self.wrd).write_unsigned(result)
-
-
-class BNORV(OTBNInsn):
-    insn = insn_for_mnemonic('bn.orv', 7)
-
-    def __init__(self, raw: int, op_vals: Dict[str, int]):
-        super().__init__(raw, op_vals)
-        self.wrd = op_vals['wrd']
-        self.wrs1 = op_vals['wrs1']
-        self.wrs2 = op_vals['wrs2']
-        self.type = op_vals['type']
-        self.shift_type = op_vals['shift_type']
-        self.shift_bits = op_vals['shift_bits']
-        self.shift_arith = op_vals['shift_arith']
-
-    def execute(self, state: OTBNState) -> None:
-        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
-        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
 
         size = 32 if self.type == 0 else 16
 
@@ -1155,16 +1114,15 @@ class BNORV(OTBNInsn):
 
         for i in range((256 - size) // size, -1, -1):
             ai = extract_sub_word(a, size, i)
-            bi = extract_sub_word(b, size, i)
             if self.shift_arith:
-                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size, arith=True)
+                ai_shifted = bit_shift(ai, self.shift_type, self.shift_bits, size, arith=True)
             else:
-                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size)
+                ai_shifted = bit_shift(ai, self.shift_type, self.shift_bits, size)
 
-            resulti = ai | bi_shifted
+            resulti = ai_shifted
 
             if DEBUG_ARITH:
-                eprint(f"bn.orv {ai} | ({bi} {'<<' if self.shift_type == 0 else '>>'} {self.shift_bits}) = {ai} | {bi_shifted} = {resulti} = {format(resulti, '08x')}")
+                eprint(f"bn.orv ({ai} {'<<' if self.shift_type == 0 else '>>'} {self.shift_bits}) = {resulti} = {format(resulti, '08x')}")
 
             result = (result << size) | (resulti & ((1 << size) - 1))
 
@@ -1216,44 +1174,6 @@ class BNNOT(OTBNInsn):
         state.wdrs.get_reg(self.wrd).write_unsigned(result)
         state.set_mlz_flags(self.flag_group, result)
 
-
-class BNXORV(OTBNInsn):
-    insn = insn_for_mnemonic('bn.xorv', 7)
-
-    def __init__(self, raw: int, op_vals: Dict[str, int]):
-        super().__init__(raw, op_vals)
-        self.wrd = op_vals['wrd']
-        self.wrs1 = op_vals['wrs1']
-        self.wrs2 = op_vals['wrs2']
-        self.type = op_vals['type']
-        self.shift_type = op_vals['shift_type']
-        self.shift_bits = op_vals['shift_bits']
-        self.shift_arith = op_vals['shift_arith']
-
-    def execute(self, state: OTBNState) -> None:
-        a = state.wdrs.get_reg(self.wrs1).read_unsigned()
-        b = state.wdrs.get_reg(self.wrs2).read_unsigned()
-
-        size = 32 if self.type == 0 else 16
-
-        result = 0
-
-        for i in range((256 - size) // size, -1, -1):
-            ai = extract_sub_word(a, size, i)
-            bi = extract_sub_word(b, size, i)
-            if self.shift_arith:
-                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size, arith=True)
-            else:
-                bi_shifted = bit_shift(bi, self.shift_type, self.shift_bits, size)
-
-            resulti = ai ^ bi_shifted
-
-            if DEBUG_ARITH:
-                eprint(f"bn.xorv {ai} ^ ({bi} {'<<' if self.shift_type == 0 else '>>'} {self.shift_bits}) = {ai} ^ {bi_shifted} = {resulti} = {format(resulti, '08x')}")
-
-            result = (result << size) | (resulti & ((1 << size) - 1))
-
-        state.wdrs.get_reg(self.wrd).write_unsigned(result)
 
 class BNXOR(OTBNInsn):
     insn = insn_for_mnemonic('bn.xor', 6)
@@ -1692,7 +1612,7 @@ INSN_CLASSES = [
     BNMULQACC, BNMULQACCWO, BNMULQACCSO,
     BNSUB, BNSUBB, BNSUBI, BNSUBM, BNSUBV,
     BNAND, BNOR, BNNOT, BNXOR,
-    BNANDV, BNORV, BNXORV,
+    BNSHV,
     BNRSHI,
     BNSEL,
     BNCMP, BNCMPB,

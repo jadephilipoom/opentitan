@@ -403,10 +403,10 @@ _loop_poly_chknorm_dilithium:
     */
     /* Get the mask */
     /* w2 <= 0, if w1 >=? 0, else 0xFFFFFFFF */ 
-    bn.orv.8S   w2, bn0, w1 a >> 31
+    bn.shv.8S  w2, w1 a >> 31
     /* w2 <= w2 & (2 * w1) */
-    bn.orv.8S  w3, bn0, w1 a << 1
-    bn.and    w2, w2, w3
+    bn.shv.8S  w3, w1 a << 1
+    bn.and     w2, w2, w3
     /* w2 <= w1 - w2 */
     bn.subv.8S  w2, w1, w2
     bn.sid      t2, STACK_WDR2GPR(fp)
@@ -688,7 +688,7 @@ _aligned:
     bn.rshi coeff_mask_shl1, coeff_mask, bn0 >> 255
 
     #define mod_shl1 w15
-    bn.orv.8S mod_shl1, bn0, mod << 1
+    bn.shv.8S mod_shl1, mod << 1
     /* Loop until 256 coefficients have been written to the output */
 
 _rej_sample_loop:
@@ -728,7 +728,7 @@ _rej_sample_loop:
     bn.or   shake_reg, bn0, shake_reg >> 8
 
     /* mask candidate */
-    bn.orv.8S w16, bn0, cand << 1
+    bn.shv.8S w16, cand << 1
     bn.and cand, coeff_mask_shl1, w16
 
     bn.cmp cand, mod_shl1
@@ -741,7 +741,7 @@ _rej_sample_loop:
 
     bne accumulator_count, t3, _skip_store2
     
-    bn.orv.8S accumulator, bn0, accumulator >> 1
+    bn.shv.8S accumulator, accumulator >> 1
     bn.sid    t5, 0(a1++) /* Store to memory */
     li        accumulator_count, 0
 
@@ -767,7 +767,7 @@ _skip_store2:
     bn.or  shake_reg, bn0, shake_reg >> 16
 
     /* mask candidate */
-    bn.orv.8S w16, bn0, cand << 1
+    bn.shv.8S w16, cand << 1
     bn.and cand, coeff_mask_shl1, w16
 
     bn.cmp cand, mod_shl1
@@ -780,7 +780,7 @@ _skip_store2:
 
     bne accumulator_count, t3, _skip_store4
     
-    bn.orv.8S accumulator, bn0, accumulator >> 1
+    bn.shv.8S accumulator, accumulator >> 1
     bn.sid t5, 0(a1++) /* Store to memory */
     li accumulator_count, 0
     /* if we have written the last coefficient, exit */
@@ -818,7 +818,7 @@ _poly_uniform_inner_loop:
         /* Mask shake output */
         /* bn.and cand, shake_reg, coeff_mask */
         /* Get the candidate coefficient, multiplied by 2 (see below) */
-        bn.orv.8S w16, bn0, shake_reg << 1
+        bn.shv.8S w16, shake_reg << 1
         bn.and cand, coeff_mask_shl1, w16
         
         bn.cmp cand, mod_shl1
@@ -840,7 +840,7 @@ _poly_uniform_inner_loop:
         bne accumulator_count, t3, _skip_store1 /* Accumulator not full yet */
         
         /* Shift out the artificial zero bit used to avoid LSB flag */
-        bn.orv.8S accumulator, bn0, accumulator >> 1
+        bn.shv.8S accumulator, accumulator >> 1
         bn.sid    t5, 0(a1++) /* Store to memory */
         li        accumulator_count, 0
 _skip_store1:
@@ -965,7 +965,7 @@ LOOPI 64, 16
         /* "t{0,1}" indicate the variable names from the reference code */ 
         /* Compute "t0" = "t0" - (205 * "t0" >> 10) * 5 from reference code */
         bn.mulv.8S w13, w12, w20
-        bn.orv.8S  w13, w31, w13 >> 10
+        bn.shv.8S  w13, w13 >> 10
         bn.mulv.8S w13, w0, w13
         bn.subv.8S w20, w20, w13
         bn.subv.8S w9, w1, w20
@@ -2402,7 +2402,7 @@ poly_reduce32_dilithium:
     /* Setup constant 1 << 22 */
     la        t1, reduce32_const
     bn.lid    t0, 0(t1)
-    bn.orv.8S w4, bn0, w4 << 22 
+    bn.shv.8S w4, w4 << 22 
     
     /* Load q */
     la     t3, modulus
@@ -2417,7 +2417,7 @@ poly_reduce32_dilithium:
         /* t = a + (1 << 22) */
         bn.addv.8S w5, w2, w4
         /* t = (a + (1 << 22)) >> 23 */
-        bn.orv.8S   w5, bn0, w5 a >> 23
+        bn.shv.8S   w5, w5 a >> 23
         /* t = t * q */
         bn.mulv.8S  w5, w5, w6
         /* a - t */
@@ -2465,9 +2465,9 @@ poly_power2round_dilithium:
         /* (a + (1 << (D-1)) - 1) */
         bn.addv.8S w6, w4, w5
         /* a1 = (a + (1 << (D-1)) - 1) >> D */
-        bn.orv.8S w6, w31, w6 >> D
+        bn.shv.8S w6, w6 >> D
         /* a0 = (a1 << D) */
-        bn.orv.8S w7, w31, w6 << D
+        bn.shv.8S w7, w6 << D
         /* a0 = a - (a1 << D) */
         bn.subv.8S w7, w5, w7
 
