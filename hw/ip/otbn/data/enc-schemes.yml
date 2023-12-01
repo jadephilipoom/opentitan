@@ -286,9 +286,9 @@ bnam:
   fields:
     vec: 25
     type: 27-26
-    sub: 30
+    sub: 28
     fixed:
-      bits: 31,29-28
+      bits: 31-29
       value: bxxx
 
 # Used for bn.mulmv
