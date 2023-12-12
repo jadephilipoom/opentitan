@@ -67,7 +67,6 @@ py_binary(
         "//hw/ip/otbn/util/shared:check",
         "//hw/ip/otbn/util/shared:reg_dump",
         "//hw/ip/otbn/util/shared:mem_layout",
-        requirement("debugpy")
     ],
 )
 
@@ -82,6 +81,5 @@ py_binary(
         requirement("pyelftools"),
         requirement("tabulate"),
         requirement("pycryptodome"),
-        requirement("debugpy")
     ],
 )
