@@ -10,7 +10,7 @@ from create_db import create_db
 NPROC = 1
 ITERATIONS = 1
 
-DATABASE_PATH = "/home/amin/Documents/dilithium_benchmarks/dilithium_bench.db"
+DATABASE_PATH = "/home/ubuntu/dilithium_benchmarks/dilithium_bench.db"
 
 
 def bench_key_pair(is_base):
