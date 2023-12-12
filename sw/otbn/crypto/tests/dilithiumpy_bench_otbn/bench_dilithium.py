@@ -1,18 +1,14 @@
-import sys
-sys.path.append("/home/amin/Documents/opentitan/sw/otbn/crypto/tests/dilithiumpy_bench_otbn/dilithiumpy")
-
 import os
 from multiprocessing import Pool
 import sqlite3
 import time
-import random
 
 from dilithiumpy.dilithium import Dilithium2
 from otbn_interface import key_pair_otbn, sign_otbn, verify_otbn
 from create_db import create_db
 
-NPROC = 13
-ITERATIONS = 13
+NPROC = 1
+ITERATIONS = 1
 
 
 def bench_key_pair(is_base):
@@ -77,7 +73,6 @@ def bench_verify(is_base):
 
 def run_bench(operation: str, is_base: bool):
     if __name__ == "sw.otbn.crypto.tests.dilithiumpy_bench_otbn.bench_dilithium":
-
         con = sqlite3.connect("/home/amin/Documents/dilithium_benchmarks/dilithium_bench.db")
         cur = con.cursor()
         create_db(cur)

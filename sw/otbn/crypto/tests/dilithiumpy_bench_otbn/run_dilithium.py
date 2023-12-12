@@ -4,8 +4,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import sys
 import argparse
+import os 
 
-sys.path.append('/home/amin/Documents/opentitan/')
+sys.path.append(os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + '../../../../../../'))
 
 from sw.otbn.crypto.tests.dilithiumpy_bench_otbn import bench_dilithium
 from hw.ip.otbn.util import otbn_sim_py_shared

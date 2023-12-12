@@ -11,8 +11,6 @@ from enum import IntEnum
 from typing import List, Dict, Tuple
 from io import StringIO
 
-sys.path.append('/home/amin/Documents/opentitan/')
-
 from hw.ip.otbn.util import otbn_sim_py_shared
 from hw.ip.otbn.util.shared.check import CheckResult
 from hw.ip.otbn.util.shared.reg_dump import parse_reg_dump
