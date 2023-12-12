@@ -10,6 +10,8 @@ from create_db import create_db
 NPROC = 1
 ITERATIONS = 1
 
+DATABASE_PATH = "/home/amin/Documents/dilithium_benchmarks/dilithium_bench.db"
+
 
 def bench_key_pair(is_base):
     rand = os.urandom(32)
@@ -48,8 +50,8 @@ def bench_sign(is_base):
 
 
 def bench_verify(is_base):
-    rand = os.urandom(32)  # rand = b'\x05\xeb\x11\xd9\x88\xb1\x8b\x1d\xc6\xc1\xfc\xb7\x9aI\xb4\xa2\x8f\xa5\xe0\x93!C\xa7?F\x8dR\xefvS\x983'
-    msg = os.urandom(64)   #  msg = b'e\xd26\xd3\xf5\xfaV\x91\xca+\x8co\xf8\xb3\xe7\xddO\xf0\x9f\xa2 #L\xee\x06BF\x15kpY\xb7\xa0\xa1@\xc6\xa8G!\xc9\xdd,\x91\xffA1\xc5\xb6\x99\xbfZ\xfe\xe1\xd8H9\x93a\x12v!\x130\xd4'
+    rand = os.urandom(32)
+    msg = os.urandom(64)
     # reference keys
     pk, sk = Dilithium2.keygen(rand)
     # reference signature
@@ -73,7 +75,7 @@ def bench_verify(is_base):
 
 def run_bench(operation: str, is_base: bool):
     if __name__ == "sw.otbn.crypto.tests.dilithiumpy_bench_otbn.bench_dilithium":
-        con = sqlite3.connect("/home/amin/Documents/dilithium_benchmarks/dilithium_bench.db")
+        con = sqlite3.connect(DATABASE_PATH)
         cur = con.cursor()
         create_db(cur)
         print(f"Benchmark {operation}")
