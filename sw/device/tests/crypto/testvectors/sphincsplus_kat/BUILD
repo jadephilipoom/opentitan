@@ -4,4 +4,4 @@
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files(glob(["sphincsplus_shake_128s_simple_testvectors_kat*.hjson"]))
+exports_files(glob(["sphincsplus_testvectors_kat*.hjson"]))

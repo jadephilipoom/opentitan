@@ -56,5 +56,5 @@ do
 
   # Copy the header into the benchmarks and run the test.
   cp $header $BENCHMARK_PARAMS_DST;
-  ./bazelisk.sh test --test_output=streamed //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat0_sim_verilator > $LOG_DIR/out_$name.log 2>$LOG_DIR/err_$name.log;
+  ./bazelisk.sh test --test_output=streamed //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat0_sim_verilator > $LOG_DIR/out_$NAME.log 2>$LOG_DIR/err_$NAME.log;
 done
