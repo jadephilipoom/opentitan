@@ -43,6 +43,7 @@ bool test_main(void) {
 
     uint8_t receive_byte;
     CHECK_DIF_OK(dif_uart_byte_receive_polled(&uart, &receive_byte));
+    LOG_INFO("SENDING BYTE 0x%02x", kSendData[i]);
     CHECK(receive_byte == kSendData[i]);
   }
 
