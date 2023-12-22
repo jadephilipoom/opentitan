@@ -1,31 +1,18 @@
+Benchmarking plan (new):
+- generate params.h files individually using the python script
+- make a script that generates test data for each file in params
+- add test data dir to run_benchmarks
+
+
+
+
+
 # Benchmark Reproduction Instructions
 
 ## OpenTitan Setup
 
 Check out (TODO: commit) from the OpenTitan repository.
-This commit contains test data for (TODO: explain).
-
-TODO:
-- generate test data for all ssvs
-- generate params for all ssvs
-- automatically swap in params and also test data for each
-
-Plan:
-- Create dir spx-benchmark/params with all .ssv files
-- Create a script to parse .ssv to params.h
-  - takes template as argument
-  - writes params.h files to spx-benchmark/gen/headers
-- Create a script `spx_benchmark_gen_test_data`
-  - takes path to sphincsplus and header template as argument
-  - for everything in gen/headers:
-    - copies the params.h to sphincsplus, edits the makefile, and
-      generates new test data in spx-benchmark/gen/data
-- Create a script `spx_benchmark_run`
-  - for each thing in params.h, checks for gen/ file
-  - for each thing in params.h, copies the params.h and the test data
-  - runs the benchmark in Verilator and finds the speed
-  - creates csv with results
-
+TODO: more intro, link to OT setup
 
 ## Generate New Test Data From the Reference
 
