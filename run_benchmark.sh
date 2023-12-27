@@ -35,17 +35,22 @@ BENCHMARK_PARAMS_DST="$OT_REPO_TOP/sw/device/silicon_creator/lib/sigverify/sphin
 
 echo "Reading tests from $TEST_DIR/";
 echo "Saving logs to $LOG_DIR/";
-echo "Running benchmark for $NAME...";
 
 cd $OT_REPO_TOP;
 
+
 # Look for a KAT .rsp file (using the naming scheme from make_test_data.sh)
 # and run the test-parsing script. If the .rsp file doesn't exist, create it.
+echo "Looking for test data for $NAME...";
 if ! [ -f "$RSP_FILE" ]
 then
+  echo "No matching test data found. Generating new test data...";
   ./make_test_data.sh $HEADER $RSP_FILE;
 fi
+echo "Got test data. Parsing...";
 $KAT_DIR/parse_kat.py --num-tests=5 $RSP_FILE $KAT_DIR/sphincsplus_testvectors_kat.hjson;
+
+echo "Running benchmark for $NAME...";
 
 # Copy the header into the benchmarks and run the test.
 cp $HEADER $BENCHMARK_PARAMS_DST;

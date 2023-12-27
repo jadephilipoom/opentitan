@@ -45,4 +45,4 @@ cp $HEADER $PARAMS_DIR;
 sed -i -e "s/PARAMS = .*/PARAMS = $PARAMS_SHORTNAME/" Makefile;
 sed -i -e "s/THASH = .*/THASH = simple/" Makefile;
 make clean && make && ./PQCgenKAT_sign;
-cp PQCsignKAT_64.rsp $TEST_DST;
+cp PQCsignKAT_*.rsp $TEST_DST;
