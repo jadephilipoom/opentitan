@@ -4,8 +4,8 @@
 # directory. Saves the test logs in the log directory.
 #
 # The $OT_REPO_TOP environment variable should be set to the root of the
-# `opentitan` repo. Likewise, the $SPX_REPO_TOP environment variable should be
-# set to the root of the `sphincsplus` repo.
+# `opentitan` repo. Likewise, if new test data is needed, the $SPX_REPO_TOP
+# environment variable should be set to the root of the `sphincsplus` repo.
 
 set -e;
 
@@ -14,12 +14,6 @@ USAGE="USAGE: $0 PARAMS_HEADER LOG_DIR TEST_DIR";
 if [ -z "$OT_REPO_TOP" ]
 then
   echo "\$OT_REPO_TOP is not defined! It should be set to the location of the opentitan repo root.";
-  exit 1;
-fi
-
-if [ -z "$SPX_REPO_TOP" ]
-then
-  echo "\$SPX_REPO_TOP is not defined! It should be set to the location of the sphincsplus repo root.";
   exit 1;
 fi
 

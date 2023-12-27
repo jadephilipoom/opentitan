@@ -1,3 +1,50 @@
+# SPHINCS+ benchmark reproduction instructions
+
+TODO: check in some test data and describe where/what it is
+
+## OpenTitan setup
+
+Check out (TODO: commit) from the OpenTitan repository.
+TODO: more intro, link to OT setup
+Set env variables
+
+## Run the benchmarks on existing test data
+
+To run tests for existing parameter sets, use `run_benchmark.sh`.
+For example:
+```console
+./run_benchmark.sh spx-benchmark/gen/params/params-sphincs-shake-n16h18d1lgt24k6w16.h logs spx-benchmark/gen/tests
+```
+This test runs the parameters in the `params-sphincs-shake-n16h18d1lgt24k6w16.h`
+header file and writes the output into the `logs/` directory.
+It looks for test data in `spx-benchmark/gen/tests/`.
+If no matching test data exists, the script will try to generate new data from the reference implementation, which requires a little extra setup (see below).
+Then it runs several tests on a Verilator hardware simulation.
+At the end, if successful, it will print some statistics, e.g.:
+```console
+Number of tests: 5
+Min cycle count: 1273918
+Max cycle count: 1325571
+Avg cycle count: 1299814
+```
+
+If you are curious for the full output, you can find it under `logs/`.
+You can also parse any log file with the `benchmark_stats.py` script to print statistics for previous runs.
+
+Warning: the simulation may take hours to run, depending on the parameter set.
+The first run must also compile the hardware design for Verilator, which takes an hour or so on its own.
+By changing `sim_verilator` to `fpga_cw310_test_rom` in the benchmark script, it would be possible to run the test on an FPGA instead, which is much faster.
+However, the FPGA does not produce accurate cycle counts, which is why for benchmarks Verilator is worth the wait.
+
+## Generate new test data from the SPHINCS+ reference
+
+Set env variable
+Lower number of test vectors potentially
+TODO
+
+
+
+
 Benchmarking plan (new):
 - generate params.h files individually using the python script
 - make a script that generates test data for each file in params
