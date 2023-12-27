@@ -162,6 +162,9 @@ opentitan_test(
     name = "verify_test_kat0",
     srcs = ["verify_test.c"],
     exec_env = EARLGREY_TEST_ENVS,
+    verilator = verilator_params(
+        timeout = "eternal",
+    ),
     deps = [
         ":sphincsplus_testvectors_kat0_header",
         "//sw/device/lib/base:memory",

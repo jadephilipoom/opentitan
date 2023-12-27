@@ -3,6 +3,13 @@ Benchmarking plan (new):
 - make a script that generates test data for each file in params
 - add test data dir to run_benchmarks
 
+Instructions:
+- Check out OT and sphincsplus (give commit for SPX)
+- Follow OT setup insn, make sure you can run the spx+ test
+- Make sure sphincsplus make works
+- Run make_ref_header.py for whichever sets you want to benchmark
+- Run ./run_benchmark.sh
+
 
 
 
@@ -31,12 +38,12 @@ get fresh data or data for different parameter sets:
 
 ```console
 sw/device/tests/crypto/testvectors/sphincsplus_kat/parse_kat.py \
-  --num-tests=10 \
+  --num-tests=5 \
   path/to/sphincsplus/ref/PQCsignKAT_64.rsp \
   sw/device/tests/crypto/testvectors/sphincsplus_kat/sphincsplus_testvectors_kat.hjson
 ```
 
-This will separate the generated response file into HJSON files with up to 10 test vectors each, which are readable by the OpenTitan SPHINCS+ tests.
+This will separate the generated response file into HJSON files with up to 5 test vectors each, which are readable by the OpenTitan SPHINCS+ tests.
 See `sw/device/tests/crypto/testvectors/sphincsplus_kat/README.md` for more options and an explanation of the parsing script.
 
 ## Generate New Test Data Another Way
