@@ -29,7 +29,8 @@ HEADER=$(realpath $1);
 TEST_DST=$(realpath $2);
 PARAMS_DIR=$SPX_REPO_TOP/ref/params;
 PARAMS_FILENAME=$(basename $HEADER);
-PARAMS_NAME="${PARAMS_FILENAME%.*}"
+PARAMS_NAME=${PARAMS_FILENAME%.*}
+PARAMS_SHORTNAME=${PARAMS_NAME#"params-"}
 
 if [ -f "$TEST_DST" ]
 then
@@ -37,12 +38,12 @@ then
   exit 1;
 fi
 
-echo "Generating test data for $PARAMS_NAME, storing in $TEST_DST";
+echo "Generating test data for $PARAMS_SHORTNAME, storing in $TEST_DST";
 
 cd $SPX_REPO_TOP/ref;
 cp $HEADER $PARAMS_DIR;
-sed -i -e "s/PARAMS = .*/PARAMS = $PARAMS_NAME/" Makefile;
+sed -i -e "s/PARAMS = .*/PARAMS = $PARAMS_SHORTNAME/" Makefile;
 sed -i -e "s/THASH = .*/THASH = simple/" Makefile;
-make && ./PQCgenKAT_sign;
-git restore Makefile;
+make clean && make && ./PQCgenKAT_sign;
 cp PQCsignKAT_64.rsp $TEST_DST;
+# git restore Makefile;

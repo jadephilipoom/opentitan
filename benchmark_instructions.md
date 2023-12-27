@@ -9,7 +9,7 @@ Instructions:
 - Make sure sphincsplus make works
 - Run make_ref_header.py for whichever sets you want to benchmark
 - Run ./run_benchmark.sh
-
+- (optional) run ./benchmark_stats.py on the log file
 
 
 

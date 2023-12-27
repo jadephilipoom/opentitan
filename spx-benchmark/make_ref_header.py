@@ -92,6 +92,6 @@ if __name__ == '__main__':
 
   # Write result file.
   params_str = f'n{args.security_bytes}h{args.height}d{args.layers}lgt{args.fors_height}k{args.fors_trees}w{args.winternitz}'
-  outfile = dst_dir / f'params-sphincs-{params_str}.h'
+  outfile = dst_dir / f'params-sphincs-shake-{params_str}.h'
   with open(outfile, 'w') as out:
     out.write(header)
