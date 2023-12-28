@@ -298,6 +298,7 @@ opentitan_test(
         "//sw/device/lib/crypto/drivers:otbn",
         "//sw/device/lib/crypto/impl/ecc:ecdsa_p256",
         "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:profile",
         "//sw/device/lib/testing/test_framework:ottf_main",
     ],
 )

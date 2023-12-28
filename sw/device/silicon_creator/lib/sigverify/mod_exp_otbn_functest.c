@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "sw/device/lib/base/memory.h"
+#include "sw/device/lib/testing/profile.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
 #include "sw/device/silicon_creator/lib/base/sec_mmio.h"
 #include "sw/device/silicon_creator/lib/sigverify/mod_exp_otbn.h"
@@ -20,8 +21,12 @@ rom_error_t sigverify_mod_exp_otbn_test(void) {
   sigverify_test_vector_t testvec = sigverify_tests[test_index];
 
   sigverify_rsa_buffer_t recovered_message;
+  uint64_t t_start = profile_start();
   rom_error_t err =
       sigverify_mod_exp_otbn(&testvec.key, &testvec.sig, &recovered_message);
+  uint32_t cycles = profile_end(t_start);
+  LOG_INFO("Modexp took %u cycles.", cycles);
+
   if (err != kErrorOk) {
     if (testvec.valid) {
       LOG_ERROR("Error on a valid signature.");

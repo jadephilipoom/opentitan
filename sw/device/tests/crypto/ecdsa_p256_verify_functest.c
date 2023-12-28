@@ -6,6 +6,7 @@
 #include "sw/device/lib/crypto/drivers/otbn.h"
 #include "sw/device/lib/crypto/impl/ecc/ecdsa_p256.h"
 #include "sw/device/lib/runtime/log.h"
+#include "sw/device/lib/testing/profile.h"
 #include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
 
@@ -25,6 +26,7 @@ static void compute_digest(size_t msg_len, const uint8_t *msg,
 
 status_t ecdsa_p256_verify_test(
     const ecdsa_p256_verify_test_vector_t *testvec) {
+  uint64_t t_start = profile_start();
   // Hash message.
   hmac_digest_t digest;
   compute_digest(testvec->msg_len, testvec->msg, &digest);
@@ -34,6 +36,8 @@ status_t ecdsa_p256_verify_test(
                               &testvec->public_key));
   hardened_bool_t result;
   TRY(ecdsa_p256_verify_finalize(&testvec->signature, &result));
+  uint32_t cycles = profile_end(t_start);
+  LOG_INFO("Verification took %u cycles.", cycles);
 
   if (testvec->valid && result != kHardenedBoolTrue) {
     LOG_ERROR("Valid signature failed verification.");
