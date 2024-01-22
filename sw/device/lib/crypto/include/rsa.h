@@ -277,9 +277,11 @@ otcrypto_status_t otcrypto_rsa_decrypt(
  * private key (d), RSA public key exponent (e) and modulus (n).
  *
  * @param size RSA size parameter.
+ * @param[out] token Destination for the async operation token.
  * @return Result of async RSA keygen start operation.
  */
-otcrypto_status_t otcrypto_rsa_keygen_async_start(otcrypto_rsa_size_t size);
+otcrypto_status_t otcrypto_rsa_keygen_async_start(
+    otcrypto_rsa_size_t size, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous RSA key generation function.
@@ -287,12 +289,14 @@ otcrypto_status_t otcrypto_rsa_keygen_async_start(otcrypto_rsa_size_t size);
  * See `otcrypto_rsa_keygen` for details on the requirements for `public_key`
  * and `private_key`.
  *
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] public_key Pointer to public key struct.
  * @param[out] private_key Pointer to blinded private key struct.
  * @return Result of asynchronous RSA keygen finalize operation.
  */
 otcrypto_status_t otcrypto_rsa_keygen_async_finalize(
-    otcrypto_unblinded_key_t *public_key, otcrypto_blinded_key_t *private_key);
+    otcrypto_async_token_t token, otcrypto_unblinded_key_t *public_key,
+    otcrypto_blinded_key_t *private_key);
 
 /**
  * Starts constructing an RSA private key using a cofactor.
@@ -305,12 +309,13 @@ otcrypto_status_t otcrypto_rsa_keygen_async_finalize(
  * @param exponent RSA public exponent (e).
  * @param cofactor_share0 First share of the prime cofactor (p or q).
  * @param cofactor_share1 Second share of the prime cofactor (p or q).
+ * @param[out] token Destination for the async operation token.
  * @return Result of the RSA key construction.
  */
 otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_start(
     otcrypto_rsa_size_t size, otcrypto_const_word32_buf_t modulus, uint32_t e,
     otcrypto_const_word32_buf_t cofactor_share0,
-    otcrypto_const_word32_buf_t cofactor_share1);
+    otcrypto_const_word32_buf_t cofactor_share1, otcrypto_async_token_t *token);
 
 /**
  * Finalizes constructing an RSA private key using a cofactor.
@@ -324,12 +329,14 @@ otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_start(
  * (such as the modulus not being divisible by the key), then the modulus will
  * not match the original input.
  *
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] public_key Destination public key struct.
  * @param[out] private_key Destination private key struct.
  * @return Result of the RSA key construction.
  */
 otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_finalize(
-    otcrypto_unblinded_key_t *public_key, otcrypto_blinded_key_t *private_key);
+    otcrypto_async_token_t token, otcrypto_unblinded_key_t *public_key,
+    otcrypto_blinded_key_t *private_key);
 
 /**
  * Starts the asynchronous digital signature generation function.
@@ -340,23 +347,25 @@ otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_finalize(
  * @param private_key Pointer to blinded private key struct.
  * @param message_digest Message digest to be signed (pre-hashed).
  * @param padding_mode Padding scheme to be used for the data.
+ * @param[out] token Destination for the async operation token.
  * @return Result of async RSA sign start operation.
  */
 otcrypto_status_t otcrypto_rsa_sign_async_start(
     const otcrypto_blinded_key_t *private_key,
     const otcrypto_hash_digest_t message_digest,
-    otcrypto_rsa_padding_t padding_mode);
+    otcrypto_rsa_padding_t padding_mode, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous digital signature generation function.
  *
  * See `otcrypto_rsa_sign` for details on the requirements for `signature`.
  *
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] signature Pointer to generated signature struct.
  * @return Result of async RSA sign finalize operation.
  */
 otcrypto_status_t otcrypto_rsa_sign_async_finalize(
-    otcrypto_word32_buf_t signature);
+    otcrypto_async_token_t token, otcrypto_word32_buf_t signature);
 
 /**
  * Starts the asynchronous signature verification function.
@@ -366,11 +375,12 @@ otcrypto_status_t otcrypto_rsa_sign_async_finalize(
  *
  * @param public_key Pointer to public key struct.
  * @param signature Pointer to the input signature to be verified.
+ * @param[out] token Destination for the async operation token.
  * @return Result of async RSA verify start operation.
  */
 otcrypto_status_t otcrypto_rsa_verify_async_start(
     const otcrypto_unblinded_key_t *public_key,
-    otcrypto_const_word32_buf_t signature);
+    otcrypto_const_word32_buf_t signature, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous signature verification function.
@@ -381,12 +391,14 @@ otcrypto_status_t otcrypto_rsa_verify_async_start(
  *
  * @param message_digest Message digest to be verified (pre-hashed).
  * @param padding_mode Padding scheme to be used for the data.
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] verification_result Result of signature verification.
  * @return Result of async RSA verify finalize operation.
  */
 otcrypto_status_t otcrypto_rsa_verify_async_finalize(
     const otcrypto_hash_digest_t message_digest,
-    otcrypto_rsa_padding_t padding_mode, hardened_bool_t *verification_result);
+    otcrypto_rsa_padding_t padding_mode, otcrypto_async_token_t token,
+    hardened_bool_t *verification_result);
 
 /**
  * Starts the asynchronous encryption function.
@@ -398,12 +410,13 @@ otcrypto_status_t otcrypto_rsa_verify_async_finalize(
  * @param hash_mode Hash function to use for OAEP encoding.
  * @param message Message to encrypt.
  * @param label Label for OAEP encoding.
+ * @param[out] token Destination for the async operation token.
  * @return The result of the RSA encryption start operation.
  */
 otcrypto_status_t otcrypto_rsa_encrypt_async_start(
     const otcrypto_unblinded_key_t *public_key,
     const otcrypto_hash_mode_t hash_mode, otcrypto_const_byte_buf_t message,
-    otcrypto_const_byte_buf_t label);
+    otcrypto_const_byte_buf_t label, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous encryption function.
@@ -413,11 +426,12 @@ otcrypto_status_t otcrypto_rsa_encrypt_async_start(
  * return an error if this does not match the RSA size for the current OTBN
  * data.
  *
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] ciphertext Buffer for the ciphertext.
  * @return The result of the RSA encryption operation.
  */
 otcrypto_status_t otcrypto_rsa_encrypt_async_finalize(
-    otcrypto_word32_buf_t ciphertext);
+    otcrypto_async_token_t token, otcrypto_word32_buf_t ciphertext);
 
 /**
  * Starts the asynchronous decryption function.
@@ -427,11 +441,12 @@ otcrypto_status_t otcrypto_rsa_encrypt_async_finalize(
  *
  * @param private_key Pointer to blinded private key struct.
  * @param ciphertext Ciphertext to decrypt.
+ * @param[out] token Destination for the async operation token.
  * @return Result of the RSA decryption start operation.
  */
 otcrypto_status_t otcrypto_rsa_decrypt_async_start(
     const otcrypto_blinded_key_t *private_key,
-    otcrypto_const_word32_buf_t ciphertext);
+    otcrypto_const_word32_buf_t ciphertext, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous decryption function.
@@ -441,11 +456,13 @@ otcrypto_status_t otcrypto_rsa_decrypt_async_start(
  *
  * @param hash_mode Hash function to use for OAEP encoding.
  * @param label Label for OAEP encoding.
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] plaintext Buffer for the decrypted message.
  * @param[out] plaintext_bytelen Recovered byte-length of plaintext.
  * @return Result of the RSA decryption finalize operation.
  */
 otcrypto_status_t otcrypto_rsa_decrypt_async_finalize(
+    otcrypto_async_token_t token,
     const otcrypto_hash_mode_t hash_mode, otcrypto_const_byte_buf_t label,
     otcrypto_byte_buf_t plaintext, size_t *plaintext_bytelen);
 

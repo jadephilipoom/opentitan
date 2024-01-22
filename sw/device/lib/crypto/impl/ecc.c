@@ -18,9 +18,11 @@
 otcrypto_status_t otcrypto_ecdsa_keygen(
     const otcrypto_ecc_curve_t *elliptic_curve,
     otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key) {
-  HARDENED_TRY(otcrypto_ecdsa_keygen_async_start(elliptic_curve, private_key));
-  return otcrypto_ecdsa_keygen_async_finalize(elliptic_curve, private_key,
-                                              public_key);
+  otcrypto_async_token_t token;
+  HARDENED_TRY(
+      otcrypto_ecdsa_keygen_async_start(elliptic_curve, private_key, &token));
+  return otcrypto_ecdsa_keygen_async_finalize(elliptic_curve, token,
+                                              private_key, public_key);
 }
 
 otcrypto_status_t otcrypto_ecdsa_sign(
@@ -28,9 +30,10 @@ otcrypto_status_t otcrypto_ecdsa_sign(
     const otcrypto_hash_digest_t message_digest,
     const otcrypto_ecc_curve_t *elliptic_curve,
     otcrypto_word32_buf_t signature) {
+  otcrypto_async_token_t token;
   HARDENED_TRY(otcrypto_ecdsa_sign_async_start(private_key, message_digest,
-                                               elliptic_curve));
-  return otcrypto_ecdsa_sign_async_finalize(elliptic_curve, signature);
+                                               elliptic_curve, &token));
+  return otcrypto_ecdsa_sign_async_finalize(elliptic_curve, token, signature);
 }
 
 otcrypto_status_t otcrypto_ecdsa_verify(
@@ -39,17 +42,20 @@ otcrypto_status_t otcrypto_ecdsa_verify(
     otcrypto_const_word32_buf_t signature,
     const otcrypto_ecc_curve_t *elliptic_curve,
     hardened_bool_t *verification_result) {
-  HARDENED_TRY(otcrypto_ecdsa_verify_async_start(public_key, message_digest,
-                                                 signature, elliptic_curve));
-  return otcrypto_ecdsa_verify_async_finalize(elliptic_curve, signature,
+  otcrypto_async_token_t token;
+  HARDENED_TRY(otcrypto_ecdsa_verify_async_start(
+      public_key, message_digest, signature, elliptic_curve, &token));
+  return otcrypto_ecdsa_verify_async_finalize(elliptic_curve, signature, token,
                                               verification_result);
 }
 
 otcrypto_status_t otcrypto_ecdh_keygen(
     const otcrypto_ecc_curve_t *elliptic_curve,
     otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key) {
-  HARDENED_TRY(otcrypto_ecdh_keygen_async_start(elliptic_curve, private_key));
-  return otcrypto_ecdh_keygen_async_finalize(elliptic_curve, private_key,
+  otcrypto_async_token_t token;
+  HARDENED_TRY(
+      otcrypto_ecdh_keygen_async_start(elliptic_curve, private_key, &token));
+  return otcrypto_ecdh_keygen_async_finalize(elliptic_curve, token, private_key,
                                              public_key);
 }
 
@@ -57,9 +63,10 @@ otcrypto_status_t otcrypto_ecdh(const otcrypto_blinded_key_t *private_key,
                                 const otcrypto_unblinded_key_t *public_key,
                                 const otcrypto_ecc_curve_t *elliptic_curve,
                                 otcrypto_blinded_key_t *shared_secret) {
-  HARDENED_TRY(
-      otcrypto_ecdh_async_start(private_key, public_key, elliptic_curve));
-  return otcrypto_ecdh_async_finalize(elliptic_curve, shared_secret);
+  otcrypto_async_token_t token;
+  HARDENED_TRY(otcrypto_ecdh_async_start(private_key, public_key,
+                                         elliptic_curve, &token));
+  return otcrypto_ecdh_async_finalize(elliptic_curve, token, shared_secret);
 }
 
 otcrypto_status_t otcrypto_ed25519_keygen(
@@ -115,7 +122,7 @@ static status_t sideload_key_seed(const otcrypto_blinded_key_t *private_key) {
 
 otcrypto_status_t otcrypto_ecdsa_keygen_async_start(
     const otcrypto_ecc_curve_t *elliptic_curve,
-    const otcrypto_blinded_key_t *private_key) {
+    const otcrypto_blinded_key_t *private_key, otcrypto_async_token_t *token) {
   if (elliptic_curve == NULL || private_key == NULL ||
       private_key->keyblob == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -278,7 +285,7 @@ static status_t internal_ecdsa_p256_keygen_finalize(
 }
 
 otcrypto_status_t otcrypto_ecdsa_keygen_async_finalize(
-    const otcrypto_ecc_curve_t *elliptic_curve,
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t token,
     otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key) {
   // Check for any NULL pointers.
   if (elliptic_curve == NULL || private_key == NULL || public_key == NULL ||
@@ -355,7 +362,7 @@ static status_t internal_ecdsa_p256_sign_start(
 otcrypto_status_t otcrypto_ecdsa_sign_async_start(
     const otcrypto_blinded_key_t *private_key,
     const otcrypto_hash_digest_t message_digest,
-    const otcrypto_ecc_curve_t *elliptic_curve) {
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t *token) {
   if (private_key == NULL || private_key->keyblob == NULL ||
       elliptic_curve == NULL || message_digest.data == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -421,7 +428,7 @@ static status_t p256_signature_length_check(size_t len) {
 }
 
 otcrypto_status_t otcrypto_ecdsa_sign_async_finalize(
-    const otcrypto_ecc_curve_t *elliptic_curve,
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t token,
     otcrypto_word32_buf_t signature) {
   if (elliptic_curve == NULL || signature.data == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -488,7 +495,7 @@ otcrypto_status_t otcrypto_ecdsa_verify_async_start(
     const otcrypto_unblinded_key_t *public_key,
     const otcrypto_hash_digest_t message_digest,
     otcrypto_const_word32_buf_t signature,
-    const otcrypto_ecc_curve_t *elliptic_curve) {
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t *token) {
   if (public_key == NULL || elliptic_curve == NULL || signature.data == NULL ||
       message_digest.data == NULL || public_key->key == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -534,7 +541,7 @@ otcrypto_status_t otcrypto_ecdsa_verify_async_start(
 
 otcrypto_status_t otcrypto_ecdsa_verify_async_finalize(
     const otcrypto_ecc_curve_t *elliptic_curve,
-    otcrypto_const_word32_buf_t signature,
+    otcrypto_const_word32_buf_t signature, otcrypto_async_token_t token,
     hardened_bool_t *verification_result) {
   if (elliptic_curve == NULL || verification_result == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -566,7 +573,7 @@ otcrypto_status_t otcrypto_ecdsa_verify_async_finalize(
 
 otcrypto_status_t otcrypto_ecdh_keygen_async_start(
     const otcrypto_ecc_curve_t *elliptic_curve,
-    const otcrypto_blinded_key_t *private_key) {
+    const otcrypto_blinded_key_t *private_key, otcrypto_async_token_t *token) {
   if (elliptic_curve == NULL || private_key == NULL ||
       private_key->keyblob == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -652,7 +659,7 @@ static status_t internal_ecdh_p256_keygen_finalize(
 }
 
 otcrypto_status_t otcrypto_ecdh_keygen_async_finalize(
-    const otcrypto_ecc_curve_t *elliptic_curve,
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t token,
     otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key) {
   // Check for any NULL pointers.
   if (elliptic_curve == NULL || private_key == NULL || public_key == NULL ||
@@ -721,7 +728,7 @@ static status_t internal_ecdh_p256_start(
 otcrypto_status_t otcrypto_ecdh_async_start(
     const otcrypto_blinded_key_t *private_key,
     const otcrypto_unblinded_key_t *public_key,
-    const otcrypto_ecc_curve_t *elliptic_curve) {
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t *token) {
   if (private_key == NULL || public_key == NULL || elliptic_curve == NULL ||
       public_key->key == NULL || private_key->keyblob == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -818,7 +825,7 @@ static status_t internal_ecdh_p256_finalize(
 }
 
 otcrypto_status_t otcrypto_ecdh_async_finalize(
-    const otcrypto_ecc_curve_t *elliptic_curve,
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t token,
     otcrypto_blinded_key_t *shared_secret) {
   if (shared_secret == NULL || elliptic_curve == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -847,13 +854,14 @@ otcrypto_status_t otcrypto_ecdh_async_finalize(
 }
 
 otcrypto_status_t otcrypto_ed25519_keygen_async_start(
-    const otcrypto_blinded_key_t *private_key) {
+    const otcrypto_blinded_key_t *private_key, otcrypto_async_token_t *token) {
   // TODO: Ed25519 is not yet implemented.
   return OTCRYPTO_NOT_IMPLEMENTED;
 }
 
 otcrypto_status_t otcrypto_ed25519_keygen_async_finalize(
-    otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key) {
+    otcrypto_async_token_t token, otcrypto_blinded_key_t *private_key,
+    otcrypto_unblinded_key_t *public_key) {
   // TODO: Ed25519 is not yet implemented.
   return OTCRYPTO_NOT_IMPLEMENTED;
 }
@@ -861,13 +869,14 @@ otcrypto_status_t otcrypto_ed25519_keygen_async_finalize(
 otcrypto_status_t otcrypto_ed25519_sign_async_start(
     const otcrypto_blinded_key_t *private_key,
     otcrypto_const_byte_buf_t input_message,
-    otcrypto_eddsa_sign_mode_t sign_mode, otcrypto_word32_buf_t signature) {
+    otcrypto_eddsa_sign_mode_t sign_mode, otcrypto_word32_buf_t signature,
+    otcrypto_async_token_t *token) {
   // TODO: Ed25519 is not yet implemented.
   return OTCRYPTO_NOT_IMPLEMENTED;
 }
 
 otcrypto_status_t otcrypto_ed25519_sign_async_finalize(
-    otcrypto_word32_buf_t signature) {
+    otcrypto_async_token_t token, otcrypto_word32_buf_t signature) {
   // TODO: Ed25519 is not yet implemented.
   return OTCRYPTO_NOT_IMPLEMENTED;
 }
@@ -875,33 +884,34 @@ otcrypto_status_t otcrypto_ed25519_sign_async_finalize(
 otcrypto_status_t otcrypto_ed25519_verify_async_start(
     const otcrypto_unblinded_key_t *public_key,
     otcrypto_const_byte_buf_t input_message,
-    otcrypto_eddsa_sign_mode_t sign_mode,
-    otcrypto_const_word32_buf_t signature) {
+    otcrypto_eddsa_sign_mode_t sign_mode, otcrypto_const_word32_buf_t signature,
+    otcrypto_async_token_t *token) {
   // TODO: Ed25519 is not yet implemented.
   return OTCRYPTO_NOT_IMPLEMENTED;
 }
 
 otcrypto_status_t otcrypto_ed25519_verify_async_finalize(
-    hardened_bool_t *verification_result) {
+    otcrypto_async_token_t token, hardened_bool_t *verification_result) {
   // TODO: Ed25519 is not yet implemented.
   return OTCRYPTO_NOT_IMPLEMENTED;
 }
 
 otcrypto_status_t otcrypto_x25519_keygen_async_start(
-    const otcrypto_blinded_key_t *private_key) {
+    const otcrypto_blinded_key_t *private_key, otcrypto_async_token_t *token) {
   // TODO: X25519 is not yet implemented.
   return OTCRYPTO_NOT_IMPLEMENTED;
 }
 
 otcrypto_status_t otcrypto_x25519_keygen_async_finalize(
-    otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key) {
+    otcrypto_async_token_t token, otcrypto_blinded_key_t *private_key,
+    otcrypto_unblinded_key_t *public_key) {
   // TODO: X25519 is not yet implemented.
   return OTCRYPTO_NOT_IMPLEMENTED;
 }
 
 otcrypto_status_t otcrypto_x25519_async_start(
     const otcrypto_blinded_key_t *private_key,
-    const otcrypto_unblinded_key_t *public_key) {
+    const otcrypto_unblinded_key_t *public_key, otcrypto_async_token_t *token) {
   // TODO: X25519 is not yet implemented.
   return OTCRYPTO_NOT_IMPLEMENTED;
 }

@@ -41,8 +41,9 @@ static_assert(kOtcryptoRsa4096PrivateKeyblobBytes ==
 otcrypto_status_t otcrypto_rsa_keygen(otcrypto_rsa_size_t size,
                                       otcrypto_unblinded_key_t *public_key,
                                       otcrypto_blinded_key_t *private_key) {
-  HARDENED_TRY(otcrypto_rsa_keygen_async_start(size));
-  return otcrypto_rsa_keygen_async_finalize(public_key, private_key);
+  otcrypto_async_token_t token;
+  HARDENED_TRY(otcrypto_rsa_keygen_async_start(size, &token));
+  return otcrypto_rsa_keygen_async_finalize(token, public_key, private_key);
 }
 
 /**
@@ -254,10 +255,11 @@ otcrypto_status_t otcrypto_rsa_keypair_from_cofactor(
     otcrypto_const_word32_buf_t cofactor_share0,
     otcrypto_const_word32_buf_t cofactor_share1,
     otcrypto_unblinded_key_t *public_key, otcrypto_blinded_key_t *private_key) {
+  otcrypto_async_token_t token;
   HARDENED_TRY(otcrypto_rsa_keypair_from_cofactor_async_start(
-      size, modulus, e, cofactor_share0, cofactor_share1));
-  HARDENED_TRY(otcrypto_rsa_keypair_from_cofactor_async_finalize(public_key,
-                                                                 private_key));
+      size, modulus, e, cofactor_share0, cofactor_share1, &token));
+  HARDENED_TRY(otcrypto_rsa_keypair_from_cofactor_async_finalize(
+      token, public_key, private_key));
 
   // Interpret the recomputed public key. Double-check the lengths to be safe,
   // but they should have been checked above already.
@@ -293,9 +295,10 @@ otcrypto_status_t otcrypto_rsa_sign(const otcrypto_blinded_key_t *private_key,
                                     const otcrypto_hash_digest_t message_digest,
                                     otcrypto_rsa_padding_t padding_mode,
                                     otcrypto_word32_buf_t signature) {
-  HARDENED_TRY(
-      otcrypto_rsa_sign_async_start(private_key, message_digest, padding_mode));
-  return otcrypto_rsa_sign_async_finalize(signature);
+  otcrypto_async_token_t token;
+  HARDENED_TRY(otcrypto_rsa_sign_async_start(private_key, message_digest,
+                                             padding_mode, &token));
+  return otcrypto_rsa_sign_async_finalize(token, signature);
 }
 
 otcrypto_status_t otcrypto_rsa_verify(
@@ -303,8 +306,9 @@ otcrypto_status_t otcrypto_rsa_verify(
     const otcrypto_hash_digest_t message_digest,
     otcrypto_rsa_padding_t padding_mode, otcrypto_const_word32_buf_t signature,
     hardened_bool_t *verification_result) {
-  HARDENED_TRY(otcrypto_rsa_verify_async_start(public_key, signature));
-  return otcrypto_rsa_verify_async_finalize(message_digest, padding_mode,
+  otcrypto_async_token_t token;
+  HARDENED_TRY(otcrypto_rsa_verify_async_start(public_key, signature, &token));
+  return otcrypto_rsa_verify_async_finalize(message_digest, padding_mode, token,
                                             verification_result);
 }
 
@@ -312,9 +316,10 @@ otcrypto_status_t otcrypto_rsa_encrypt(
     const otcrypto_unblinded_key_t *public_key,
     const otcrypto_hash_mode_t hash_mode, otcrypto_const_byte_buf_t message,
     otcrypto_const_byte_buf_t label, otcrypto_word32_buf_t ciphertext) {
-  HARDENED_TRY(
-      otcrypto_rsa_encrypt_async_start(public_key, hash_mode, message, label));
-  return otcrypto_rsa_encrypt_async_finalize(ciphertext);
+  otcrypto_async_token_t token;
+  HARDENED_TRY(otcrypto_rsa_encrypt_async_start(public_key, hash_mode, message,
+                                                label, &token));
+  return otcrypto_rsa_encrypt_async_finalize(token, ciphertext);
 }
 
 otcrypto_status_t otcrypto_rsa_decrypt(
@@ -322,9 +327,11 @@ otcrypto_status_t otcrypto_rsa_decrypt(
     const otcrypto_hash_mode_t hash_mode,
     otcrypto_const_word32_buf_t ciphertext, otcrypto_const_byte_buf_t label,
     otcrypto_byte_buf_t plaintext, size_t *plaintext_bytelen) {
-  HARDENED_TRY(otcrypto_rsa_decrypt_async_start(private_key, ciphertext));
-  return otcrypto_rsa_decrypt_async_finalize(hash_mode, label, plaintext,
-                                             plaintext_bytelen);
+  otcrypto_async_token_t token;
+  HARDENED_TRY(
+      otcrypto_rsa_decrypt_async_start(private_key, ciphertext, &token));
+  return otcrypto_rsa_decrypt_async_finalize(hash_mode, label, &token,
+                                             plaintext, plaintext_bytelen);
 }
 
 /**
@@ -410,7 +417,8 @@ static status_t public_key_structural_check(
   return rsa_mode_check(public_key->key_mode);
 }
 
-otcrypto_status_t otcrypto_rsa_keygen_async_start(otcrypto_rsa_size_t size) {
+otcrypto_status_t otcrypto_rsa_keygen_async_start(
+    otcrypto_rsa_size_t size, otcrypto_async_token_t *token) {
   // Check that the entropy complex is initialized.
   HARDENED_TRY(entropy_complex_check());
 
@@ -431,7 +439,8 @@ otcrypto_status_t otcrypto_rsa_keygen_async_start(otcrypto_rsa_size_t size) {
 }
 
 otcrypto_status_t otcrypto_rsa_keygen_async_finalize(
-    otcrypto_unblinded_key_t *public_key, otcrypto_blinded_key_t *private_key) {
+    otcrypto_async_token_t token, otcrypto_unblinded_key_t *public_key,
+    otcrypto_blinded_key_t *private_key) {
   // Check for NULL pointers.
   if (public_key == NULL || public_key->key == NULL || private_key == NULL ||
       private_key->keyblob == NULL) {
@@ -488,7 +497,8 @@ otcrypto_status_t otcrypto_rsa_keygen_async_finalize(
 otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_start(
     otcrypto_rsa_size_t size, otcrypto_const_word32_buf_t modulus, uint32_t e,
     otcrypto_const_word32_buf_t cofactor_share0,
-    otcrypto_const_word32_buf_t cofactor_share1) {
+    otcrypto_const_word32_buf_t cofactor_share1,
+    otcrypto_async_token_t *token) {
   if (modulus.data == NULL || cofactor_share0.data == NULL ||
       cofactor_share1.data == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -534,7 +544,8 @@ otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_start(
 }
 
 otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_finalize(
-    otcrypto_unblinded_key_t *public_key, otcrypto_blinded_key_t *private_key) {
+    otcrypto_async_token_t token, otcrypto_unblinded_key_t *public_key,
+    otcrypto_blinded_key_t *private_key) {
   // Check for NULL pointers.
   if (public_key == NULL || public_key->key == NULL || private_key == NULL ||
       private_key->keyblob == NULL) {
@@ -614,7 +625,7 @@ static status_t key_mode_padding_check(otcrypto_key_mode_t key_mode,
 otcrypto_status_t otcrypto_rsa_sign_async_start(
     const otcrypto_blinded_key_t *private_key,
     const otcrypto_hash_digest_t message_digest,
-    otcrypto_rsa_padding_t padding_mode) {
+    otcrypto_rsa_padding_t padding_mode, otcrypto_async_token_t *token) {
   // Check for NULL pointers.
   if (message_digest.data == NULL || private_key == NULL ||
       private_key->keyblob == NULL) {
@@ -669,7 +680,7 @@ otcrypto_status_t otcrypto_rsa_sign_async_start(
 }
 
 otcrypto_status_t otcrypto_rsa_sign_async_finalize(
-    otcrypto_word32_buf_t signature) {
+    otcrypto_async_token_t token, otcrypto_word32_buf_t signature) {
   // Check for NULL pointers.
   if (signature.data == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -697,7 +708,7 @@ otcrypto_status_t otcrypto_rsa_sign_async_finalize(
 
 otcrypto_status_t otcrypto_rsa_verify_async_start(
     const otcrypto_unblinded_key_t *public_key,
-    otcrypto_const_word32_buf_t signature) {
+    otcrypto_const_word32_buf_t signature, otcrypto_async_token_t *token) {
   // Check for NULL pointers.
   if (public_key == NULL || public_key->key == NULL || signature.data == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -753,7 +764,8 @@ otcrypto_status_t otcrypto_rsa_verify_async_start(
 
 otcrypto_status_t otcrypto_rsa_verify_async_finalize(
     const otcrypto_hash_digest_t message_digest,
-    otcrypto_rsa_padding_t padding_mode, hardened_bool_t *verification_result) {
+    otcrypto_rsa_padding_t padding_mode, otcrypto_async_token_t token,
+    hardened_bool_t *verification_result) {
   // Check for NULL pointers.
   if (message_digest.data == NULL || verification_result == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -772,7 +784,7 @@ otcrypto_status_t otcrypto_rsa_verify_async_finalize(
 otcrypto_status_t otcrypto_rsa_encrypt_async_start(
     const otcrypto_unblinded_key_t *public_key,
     const otcrypto_hash_mode_t hash_mode, otcrypto_const_byte_buf_t message,
-    otcrypto_const_byte_buf_t label) {
+    otcrypto_const_byte_buf_t label, otcrypto_async_token_t *token) {
   // Check for NULL pointers.
   if (public_key == NULL || public_key->key == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -838,7 +850,7 @@ otcrypto_status_t otcrypto_rsa_encrypt_async_start(
 }
 
 otcrypto_status_t otcrypto_rsa_encrypt_async_finalize(
-    otcrypto_word32_buf_t ciphertext) {
+    otcrypto_async_token_t token, otcrypto_word32_buf_t ciphertext) {
   // Check for NULL pointers.
   if (ciphertext.data == NULL) {
     return OTCRYPTO_BAD_ARGS;
@@ -874,7 +886,7 @@ otcrypto_status_t otcrypto_rsa_encrypt_async_finalize(
 
 otcrypto_status_t otcrypto_rsa_decrypt_async_start(
     const otcrypto_blinded_key_t *private_key,
-    otcrypto_const_word32_buf_t ciphertext) {
+    otcrypto_const_word32_buf_t ciphertext, otcrypto_async_token_t *token) {
   // Check for NULL pointers.
   if (private_key == NULL || private_key->keyblob == NULL ||
       ciphertext.data == NULL) {
@@ -952,6 +964,7 @@ otcrypto_status_t otcrypto_rsa_decrypt_async_start(
 
 otcrypto_status_t otcrypto_rsa_decrypt_async_finalize(
     const otcrypto_hash_mode_t hash_mode, otcrypto_const_byte_buf_t label,
+    otcrypto_async_token_t token,
     otcrypto_byte_buf_t plaintext, size_t *plaintext_bytelen) {
   if (plaintext.data == NULL || label.data == NULL) {
     return OTCRYPTO_BAD_ARGS;

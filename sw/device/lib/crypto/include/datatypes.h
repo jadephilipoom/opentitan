@@ -132,6 +132,19 @@ typedef struct otcrypto_const_word32_buf {
 } otcrypto_const_word32_buf_t;
 
 /**
+ * Token for an asynchronous operation.
+ *
+ * The `*_async_start()` call will populate this value and the corresponding
+ * `*_async_finalize()` call will accept and check it. The exact calculation is
+ * an implementation detail and may change. This is intended to protect against
+ * unintentional misuse and should not be considered a cryptographically secure
+ * mechanism; it is the caller's responsibility to manage asynchronous calls
+ * and ensure that e.g. an attacker cannot call `finalize()` after a different
+ * entity's `start()`.
+ */
+typedef uint32_t otcrypto_async_token_t;
+
+/**
  * Enum to denote the key type of the handled key.
  *
  * Values are hardened.

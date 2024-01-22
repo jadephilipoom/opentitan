@@ -325,13 +325,14 @@ otcrypto_status_t otcrypto_x25519(const otcrypto_blinded_key_t *private_key,
  * started.
  *
  * @param elliptic_curve Pointer to the elliptic curve to be used.
- * @param private_key Destination structure for private key, or key handle.
+ * @param[out] private_key Destination structure for private key, or key handle.
+ * @param[out] token Destination for the async operation token.
  * @return Result of asynchronous ECDSA keygen start operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ecdsa_keygen_async_start(
     const otcrypto_ecc_curve_t *elliptic_curve,
-    const otcrypto_blinded_key_t *private_key);
+    const otcrypto_blinded_key_t *private_key, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous key generation for ECDSA operation.
@@ -347,13 +348,14 @@ otcrypto_status_t otcrypto_ecdsa_keygen_async_start(
  * configuration must match the one originally passed to `_start`.
  *
  * @param elliptic_curve Pointer to the elliptic curve that is being used.
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] private_key Pointer to the blinded private key (d) struct.
  * @param[out] public_key Pointer to the unblinded public key (Q) struct.
  * @return Result of asynchronous ECDSA keygen finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ecdsa_keygen_async_finalize(
-    const otcrypto_ecc_curve_t *elliptic_curve,
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t token,
     otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key);
 
 /**
@@ -367,13 +369,14 @@ otcrypto_status_t otcrypto_ecdsa_keygen_async_finalize(
  * @param private_key Pointer to the blinded private key (d) struct.
  * @param message_digest Message digest to be signed (pre-hashed).
  * @param elliptic_curve Pointer to the elliptic curve to be used.
+ * @param[out] token Destination for the async operation token.
  * @return Result of async ECDSA start operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ecdsa_sign_async_start(
     const otcrypto_blinded_key_t *private_key,
     const otcrypto_hash_digest_t message_digest,
-    const otcrypto_ecc_curve_t *elliptic_curve);
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous ECDSA digital signature generation.
@@ -387,12 +390,13 @@ otcrypto_status_t otcrypto_ecdsa_sign_async_start(
  * mismatch will cause inconsistencies.
  *
  * @param elliptic_curve Pointer to the elliptic curve that is being used.
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] signature Pointer to the signature struct with (r,s) values.
  * @return Result of async ECDSA finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ecdsa_sign_async_finalize(
-    const otcrypto_ecc_curve_t *elliptic_curve,
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t token,
     otcrypto_word32_buf_t signature);
 
 /**
@@ -407,6 +411,7 @@ otcrypto_status_t otcrypto_ecdsa_sign_async_finalize(
  * @param message_digest Message digest to be verified (pre-hashed).
  * @param signature Pointer to the signature to be verified.
  * @param elliptic_curve Pointer to the elliptic curve to be used.
+ * @param[out] token Destination for the async operation token.
  * @return Result of async ECDSA verify start function.
  */
 OT_WARN_UNUSED_RESULT
@@ -414,7 +419,7 @@ otcrypto_status_t otcrypto_ecdsa_verify_async_start(
     const otcrypto_unblinded_key_t *public_key,
     const otcrypto_hash_digest_t message_digest,
     otcrypto_const_word32_buf_t signature,
-    const otcrypto_ecc_curve_t *elliptic_curve);
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous ECDSA digital signature verification.
@@ -430,13 +435,14 @@ otcrypto_status_t otcrypto_ecdsa_verify_async_start(
  * function; a mismatch will cause inconsistencies.
  *
  * @param elliptic_curve Pointer to the elliptic curve that is being used.
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] verification_result Result of signature verification
  * (Pass/Fail).
  * @return Result of async ECDSA verify finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ecdsa_verify_async_finalize(
-    const otcrypto_ecc_curve_t *elliptic_curve,
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t token,
     otcrypto_const_word32_buf_t signature,
     hardened_bool_t *verification_result);
 
@@ -459,12 +465,13 @@ otcrypto_status_t otcrypto_ecdsa_verify_async_finalize(
  *
  * @param elliptic_curve Pointer to the elliptic curve to be used.
  * @param private_key Destination structure for private key, or key handle.
+ * @param[out] token Destination for the async operation token.
  * @return Result of asynchronous ECDH keygen start operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ecdh_keygen_async_start(
     const otcrypto_ecc_curve_t *elliptic_curve,
-    const otcrypto_blinded_key_t *private_key);
+    const otcrypto_blinded_key_t *private_key, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous key generation for ECDSA operation.
@@ -480,13 +487,14 @@ otcrypto_status_t otcrypto_ecdh_keygen_async_start(
  * configuration must match the one originally passed to `_start`.
  *
  * @param elliptic_curve Pointer to the elliptic curve that is being used.
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] private_key Pointer to the blinded private key (d) struct.
  * @param[out] public_key Pointer to the unblinded public key (Q) struct.
  * @return Result of asynchronous ECDH keygen finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ecdh_keygen_async_finalize(
-    const otcrypto_ecc_curve_t *elliptic_curve,
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t token,
     otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key);
 
 /**
@@ -500,13 +508,14 @@ otcrypto_status_t otcrypto_ecdh_keygen_async_finalize(
  * @param private_key Pointer to the blinded private key (d) struct.
  * @param public_key Pointer to the unblinded public key (Q) struct.
  * @param elliptic_curve Pointer to the elliptic curve to be used.
+ * @param[out] token Destination for the async operation token.
  * @return Result of async ECDH start operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ecdh_async_start(
     const otcrypto_blinded_key_t *private_key,
     const otcrypto_unblinded_key_t *public_key,
-    const otcrypto_ecc_curve_t *elliptic_curve);
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous Elliptic Curve Diffie Hellman shared
@@ -521,12 +530,13 @@ otcrypto_status_t otcrypto_ecdh_async_start(
  * mismatch will cause inconsistencies.
  *
  * @param elliptic_curve Pointer to the elliptic curve that is being used.
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] shared_secret Pointer to generated blinded shared key struct.
  * @return Result of async ECDH finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ecdh_async_finalize(
-    const otcrypto_ecc_curve_t *elliptic_curve,
+    const otcrypto_ecc_curve_t *elliptic_curve, otcrypto_async_token_t token,
     otcrypto_blinded_key_t *shared_secret);
 
 /**
@@ -541,11 +551,12 @@ otcrypto_status_t otcrypto_ecdh_async_finalize(
  * No `domain_parameter` is needed and is automatically set for X25519.
  *
  * @param private_key Destination structure for private key, or key handle.
+ * @param[out] token Destination for the async operation token.
  * @return Result of asynchronous ed25519 keygen start operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ed25519_keygen_async_start(
-    const otcrypto_blinded_key_t *private_key);
+    const otcrypto_blinded_key_t *private_key, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous key generation for Ed25519.
@@ -558,13 +569,15 @@ otcrypto_status_t otcrypto_ed25519_keygen_async_start(
  * The caller must ensure that `config` matches the key configuration initially
  * passed to the `_start` complement of this function.
  *
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] private_key Pointer to the blinded private key struct.
  * @param[out] public_key Pointer to the unblinded public key struct.
  * @return Result of asynchronous ed25519 keygen finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ed25519_keygen_async_finalize(
-    otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key);
+    otcrypto_async_token_t token, otcrypto_blinded_key_t *private_key,
+    otcrypto_unblinded_key_t *public_key);
 
 /**
  * Starts the asynchronous Ed25519 digital signature generation.
@@ -577,13 +590,15 @@ otcrypto_status_t otcrypto_ed25519_keygen_async_finalize(
  * @param input_message Input message to be signed.
  * @param sign_mode Parameter for EdDSA or Hash EdDSA sign mode.
  * @param[out] signature Pointer to the EdDSA signature to get (r) value.
+ * @param[out] token Destination for the async operation token.
  * @return Result of async Ed25519 start operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ed25519_sign_async_start(
     const otcrypto_blinded_key_t *private_key,
     otcrypto_const_byte_buf_t input_message,
-    otcrypto_eddsa_sign_mode_t sign_mode, otcrypto_word32_buf_t signature);
+    otcrypto_eddsa_sign_mode_t sign_mode, otcrypto_word32_buf_t signature,
+    otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous Ed25519 digital signature generation.
@@ -592,12 +607,13 @@ otcrypto_status_t otcrypto_ed25519_sign_async_start(
  * status is done, or `kOtcryptoStatusValueAsyncIncomplete` if the OTBN is
  * busy or `kOtcryptoStatusValueInternalError` if there is an error.
  *
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] signature Pointer to the EdDSA signature to get (s) value.
  * @return Result of async Ed25519 finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ed25519_sign_async_finalize(
-    otcrypto_word32_buf_t signature);
+    otcrypto_async_token_t token, otcrypto_word32_buf_t signature);
 
 /**
  * Starts the asynchronous Ed25519 digital signature verification.
@@ -609,14 +625,15 @@ otcrypto_status_t otcrypto_ed25519_sign_async_finalize(
  * @param input_message Input message to be signed for verification.
  * @param sign_mode Parameter for EdDSA or Hash EdDSA sign mode.
  * @param signature Pointer to the signature to be verified.
+ * @param[out] token Destination for the async operation token.
  * @return Result of async Ed25519 verification start operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ed25519_verify_async_start(
     const otcrypto_unblinded_key_t *public_key,
     otcrypto_const_byte_buf_t input_message,
-    otcrypto_eddsa_sign_mode_t sign_mode,
-    otcrypto_const_word32_buf_t signature);
+    otcrypto_eddsa_sign_mode_t sign_mode, otcrypto_const_word32_buf_t signature,
+    otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous Ed25519 digital signature verification.
@@ -626,13 +643,14 @@ otcrypto_status_t otcrypto_ed25519_verify_async_start(
  * `kOtcryptoStatusValueAsyncIncomplete` if the OTBN is busy or
  * `kOtcryptoStatusValueInternalError` if there is an error.
  *
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] verification_result Result of signature verification
  * (Pass/Fail).
  * @return Result of async Ed25519 verification finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_ed25519_verify_async_finalize(
-    hardened_bool_t *verification_result);
+    otcrypto_async_token_t token, hardened_bool_t *verification_result);
 
 /**
  * Starts the asynchronous key generation for X25519.
@@ -646,11 +664,12 @@ otcrypto_status_t otcrypto_ed25519_verify_async_finalize(
  * No `domain_parameter` is needed and is automatically set for X25519.
  *
  * @param private_key Destination structure for private key, or key handle.
+ * @param[out] token Destination for the async operation token.
  * @return Result of asynchronous X25519 keygen start operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_x25519_keygen_async_start(
-    const otcrypto_blinded_key_t *private_key);
+    const otcrypto_blinded_key_t *private_key, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous key generation for X25519.
@@ -663,13 +682,15 @@ otcrypto_status_t otcrypto_x25519_keygen_async_start(
  * The caller must ensure that `config` matches the key configuration initially
  * passed to the `_start` complement of this function.
  *
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] private_key Pointer to the blinded private key struct.
  * @param[out] public_key Pointer to the unblinded public key struct.
  * @return Result of asynchronous X25519 keygen finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_x25519_keygen_async_finalize(
-    otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key);
+    otcrypto_async_token_t token, otcrypto_blinded_key_t *private_key,
+    otcrypto_unblinded_key_t *public_key);
 
 /**
  * Starts the asynchronous X25519 Diffie Hellman shared secret
@@ -681,12 +702,13 @@ otcrypto_status_t otcrypto_x25519_keygen_async_finalize(
  *
  * @param private_key Pointer to the blinded private key (u-coordinate).
  * @param public_key Pointer to the public scalar from the sender.
+ * @param[out] token Destination for the async operation token.
  * @return Result of the async X25519 start operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_x25519_async_start(
     const otcrypto_blinded_key_t *private_key,
-    const otcrypto_unblinded_key_t *public_key);
+    const otcrypto_unblinded_key_t *public_key, otcrypto_async_token_t *token);
 
 /**
  * Finalizes the asynchronous X25519 Diffie Hellman shared secret
@@ -696,12 +718,13 @@ otcrypto_status_t otcrypto_x25519_async_start(
  * status is done, or `kOtcryptoStatusValueAsyncIncomplete` if the OTBN
  * is busy or `kOtcryptoStatusValueInternalError` if there is an error.
  *
+ * @param token Async operation token from the corresponding `*_async_start()`.
  * @param[out] shared_secret Pointer to shared secret key (u-coordinate).
  * @return Result of async X25519 finalize operation.
  */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_x25519_async_finalize(
-    otcrypto_blinded_key_t *shared_secret);
+    otcrypto_async_token_t token, otcrypto_blinded_key_t *shared_secret);
 
 #ifdef __cplusplus
 }  // extern "C"
