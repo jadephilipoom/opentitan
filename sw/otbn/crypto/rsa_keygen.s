@@ -178,10 +178,9 @@ check_d:
     bn.or   w23, w23, w20
 
   /* Get the FG0.Z flag into a register.
-       x2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+       x2 <= CSRs[FG0] & 8 = FG0.Z << 3 */
   csrrs    x2, FG0, x0
-  srli     x2, x2, 3
-  andi     x2, x2, 1
+  andi     x2, x2, 8
 
   /* If x2 != 0, then d is too small and we need to restart key generation from
      scratch. */
@@ -733,10 +732,9 @@ modinv_f4:
   bn.cmp     w22, w23
 
   /* Get the FG0.Z flag into a register.
-       x2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+       x2 <= CSRs[FG0] & 8 = FG0.Z << 3 */
   csrrs    x2, FG0, x0
-  srli     x2, x2, 3
-  andi     x2, x2, 1
+  andi     x2, x2, 8
 
   /* If the flag is unset (x2 == 0) then u != 1; in this case GCD(65537, m) !=
      1 and the modular inverse cannot be computed. This should never happen
@@ -859,10 +857,9 @@ _generate_p_counter_nonzero:
   bn.cmp   w20, w24
 
   /* Get the FG0.Z flag into a register.
-       x2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+       x2 <= CSRs[FG0] & 8 = FG0.Z << 3 */
   csrrs    x2, FG0, x0
-  srli     x2, x2, 3
-  andi     x2, x2, 1
+  andi     x2, x2, 8
 
   /* If the flag is set, then the check passed. Otherwise, retry.*/
   beq      x2, x0, _generate_p_retry
@@ -932,10 +929,9 @@ _generate_q_counter_nonzero:
   bn.cmp   w20, w24
 
   /* Get the FG0.Z flag into a register.
-       x2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+       x2 <= CSRs[FG0] & 8 = FG0.Z << 3 */
   csrrs    x2, FG0, x0
-  srli     x2, x2, 3
-  andi     x2, x2, 1
+  andi     x2, x2, 8
 
   /* If the flag is set, then the check passed. Otherwise, retry.*/
   beq      x2, x0, _generate_q_retry
@@ -1002,7 +998,7 @@ check_p:
   bn.sel   w24, w31, w24, FG0.Z
 
   /* Get the FG0.Z flag into a register.
-       x2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+       x2 <= CSRs[FG0] & 8 = FG0.Z << 3 */
   csrrs    x2, FG0, x0
   andi     x2, x2, 8
 
@@ -1133,10 +1129,9 @@ check_q:
   bn.addi  w20, w20, 0
 
   /* Get the FG0.Z flag into a register.
-       x2 <= (CSRs[FG0] >> 3) & 1 = FG0.Z */
+       x2 <= CSRs[FG0] & 8 = FG0.Z << 3 */
   csrrs    x2, FG0, x0
-  srli     x2, x2, 3
-  andi     x2, x2, 1
+  andi     x2, x2, 8
 
   /* If the flag is set, then the check failed and we can skip the remaining
      checks. */

@@ -144,6 +144,12 @@ def get_otbn_syms(elf_path: str) -> List[Tuple[str, int]]:
             '--extract-symbol'
         ] + [elf_path, syms_path])
 
+        with open(elf_path, 'rb') as elf:
+            elf_file = ELFFile(elf)
+            imem = elf_file.get_section_by_name('.text')
+            if imem.data_size > 4000:
+                raise ValueError(f'Imem too large: {imem.data_size} bytes')
+
         # Load the file and use elftools to grab any symbol table
         with open(syms_path, 'rb') as syms_fd:
             syms_file = ELFFile(syms_fd)
