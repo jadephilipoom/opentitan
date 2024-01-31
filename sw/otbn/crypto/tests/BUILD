@@ -700,6 +700,17 @@ otbn_sim_test(
 )
 
 otbn_sim_test(
+    name = "sha3_test",
+    srcs = [
+        "sha3_test.s",
+    ],
+    exp = "sha3_test.exp",
+    deps = [
+        "//sw/otbn/crypto/handwritten:sha3",
+    ],
+)
+
+otbn_sim_test(
     name = "key_pair_dilithium_test",
     srcs = [
         "key_pair_dilithium_test.s",

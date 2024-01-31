@@ -160,3 +160,10 @@ otbn_library(
         "sign_base_dilithium.s",
     ],
 )
+
+otbn_library(
+    name = "sha3",
+    srcs = [
+        "sha3.s",
+    ],
+)
