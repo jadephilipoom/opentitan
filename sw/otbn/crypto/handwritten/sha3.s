@@ -1,1110 +1,581 @@
-sha3_keccakf:
-        addi    sp,sp,-592
-        lui     a5,%hi(.LANCHOR0)
-        addi    a4,a5,%lo(.LANCHOR0)
-        sw      s11,544(sp)
-        addi    s11,sp,352
-        sw      s7,560(sp)
-        sw      s0,588(sp)
-        sw      s1,584(sp)
-        sw      s2,580(sp)
-        sw      s3,576(sp)
-        sw      s4,572(sp)
-        sw      s5,568(sp)
-        sw      s6,564(sp)
-        sw      s8,556(sp)
-        sw      s9,552(sp)
-        sw      s10,548(sp)
-        mv      s7,a0
-        addi    a5,a5,%lo(.LANCHOR0)
-        addi    a2,a4,192
-        mv      a3,s11
-.L2:
-        lw      a7,0(a5)
-        lw      a6,4(a5)
-        lw      a0,8(a5)
-        lw      a1,12(a5)
-        sw      a7,0(a3)
-        sw      a6,4(a3)
-        sw      a0,8(a3)
-        sw      a1,12(a3)
-        addi    a5,a5,16
-        addi    a3,a3,16
-        bne     a5,a2,.L2
-        addi    a3,sp,160
-        addi    a2,a4,288
-.L3:
-        lw      a7,0(a5)
-        lw      a6,4(a5)
-        lw      a0,8(a5)
-        lw      a1,12(a5)
-        sw      a7,0(a3)
-        sw      a6,4(a3)
-        sw      a0,8(a3)
-        sw      a1,12(a3)
-        addi    a5,a5,16
-        addi    a3,a3,16
-        bne     a5,a2,.L3
-        addi    a5,a4,288
-        addi    a3,sp,256
-        addi    a4,a4,384
-.L4:
-        lw      a6,0(a5)
-        lw      a0,4(a5)
-        lw      a1,8(a5)
-        lw      a2,12(a5)
-        sw      a6,0(a3)
-        sw      a0,4(a3)
-        sw      a1,8(a3)
-        sw      a2,12(a3)
-        addi    a5,a5,16
-        addi    a3,a3,16
-        bne     a5,a4,.L4
-        lw      a4,84(s7)
-        sw      a4,92(sp)
-        lw      a4,8(s7)
-        sw      a4,20(sp)
-        lw      a4,12(s7)
-        sw      a4,24(sp)
-        lw      a4,48(s7)
-        sw      a4,60(sp)
-        lw      a4,52(s7)
-        sw      a4,64(sp)
-        lw      a4,88(s7)
-        sw      a4,96(sp)
-        lw      a4,92(s7)
-        lw      a5,40(s7)
-        sw      a4,100(sp)
-        lw      a4,128(s7)
-        sw      a5,52(sp)
-        sw      a4,4(sp)
-        lw      a5,44(s7)
-        lw      a4,168(s7)
-        sw      a5,56(sp)
-        sw      a4,8(sp)
-        lw      a4,16(s7)
-        lw      t1,4(s7)
-        lw      a5,80(s7)
-        lw      s2,132(s7)
-        lw      t6,172(s7)
-        lw      a0,0(s7)
-        lw      s9,120(s7)
-        lw      s8,124(s7)
-        lw      s0,160(s7)
-        lw      a1,164(s7)
-        sw      a4,28(sp)
-        lw      a3,100(s7)
-        sw      a3,104(sp)
-        lw      a3,140(s7)
-        sw      a3,124(sp)
-        lw      a3,24(s7)
-        sw      a3,36(sp)
-        lw      a3,28(s7)
-        sw      a3,40(sp)
-        lw      a3,64(s7)
-        sw      a3,76(sp)
-        lw      a3,68(s7)
-        lw      a4,20(s7)
-        sw      a3,80(sp)
-        lw      a3,104(s7)
-        sw      a4,32(sp)
-        sw      a3,108(sp)
-        lw      a4,56(s7)
-        lw      a3,108(s7)
-        sw      a4,68(sp)
-        sw      a3,112(sp)
-        lw      a4,60(s7)
-        lw      a3,184(s7)
-        sw      a4,72(sp)
-        sw      a3,132(sp)
-        sw      s11,156(sp)
-        lw      a3,188(s7)
-        lw      s5,136(s7)
-        lw      t5,176(s7)
-        lw      s4,144(s7)
-        lw      a4,96(s7)
-        lw      s1,148(s7)
-        lw      t3,180(s7)
-        sw      a3,136(sp)
-        lw      a3,32(s7)
-        sw      a3,44(sp)
-        lw      a3,36(s7)
-        sw      a3,48(sp)
-        lw      a3,72(s7)
-        sw      a3,84(sp)
-        lw      a3,76(s7)
-        sw      a3,88(sp)
-        lw      a3,112(s7)
-        sw      a3,116(sp)
-        lw      a3,116(s7)
-        sw      a3,120(sp)
-        lw      a3,152(s7)
-        lw      s6,196(s7)
-        sw      a3,128(sp)
-        lw      s3,156(s7)
-        lw      a3,192(s7)
-        mv      a7,s5
-        mv      s5,s4
-        mv      s4,a5
-        mv      a5,t5
-        sw      s6,152(sp)
-        mv      t5,t1
-        sw      a3,140(sp)
-        li      s10,31
-        sw      s2,144(sp)
-        sw      s1,12(sp)
-        sw      s3,148(sp)
-        sw      t6,16(sp)
-        mv      s6,a4
-        mv      t1,a5
-.L5:
-        lw      a5,20(sp)
-        lw      a3,60(sp)
-        xor     t2,a5,a3
-        lw      a2,24(sp)
-        lw      t4,44(sp)
-        lw      t0,84(sp)
-        lw      s1,36(sp)
-        lw      s3,96(sp)
-        lw      a6,64(sp)
-        lw      s2,76(sp)
-        xor     a5,t4,t0
-        lw      a4,100(sp)
-        lw      a3,116(sp)
-        lw      t0,40(sp)
-        xor     a6,a2,a6
-        xor     s2,s1,s2
-        lw      a2,108(sp)
-        xor     t2,t2,s3
-        lw      s3,80(sp)
-        xor     t4,t0,s3
-        xor     a6,a6,a4
-        xor     a5,a5,a3
-        lw      a4,112(sp)
-        lw      a3,4(sp)
-        xor     s2,s2,a2
-        lw      a2,144(sp)
-        xor     t4,t4,a4
-        xor     t2,t2,a3
-        lw      a4,12(sp)
-        lw      a3,28(sp)
-        xor     a6,a6,a2
-        lw      a2,68(sp)
-        lw      s1,128(sp)
-        xor     t4,t4,a4
-        xor     a4,a3,a2
-        lw      a3,16(sp)
-        xor     a6,a6,a3
-        lw      t0,8(sp)
-        lw      a3,132(sp)
-        xor     a5,a5,s1
-        xor     s2,s2,s5
-        lw      s1,140(sp)
-        xor     t2,t2,t0
-        xor     s2,s2,a3
-        xor     a5,a5,s1
-        lw      a2,136(sp)
-        lw      a3,72(sp)
-        lw      s1,32(sp)
-        xor     t4,t4,a2
-        xor     s1,s1,a3
-        lw      a2,104(sp)
-        slli    a3,t2,1
-        srli    s3,a6,31
-        xor     s1,s1,a2
-        lw      t0,124(sp)
-        or      s3,s3,a3
-        lw      a2,88(sp)
-        lw      a3,48(sp)
-        xor     s1,s1,t0
-        xor     a2,a3,a2
-        lw      t0,120(sp)
-        xor     a2,a2,t0
-        lw      a3,148(sp)
-        xor     a2,a2,a3
-        lw      a3,52(sp)
-        lw      t0,152(sp)
-        lw      t6,56(sp)
-        xor     a3,a0,a3
-        xor     s3,s3,a5
-        xor     a2,a2,t0
-        xor     a3,a3,s4
-        xor     t0,t5,t6
-        lw      t6,92(sp)
-        xor     a0,s3,a0
-        xor     a3,a3,s9
-        xor     t0,t0,t6
-        lw      t6,52(sp)
-        xor     a3,a3,s0
-        xor     t6,s3,t6
-        xor     s4,s3,s4
-        xor     s9,s3,s9
-        sw      a0,0(s7)
-        xor     s3,s3,s0
-        slli    a0,a6,1
-        srli    s0,t2,31
-        or      a0,s0,a0
-        xor     a0,a0,a2
-        sw      t6,40(s7)
-        sw      s4,80(s7)
-        lw      t6,56(sp)
-        xor     s4,a0,t5
-        xor     t0,t0,s8
-        sw      s4,4(s7)
-        xor     s4,a0,t6
-        lw      t6,92(sp)
-        xor     t0,t0,a1
-        slli    s0,s2,1
-        xor     t6,a0,t6
-        xor     s8,a0,s8
-        xor     a0,a0,a1
-        srli    a1,t4,31
-        or      a1,a1,s0
-        xor     a1,a1,t2
-        sw      a0,164(s7)
-        srli    t2,s2,31
-        slli    a0,t4,1
-        lw      s0,28(sp)
-        xor     a4,a4,s6
-        or      t2,t2,a0
-        xor     t2,t2,a6
-        srli    a0,a2,31
-        xor     a4,a4,a7
-        sw      s9,120(s7)
-        slli    a2,a2,1
-        xor     s9,s0,a1
-        slli    a6,a5,1
-        lw      s0,68(sp)
-        srli    a5,a5,31
-        xor     a4,a4,t1
-        xor     s1,s1,t3
-        sw      t6,84(s7)
-        or      a5,a5,a2
-        xor     t6,s0,a1
-        lw      s0,32(sp)
-        xor     a2,a5,s1
-        sw      t6,56(s7)
-        or      a6,a0,a6
-        xor     t6,s0,t2
-        srli    a0,s1,31
-        lw      s0,72(sp)
-        slli    a5,a4,1
-        slli    t5,a3,1
-        sw      s4,44(s7)
-        or      a5,a0,a5
-        xor     s4,s0,t2
-        srli    a0,t0,31
-        lw      s0,104(sp)
-        or      a0,a0,t5
-        sw      t6,20(s7)
-        xor     t6,s0,t2
-        lw      s0,124(sp)
-        xor     a5,a5,a3
-        xor     a6,a6,a4
-        xor     a0,a0,s2
-        xor     t3,t3,t2
-        xor     s2,s0,t2
-        lw      t5,60(sp)
-        lw      t2,40(sp)
-        slli    s1,s1,1
-        srli    a4,a4,31
-        xor     s0,t2,a2
-        xor     a7,a7,a1
-        xor     t2,t5,a5
-        xor     t1,t1,a1
-        lw      t5,96(sp)
-        xor     s6,s6,a1
-        or      a1,a4,s1
-        xor     a1,a1,t0
-        sw      t6,100(s7)
-        slli    t0,t0,1
-        xor     t6,a5,t5
-        srli    a3,a3,31
-        or      a3,a3,t0
-        lw      s1,36(sp)
-        lw      a4,20(sp)
-        sw      t6,88(s7)
-        lw      t0,4(sp)
-        xor     t6,a5,t0
-        lw      t0,8(sp)
-        lw      t5,64(sp)
-        sw      t6,128(s7)
-        xor     t6,a5,t0
-        sw      t6,168(s7)
-        xor     t6,t5,a1
-        lw      t5,100(sp)
-        xor     a3,a3,t4
-        sw      t6,52(s7)
-        lw      t4,44(sp)
-        xor     t6,a1,t5
-        lw      t5,144(sp)
-        xor     t5,a1,t5
-        xor     t0,t4,a0
-        lw      t4,84(sp)
-        xor     a4,a4,a5
-        sw      t6,92(s7)
-        lw      a5,24(sp)
-        xor     t6,t4,a0
-        sw      t5,132(s7)
-        lw      t4,116(sp)
-        lw      t5,16(sp)
-        xor     a5,a5,a1
-        sw      s3,160(s7)
-        xor     a1,a1,t5
-        lw      s3,140(sp)
-        xor     t5,t4,a0
-        sw      a7,136(s7)
-        lw      t4,128(sp)
-        lw      a7,108(sp)
-        xor     s1,s1,a6
-        xor     t4,t4,a0
-        sw      s0,28(s7)
-        xor     a0,s3,a0
-        xor     s0,a7,a6
-        lw      s3,80(sp)
-        lw      a7,112(sp)
-        sw      t1,176(s7)
-        sw      s4,60(s7)
-        sw      s2,140(s7)
-        sw      t3,180(s7)
-        sw      s1,24(s7)
-        xor     t3,a7,a2
-        xor     s1,s3,a2
-        lw      s2,76(sp)
-        sw      s9,16(s7)
-        sw      s6,96(s7)
-        sw      s8,124(s7)
-        lw      a7,12(sp)
-        lw      s3,132(sp)
-        xor     t1,s5,a6
-        xor     s2,s2,a6
-        sw      t2,48(s7)
-        xor     a6,s3,a6
-        lw      t2,88(sp)
-        lw      s3,136(sp)
-        xor     a7,a7,a2
-        xor     a2,s3,a2
-        xor     s3,t2,a3
-        lw      t2,120(sp)
-        xor     s4,t2,a3
-        lw      t2,148(sp)
-        xor     s5,t2,a3
-        sw      a1,172(s7)
-        lw      t2,152(sp)
-        lw      a1,48(sp)
-        xor     a1,a1,a3
-        xor     a3,t2,a3
-        sw      t3,108(s7)
-        sw      t5,112(s7)
-        sw      a4,8(s7)
-        sw      a5,12(s7)
-        sw      s2,64(s7)
-        addi    t2,sp,256
-        sw      t0,32(s7)
-        sw      s1,68(s7)
-        sw      s0,104(s7)
-        sw      t1,144(s7)
-        sw      a7,148(s7)
-        sw      a6,184(s7)
-        sw      a2,188(s7)
-        sw      t6,72(s7)
-        sw      t4,152(s7)
-        sw      a0,192(s7)
-        sw      a1,36(s7)
-        sw      s3,76(s7)
-        sw      s4,116(s7)
-        sw      s5,156(s7)
-        sw      a3,196(s7)
-        addi    t3,sp,160
-        mv      t5,a4
-        j       .L10
-.L19:
-        neg     a3,a3
-        andi    a3,a3,63
-        sll     a6,a1,a7
-        sub     a4,s10,a3
-        slli    a7,a0,1
-        addi    t4,a3,-32
-        li      t1,0
-        sll     a7,a7,a4
-        srl     a1,a1,a3
-        blt     t4,zero,.L8
-.L20:
-        srl     a1,a0,t4
-        li      a0,0
-        or      a3,t1,a1
-        or      a6,a6,a0
-        sw      a3,0(a2)
-        sw      a6,4(a2)
-        addi    t2,t2,4
-        addi    t3,t3,4
-        beq     s11,t2,.L18
-.L10:
-        lw      a2,0(t2)
-        lw      a3,0(t3)
-        slli    a2,a2,3
-        sub     a0,s10,a3
-        add     a2,s7,a2
-        srli    a4,t5,1
-        addi    a7,a3,-32
-        mv      a1,t5
-        srl     a4,a4,a0
-        sll     a6,a5,a3
-        mv      a0,a5
-        lw      t5,0(a2)
-        lw      a5,4(a2)
-        bge     a7,zero,.L19
-        sll     t1,a1,a3
-        neg     a3,a3
-        andi    a3,a3,63
-        or      a6,a4,a6
-        slli    a7,a0,1
-        sub     a4,s10,a3
-        addi    t4,a3,-32
-        sll     a7,a7,a4
-        srl     a1,a1,a3
-        bge     t4,zero,.L20
-.L8:
-        srl     a0,a0,a3
-        or      a1,a7,a1
-        or      a3,t1,a1
-        or      a6,a6,a0
-        sw      a3,0(a2)
-        sw      a6,4(a2)
-        addi    t2,t2,4
-        addi    t3,t3,4
-        bne     s11,t2,.L10
-.L18:
-        lw      s1,32(s7)
-        lw      t2,24(s7)
-        lw      a4,0(s7)
-        lw      s3,16(s7)
-        lw      t4,36(s7)
-        lw      a3,4(s7)
-        lw      s8,0(s7)
-        not     s2,a4
-        not     s0,s1
-        lw      a4,8(s7)
-        not     t0,t2
-        lw      s6,52(s7)
-        lw      t1,28(s7)
-        lw      s4,20(s7)
-        lw      s5,12(s7)
-        sw      a4,4(sp)
-        and     s0,s0,s8
-        and     t0,t0,s1
-        lw      s8,4(s7)
-        not     t6,s3
-        not     t5,a3
-        not     t3,t4
-        and     s2,s2,a4
-        and     t5,t5,s5
-        and     t3,t3,s8
-        not     a7,t1
-        not     a6,s4
-        not     a2,s6
-        and     t6,t6,t2
-        sw      s5,8(sp)
-        xor     t2,s0,t2
-        lw      s5,60(s7)
-        xor     s0,t0,s3
-        lw      t0,4(sp)
-        lw      a5,56(s7)
-        xor     s1,s2,s1
-        xor     t6,t6,t0
-        and     a7,a7,t4
-        and     a2,a2,s5
-        xor     t4,t5,t4
-        lw      a3,60(s7)
-        and     a6,a6,t1
-        xor     t1,t3,t1
-        lw      a4,64(s7)
-        not     a1,a5
-        sw      a2,56(sp)
-        sw      s1,44(sp)
-        lw      a2,68(s7)
-        sw      t2,36(sp)
-        sw      s3,12(sp)
-        sw      s0,28(sp)
-        sw      t6,20(sp)
-        sw      t4,48(sp)
-        sw      t1,40(sp)
-        not     a3,a3
-        lw      s9,48(s7)
-        lw      s8,40(s7)
-        lw      s5,44(s7)
-        and     a1,a1,a4
-        sw      s4,16(sp)
-        and     a3,a3,a2
-        not     a4,a4
-        lw      a2,72(s7)
-        and     a4,a4,a2
-        xor     a4,a4,a5
-        sw      a4,68(sp)
-        sw      a4,56(s7)
-        lw      a4,72(s7)
-        xor     t3,a7,s4
-        not     a0,s9
-        lw      a7,8(sp)
-        not     s3,a4
-        lw      a4,68(s7)
-        xor     a6,a6,a7
-        and     a0,a0,a5
-        lw      a7,56(sp)
-        not     s2,a4
-        lw      a4,96(s7)
-        xor     a2,a7,s5
-        xor     a0,a0,s8
-        xor     a1,a1,s9
-        xor     a3,a3,s6
-        sw      t3,32(sp)
-        sw      s1,32(s7)
-        sw      t1,28(s7)
-        sw      t3,20(s7)
-        lw      t1,88(s7)
-        not     s1,s5
-        not     t3,a4
-        lw      a4,84(s7)
-        and     s1,s1,s6
-        sw      a6,24(sp)
-        sw      a0,52(sp)
-        sw      a1,60(sp)
-        sw      a2,56(sp)
-        sw      a3,64(sp)
-        sw      t2,24(s7)
-        sw      s0,16(s7)
-        sw      t6,8(s7)
-        lw      s0,76(s7)
-        lw      t6,112(s7)
-        sw      t4,36(s7)
-        sw      a6,12(s7)
-        lw      t4,80(s7)
-        lw      a6,104(s7)
-        sw      a0,40(s7)
-        sw      a1,48(s7)
-        sw      a2,44(s7)
-        sw      a3,52(s7)
-        not     t5,t1
-        not     a1,a4
-        lw      a4,92(s7)
-        lw      s6,96(s7)
-        and     t5,t5,s6
-        lw      s6,92(s7)
-        not     a2,a4
-        and     a1,a1,s6
-        lw      a4,100(s7)
-        lw      s6,100(s7)
-        not     a3,a4
-        and     a2,a2,s6
-        lw      a4,116(s7)
-        lw      s6,108(s7)
-        lw      a5,108(s7)
-        and     a3,a3,s6
-        not     a4,a4
-        lw      s6,84(s7)
-        not     s4,s8
-        and     a4,a4,s6
-        not     a5,a5
-        lw      s6,116(s7)
-        and     s4,s4,s9
-        and     a5,a5,s6
-        lw      s6,72(s7)
-        and     s3,s3,s8
-        and     t3,t3,a6
-        xor     s8,s4,s6
-        not     t0,t4
-        lw      s6,64(s7)
-        not     a0,a6
-        xor     s9,s3,s6
-        and     t0,t0,t1
-        and     a0,a0,t6
-        xor     t1,t3,t1
-        lw      s6,60(s7)
-        lw      t3,96(s7)
-        and     s2,s2,s0
-        xor     s2,s2,s6
-        xor     s6,a0,t3
-        lw      a0,116(s7)
-        xor     a1,a1,a0
-        lw      a0,84(s7)
-        xor     a2,a2,a0
-        not     t2,s0
-        lw      a0,92(s7)
-        not     a7,t6
-        xor     s0,s1,s0
-        xor     a3,a3,a0
-        and     a7,a7,t4
-        lw      s1,68(s7)
-        lw      a0,108(s7)
-        and     t2,t2,s5
-        xor     t2,t2,s1
-        xor     t6,t0,t6
-        xor     a6,a7,a6
-        xor     a4,a4,a0
-        lw      a0,100(s7)
-        xor     a0,a5,a0
-        xor     s4,t5,t4
-        sw      s8,84(sp)
-        sw      s9,76(sp)
-        sw      s2,72(sp)
-        sw      s0,88(sp)
-        sw      t2,80(sp)
-        sw      t6,116(sp)
-        sw      t1,96(sp)
-        sw      a6,108(sp)
-        sw      a1,120(sp)
-        sw      a2,92(sp)
-        sw      a3,100(sp)
-        sw      a4,112(sp)
-        sw      a0,104(sp)
-        lw      a7,120(s7)
-        lw      t5,124(s7)
-        lw      t0,136(s7)
-        lw      t4,156(s7)
-        lw      s1,128(s7)
-        lw      t3,148(s7)
-        lw      s3,188(s7)
-        sw      s9,64(s7)
-        sw      s8,72(s7)
-        sw      s2,60(s7)
-        sw      s0,76(s7)
-        sw      t2,68(s7)
-        lw      s0,152(s7)
-        lw      t2,144(s7)
-        sw      t6,112(s7)
-        sw      t1,88(s7)
-        lw      t6,132(s7)
-        lw      t1,140(s7)
-        sw      a6,104(s7)
-        sw      a1,116(s7)
-        lw      a6,168(s7)
-        lw      a1,192(s7)
-        sw      a2,84(s7)
-        sw      a3,92(s7)
-        lw      a2,184(s7)
-        lw      a3,176(s7)
-        sw      a4,108(s7)
-        sw      a0,100(s7)
-        lw      a4,180(s7)
-        lw      a0,160(s7)
-        sw      s4,80(s7)
-        sw      s6,96(s7)
-        lw      a5,4(sp)
-        not     s2,a5
-        lw      s5,12(sp)
-        and     s2,s2,s5
-        not     s5,t0
-        and     s5,s5,t2
-        lw      a5,8(sp)
-        xor     s5,s5,s1
-        sw      s5,4(sp)
-        not     a5,a5
-        lw      s5,16(sp)
-        and     a5,a5,s5
-        not     s9,s1
-        not     s5,a7
-        and     s9,s9,t0
-        and     s1,s5,s1
-        not     s5,s0
-        xor     s9,s9,a7
-        and     s5,s5,a7
-        not     a7,t2
-        and     a7,a7,s0
-        xor     s5,s5,t2
-        not     t2,t1
-        not     s8,t6
-        and     t2,t2,t3
-        xor     a7,a7,t0
-        not     t0,t5
-        xor     t2,t2,t6
-        and     s8,s8,t1
-        and     t0,t0,t6
-        not     t6,t4
-        and     t6,t6,t5
-        xor     s8,s8,t5
-        not     t5,t3
-        and     t5,t5,t4
-        xor     t5,t5,t1
-        not     t1,a3
-        xor     t0,t0,t4
-        and     t1,t1,a2
-        not     t4,a0
-        xor     s1,s1,s0
-        and     t4,t4,a6
-        not     s0,a6
-        xor     a6,t1,a6
-        not     t1,a2
-        xor     t3,t6,t3
-        and     t1,t1,a1
-        sw      t3,12(sp)
-        lw      t6,196(s7)
-        and     s0,s0,a3
-        xor     t1,t1,a3
-        not     t3,s3
-        not     a3,a4
-        and     t3,t3,t6
-        and     a3,a3,s3
-        lw      t6,172(s7)
-        xor     t4,t4,a1
-        sw      a6,8(sp)
-        xor     a3,a3,t6
-        not     a6,a1
-        lw      a1,172(s7)
-        xor     s0,s0,a0
-        sw      a3,16(sp)
-        and     a0,a6,a0
-        lw      a3,196(s7)
-        not     a1,a1
-        xor     a0,a0,a2
-        and     a1,a1,a4
-        lw      a2,164(s7)
-        xor     t3,t3,a4
-        not     a4,a3
-        and     a4,a4,a2
-        xor     a3,a4,s3
-        lw      a4,4(sp)
-        sw      a4,128(s7)
-        lw      a4,12(sp)
-        sw      t5,124(sp)
-        sw      a0,132(sp)
-        sw      a3,136(sp)
-        sw      a4,148(s7)
-        sw      t5,140(s7)
-        sw      s1,128(sp)
-        sw      t2,144(sp)
-        sw      t0,148(sp)
-        sw      t4,140(sp)
-        sw      s9,120(s7)
-        sw      s8,124(s7)
-        sw      s1,152(s7)
-        sw      s5,144(s7)
-        sw      a7,136(s7)
-        sw      t2,132(s7)
-        sw      t0,156(s7)
-        sw      t4,192(s7)
-        xor     a1,a1,a2
-        lw      a4,16(sp)
-        not     a2,a2
-        and     a2,a2,t6
-        sw      a4,172(s7)
-        lw      a4,196(s7)
-        sw      a3,188(s7)
-        xor     a3,a2,a4
-        sw      a3,152(sp)
-        lw      a4,0(s7)
-        lw      a2,4(s7)
-        sw      a3,196(s7)
-        lw      a3,156(sp)
-        xor     a4,s2,a4
-        xor     t5,a5,a2
-        sw      a0,184(s7)
-        lw      a5,4(a3)
-        lw      a0,0(a3)
-        xor     a0,a0,a4
-        xor     t5,a5,t5
-        lw      a6,8(sp)
-        addi    a5,a3,8
-        sw      s0,160(s7)
-        sw      a6,168(s7)
-        sw      t1,176(s7)
-        sw      a1,164(s7)
-        sw      t3,180(s7)
-        sw      a0,0(s7)
-        sw      t5,4(s7)
-        sw      a5,156(sp)
-        addi    a4,sp,544
-        bne     a4,a5,.L5
-        lw      s0,588(sp)
-        lw      s1,584(sp)
-        lw      s2,580(sp)
-        lw      s3,576(sp)
-        lw      s4,572(sp)
-        lw      s5,568(sp)
-        lw      s6,564(sp)
-        lw      s7,560(sp)
-        lw      s8,556(sp)
-        lw      s9,552(sp)
-        lw      s10,548(sp)
-        lw      s11,544(sp)
-        addi    sp,sp,592
-        jr      ra
+/* Based on: https://github.com/mjosaarinen/tiny_sha3 */
+
+.text
+/* Register aliases */
+.equ x0, zero
+.equ x2, sp
+.equ x3, fp
+
+.equ x5, t0
+.equ x6, t1
+.equ x7, t2
+
+.equ x8, s0
+.equ x9, s1
+
+.equ x10, a0
+.equ x11, a1
+
+.equ x12, a2
+.equ x13, a3
+.equ x14, a4
+.equ x15, a5
+.equ x16, a6
+.equ x17, a7
+
+.equ x18, s2
+.equ x19, s3
+.equ x20, s4
+.equ x21, s5
+.equ x22, s6
+.equ x23, s7
+.equ x24, s8
+.equ x25, s9
+.equ x26, s10
+.equ x27, s11
+
+.equ x28, t3
+.equ x29, t4
+.equ x30, t5
+.equ x31, t6
+
+#define KECCAKF_ROUNDS 24
+#define rc_addr t1
+#define bn0 w31
+/* 
+SHA-3 context:
+    200B - data  - offset = 0
+      4B - pt    - offset = 200
+      4B - rsiz  - offset = 204
+      4B - mdlen - offset = 208
+    
+    MUST be 32B aligned
+*/
+
+.global sha3_init
+/**
+ * sha3_init
+ *
+ * Initialize SHA-3 "context". 
+ *
+ * Flags: -
+ *
+ * @param[in]  a1: message digest length
+ * @param[out] a0: pointer to 212 bytes of memory for holding the context.
+                   32B aligned.
+ *
+ * clobbered registers: a0-a1, t0-t2
+ */
 sha3_init:
-        mv      a5,a0
-        addi    a4,a0,200
-.L22:
-        li      a2,0
-        li      a3,0
-        sw      a2,0(a5)
-        sw      a3,4(a5)
-        addi    a5,a5,8
-        bne     a5,a4,.L22
-        li      a5,100
-        sub     a5,a5,a1
-        slli    a5,a5,1
-        sw      a1,208(a0)
-        sw      zero,200(a0)
-        sw      a5,204(a0)
-        li      a0,1
-        ret
+    addi t0, a0, 0
+    addi t1, zero, 31
+    /* Init state to all zeros using bn0 */
+    /* 6*32 = 192 */
+    LOOPI 6, 1
+        bn.sid t1, 0(t0++)
+    /* 192 + 8 = 200 DONE */
+    sw zero, 0(t0)
+    sw zero, 4(t0)
+    /* pt = 0 */
+    sw zero, 8(t0)
+    /* rsiz = 200 - 2 * mdlen */
+    slli t1, a1, 1 /* 2 * mdlen */
+    addi t2, zero, 200
+    sub t1, t2, t1
+    sw t1, 12(t0)
+    /* mdlen */
+    sw a1, 16(t0)
+    ret
+
+
+.global sha3_update
+/**
+ * sha3_update
+ *
+ * Update state with additional data (absorb?)
+ *
+ * Flags: -
+ *
+ * @param[in]    a2: data length
+ * @param[in]    a1: pointer to data
+ * @param[inout] a0: pointer to 212 bytes of memory for holding the context.
+                   32B aligned.
+ *
+ * clobbered registers: a0-a7, t0-t5
+ */
 sha3_update:
-        addi    sp,sp,-32
-        sw      s1,20(sp)
-        sw      ra,28(sp)
-        mv      s1,a0
-        lw      a5,200(a0)
-        beq     a2,zero,.L25
-        sw      s0,24(sp)
-        sw      s2,16(sp)
-        sw      s3,12(sp)
-        mv      s0,a1
-        add     s2,a1,a2
-        lw      s3,204(a0)
-        j       .L27
-.L26:
-        addi    s0,s0,1
-        beq     s0,s2,.L34
-.L27:
-        add     a3,s1,a5
-        lbu     a4,0(a3)
-        lbu     a1,0(s0)
-        xor     a4,a4,a1
-        addi    a5,a5,1
-        sb      a4,0(a3)
-        blt     a5,s3,.L26
-        mv      a0,s1
-        call    sha3_keccakf
-        addi    s0,s0,1
-        li      a5,0
-        bne     s0,s2,.L27
-.L34:
-        lw      s0,24(sp)
-        lw      s2,16(sp)
-        lw      s3,12(sp)
-.L25:
-        sw      a5,200(s1)
-        lw      ra,28(sp)
-        lw      s1,20(sp)
-        li      a0,1
-        addi    sp,sp,32
-        jr      ra
+    /* Load pt as j */
+    lw t0, 200(a0)
+    /* Constants */
+    li   t5, 0xFFFFFFFC
+
+    /* Counter */
+    li a3, 0
+    /* TODO: Write larger chunks at once, e.g. 4B or even 32B */
+    /* Iterare over each input byte */
+    LOOP a2, 21
+        /* get destination address */
+        add t1, a0, t0 /* state[pt] */
+        addi t0, t0, 1 /* pt++ */
+        /* align destination address */
+        and t2, t1, t5
+        /* aligned load from destination */
+        lw t3, 0(t2)
+        /* get lower two bits of destination address */
+        andi  t4, t1, 0x3
+        slli  t4, t4, 3 /* byte -> bit */
+
+        /* get source address */
+        add a4, a1, a3
+        /* align source address */
+        and a5, a4, t4
+        /* aligned load from destination */
+        lw a5, 0(a5)
+        /* Get lower two bits of source address */
+        andi a6, a4, 0x3
+        slli a7, a6, 3 /* byte -> bit */
+        /* Mask out desired byte */
+        srl  a7, a5, a7
+        andi a7, a7, 0xFF
+
+        /* Shift a7 to position accoring to t4 */
+        sll a7, a7, t4
+        /* xor */
+        xor t3, t3, a7
+        /* Store back to aligned address from t2 */
+        sw t3, 0(t2)
+
+        /* Load rsiz */
+        lw t4, 204(a0)
+        sub t3, t0, t4
+        bne t3, zero, _sha3_update_skip
+
+        jal x1, sha3_keccakf
+        xor t0, t0, t0 /* j = 0 */
+
+_sha3_update_skip:
+
+        /* Increment counter */
+        addi a3, a3, 1
+
+    /* store j as pt */
+    sw t0, 200(a0)
+
+    ret
+
+/**
+ * sha3_update
+ *
+ * Update state with additional data (absorb?)
+ *
+ * Flags: -
+ *
+ * @param[out]   a1: pointer to digest. 4B aligned. TODO: 32B aligned and then bn?
+ * @param[inout] a0: pointer to 212 bytes of memory for holding the context.
+                   32B aligned.
+ *
+ * clobbered registers: a0-a7, t0-t6
+ */
+.global sha3_final
 sha3_final:
-        lw      a4,200(a1)
-        add     a4,a1,a4
-        lbu     a3,0(a4)
-        addi    sp,sp,-16
-        sw      s0,8(sp)
-        sw      s1,4(sp)
-        lw      a5,204(a1)
-        sw      ra,12(sp)
-        xori    a3,a3,6
-        add     a5,a1,a5
-        sb      a3,0(a4)
-        lbu     a4,-1(a5)
-        xori    a4,a4,-128
-        sb      a4,-1(a5)
-        mv      s1,a0
-        mv      a0,a1
-        mv      s0,a1
-        call    sha3_keccakf
-        lw      a5,208(s0)
-        ble     a5,zero,.L36
-        li      a5,0
-.L37:
-        add     a4,s0,a5
-        lbu     a3,0(a4)
-        add     a4,s1,a5
-        sb      a3,0(a4)
-        addi    a5,a5,1
-        lw      a4,208(s0)
-        bgt     a4,a5,.L37
-.L36:
-        lw      ra,12(sp)
-        lw      s0,8(sp)
-        lw      s1,4(sp)
-        li      a0,1
-        addi    sp,sp,16
-        jr      ra
-sha3:
-        addi    sp,sp,-256
-        sw      s1,244(sp)
-        addi    s1,sp,8
-        sw      s2,240(sp)
-        sw      s5,228(sp)
-        sw      ra,252(sp)
-        sw      s3,236(sp)
-        mv      s2,a2
-        mv      s5,a3
-        mv      a5,s1
-        addi    a4,sp,208
-.L41:
-        li      a2,0
-        li      a3,0
-        sw      a2,0(a5)
-        sw      a3,4(a5)
-        addi    a5,a5,8
-        bne     a5,a4,.L41
-        li      s3,100
-        sub     s3,s3,s5
-        slli    s3,s3,1
-        sw      s5,216(sp)
-        sw      zero,208(sp)
-        sw      s3,212(sp)
-        beq     a1,zero,.L51
-        sw      s0,248(sp)
-        sw      s4,232(sp)
-        mv      s0,a0
-        add     s4,a0,a1
-        li      a5,0
-        j       .L44
-.L43:
-        addi    s0,s0,1
-        beq     s0,s4,.L58
-.L44:
-        add     a1,a5,sp
-        lbu     a4,8(a1)
-        lbu     a2,0(s0)
-        xor     a4,a4,a2
-        addi    a5,a5,1
-        sb      a4,8(a1)
-        bgt     s3,a5,.L43
-        addi    a0,sp,8
-        call    sha3_keccakf
-        addi    s0,s0,1
-        li      a5,0
-        bne     s0,s4,.L44
-.L58:
-        lw      s0,248(sp)
-        lw      s4,232(sp)
-.L42:
-        add     a5,a5,sp
-        lbu     a4,8(a5)
-        xori    a4,a4,6
-        add     s3,s3,sp
-        sb      a4,8(a5)
-        lbu     a5,7(s3)
-        xori    a5,a5,-128
-        addi    a0,sp,8
-        sb      a5,7(s3)
-        call    sha3_keccakf
-        ble     s5,zero,.L45
-        addi    a5,s5,-1
-        li      a4,5
-        bleu    a5,a4,.L46
-        andi    a5,s2,3
-        bne     a5,zero,.L46
-        andi    a2,s5,-4
-        add     a3,s2,a2
-        mv      a5,s2
-.L47:
-        lw      a4,0(s1)
-        sw      a4,0(a5)
-        addi    a5,a5,4
-        addi    s1,s1,4
-        bne     a5,a3,.L47
-        beq     s5,a2,.L45
-        andi    a5,s5,-4
-        add     a4,a2,sp
-        add     a5,s2,a5
-        lbu     a4,8(a4)
-        sb      a4,0(a5)
-        addi    a5,a2,1
-        ble     s5,a5,.L45
-        add     a4,a2,sp
-        lbu     a4,9(a4)
-        add     a5,s2,a5
-        addi    a2,a2,2
-        sb      a4,0(a5)
-        ble     s5,a2,.L45
-        add     a5,a2,sp
-        lbu     a5,8(a5)
-        add     a2,s2,a2
-        sb      a5,0(a2)
-.L45:
-        lw      ra,252(sp)
-        mv      a0,s2
-        lw      s1,244(sp)
-        lw      s2,240(sp)
-        lw      s3,236(sp)
-        lw      s5,228(sp)
-        addi    sp,sp,256
-        jr      ra
-.L46:
-        addi    a5,sp,8
-        add     a5,a5,s5
-        mv      a4,s2
-.L49:
-        lbu     a3,0(s1)
-        sb      a3,0(a4)
-        addi    s1,s1,1
-        addi    a4,a4,1
-        bne     s1,a5,.L49
-        lw      ra,252(sp)
-        mv      a0,s2
-        lw      s1,244(sp)
-        lw      s2,240(sp)
-        lw      s3,236(sp)
-        lw      s5,228(sp)
-        addi    sp,sp,256
-        jr      ra
-.L51:
-        li      a5,0
-        j       .L42
-shake_xof:
-        lw      a4,200(a0)
-        add     a4,a0,a4
-        addi    sp,sp,-16
-        lbu     a3,0(a4)
-        sw      s0,8(sp)
-        sw      ra,12(sp)
-        lw      a5,204(a0)
-        xori    a3,a3,31
-        sb      a3,0(a4)
-        add     a5,a0,a5
-        lbu     a4,-1(a5)
-        xori    a4,a4,-128
-        sb      a4,-1(a5)
-        mv      s0,a0
-        call    sha3_keccakf
-        lw      ra,12(sp)
-        sw      zero,200(s0)
-        lw      s0,8(sp)
-        addi    sp,sp,16
-        jr      ra
-shake_out:
-        addi    sp,sp,-16
-        sw      s1,4(sp)
-        sw      ra,12(sp)
-        mv      s1,a0
-        lw      a5,200(a0)
-        beq     a2,zero,.L62
-        sw      s0,8(sp)
-        sw      s2,0(sp)
-        mv      s0,a1
-        add     s2,a1,a2
-.L65:
-        lw      a4,204(s1)
-        add     a3,s1,a5
-        ble     a4,a5,.L63
-        lbu     a4,0(a3)
-        sb      a4,0(s0)
-        addi    s0,s0,1
-        addi    a5,a5,1
-        bne     s2,s0,.L65
-.L67:
-        lw      s0,8(sp)
-        lw      s2,0(sp)
-.L62:
-        sw      a5,200(s1)
-        lw      ra,12(sp)
-        lw      s1,4(sp)
-        addi    sp,sp,16
-        jr      ra
-.L63:
-        mv      a0,s1
-        call    sha3_keccakf
-        lbu     a5,0(s1)
-        sb      a5,0(s0)
-        addi    s0,s0,1
-        li      a5,1
-        bne     s0,s2,.L65
-        j       .L67
+    /* Constants */
+    li   a2, 0xFFFFFFFC
+    
+    /* Load pt */
+    lw t0, 200(a0)
+    /* state[pt] */
+    add t0, a0, t0
+    /* Set low bits to zero */
+    and t1, t0, a2
+    /* Aligned load */
+    lw   t3, 0(t1)
+    /* Exgtract lower bits for exact offset */
+    andi t4, t0, 0x3
+    slli t4, t4, 3 /* byte -> bit */
+    addi t5, zero, 0x06
+    sll  t5, t5, t4
+    xor  t3, t3, t5
+    sw t3, 200(a0)
+
+    /* Load rsiz */
+    lw t0, 204(a0)
+    addi t0, t0, -1 /* rsiz - 1 */ 
+    /* state[rsiz - 1] */
+    add t0, a0, t0
+    /* Set low bits to zero */
+    and t1, t0, a2
+    /* Aligned load */
+    lw   t3, 0(t1)
+    /* Exgtract lower bits for exact offset */
+    andi t4, t0, 0x3
+    slli t4, t4, 3 /* byte -> bit */
+    addi t5, zero, 0x80
+    sll  t5, t5, t4
+    xor  t3, t3, t5
+    sw t3, 204(a0)
+
+    jal x1, sha3_keccakf
+
+    /* Load mdlen */
+    lw t0, 208(a0)
+    srli t1, t0, 2 /* flooring div by 2 */
+    beq t1, zero, _sha3_final_remaining
+    addi t2, a0, 0
+    /* 1. Process floor(mdlen/4) 32-bit values */
+    LOOP t1, 4
+        lw   t3, 0(t2)
+        addi t2, t2, 4
+        sw   t3, 0(a1)
+        addi a1, a1, 4
+    
+    /* 2. Process the remaining mdlen % 4 bytes*/
+_sha3_final_remaining:
+    /* remaining bytes */
+    sub t1, t0, t1
+    
+    /* construct mask 0xFFFFFFFF */
+    addi t6, zero, 0xFF
+    slli t3, t6, 8
+    or   t6, t6, t3
+    slli t3, t6, 16
+    or   t6, t6, t3
+
+    /* aligned load from destination (already aligned) */
+    lw t3, 0(a1)
+    
+    /* Shift mask according to remaining bytes */
+    slli t1, t1, 3 /* bytes -> bits */
+    sll  t4, t6, t1 /* e.g., 0xFFFFFFFF -> 0xFF000000 */
+    /* TODO: MIND ENDIANNESS */
+
+    /* clear bytes in destination */
+    and t3, t3, t4
+
+    /* aligned load from state */
+    lw t5, 0(t2)
+    /* Invert mask */
+    sub t4, zero, t4
+    /* AND apply mask */
+    and t5, t5, t4
+
+    /* OR onto previously masked */
+    or t3, t3, t5
+
+    /* Store back */
+    sw t3, 0(a1)
+    ret
+
+/*
+    Assumes Keccak state in w0-w24 low bits... Or load here?
+*/
+sha3_keccakf:
+    /* Load coefficient mask for 64-bit 0xffffffffffffffff */
+    bn.addi w25, bn0, 1
+    bn.rshi w25, w25, bn0 >> 192
+    bn.subi w25, w25, 1
+
+    /* Copy context pointer */
+    add t1, zero, a0
+
+    /* Load data into the state */
+    addi t0, zero, 30
+    bn.lid t0, 0(t1++)
+    bn.and w0, w25, w30 >> 0
+    bn.and w1, w25, w30 >> 32
+    bn.and w2, w25, w30 >> 64
+    bn.and w3, w25, w30 >> 96
+    bn.lid t0, 0(t1++)
+    bn.and w4, w25, w30 >> 0
+    bn.and w5, w25, w30 >> 32
+    bn.and w6, w25, w30 >> 64
+    bn.and w7, w25, w30 >> 96
+    bn.lid t0, 0(t1++)
+    bn.and w8, w25, w30 >> 0
+    bn.and w9, w25, w30 >> 32
+    bn.and w10, w25, w30 >> 64
+    bn.and w11, w25, w30 >> 96
+    bn.lid t0, 0(t1++)
+    bn.and w12, w25, w30 >> 0
+    bn.and w13, w25, w30 >> 32
+    bn.and w14, w25, w30 >> 64
+    bn.and w15, w25, w30 >> 96
+    bn.lid t0, 0(t1++)
+    bn.and w16, w25, w30 >> 0
+    bn.and w17, w25, w30 >> 32
+    bn.and w18, w25, w30 >> 64
+    bn.and w19, w25, w30 >> 96
+    bn.lid t0, 0(t1++)
+    bn.and w20, w25, w30 >> 0
+    bn.and w21, w25, w30 >> 32
+    bn.and w22, w25, w30 >> 64
+    bn.and w23, w25, w30 >> 96
+    bn.lid t0, 0(t1++)
+    bn.and w24, w25, w30
+
+    la rc_addr, rc
+    LOOPI KECCAKF_ROUNDS, 260
+        /* THETA */
+        bn.xor w25, w25, w5
+        bn.xor w25, w25, w10
+        bn.xor w25, w25, w15
+        bn.xor w25, w25, w20
+        bn.xor w26, w26, w6
+        bn.xor w26, w26, w11
+        bn.xor w26, w26, w16
+        bn.xor w26, w26, w21
+        bn.xor w27, w27, w7
+        bn.xor w27, w27, w12
+        bn.xor w27, w27, w17
+        bn.xor w27, w27, w22
+        bn.xor w28, w28, w8
+        bn.xor w28, w28, w13
+        bn.xor w28, w28, w18
+        bn.xor w28, w28, w23
+        bn.xor w29, w29, w9
+        bn.xor w29, w29, w14
+        bn.xor w29, w29, w19
+        bn.xor w29, w29, w24
+        bn.rshi w30, w26, bn0 >> 64
+        bn.rshi w30, w26, w30 >> 193
+        bn.xor w30, w29, w30
+        bn.xor w0, w0, w30
+        bn.xor w5, w5, w30
+        bn.xor w10, w10, w30
+        bn.xor w15, w15, w30
+        bn.xor w20, w20, w30
+        bn.rshi w30, w27, bn0 >> 64
+        bn.rshi w30, w27, w30 >> 193
+        bn.xor w30, w25, w30
+        bn.xor w1, w1, w30
+        bn.xor w6, w6, w30
+        bn.xor w11, w11, w30
+        bn.xor w16, w16, w30
+        bn.xor w21, w21, w30
+        bn.rshi w30, w28, bn0 >> 64
+        bn.rshi w30, w28, w30 >> 193
+        bn.xor w30, w26, w30
+        bn.xor w2, w2, w30
+        bn.xor w7, w7, w30
+        bn.xor w12, w12, w30
+        bn.xor w17, w17, w30
+        bn.xor w22, w22, w30
+        bn.rshi w30, w29, bn0 >> 64
+        bn.rshi w30, w29, w30 >> 193
+        bn.xor w30, w27, w30
+        bn.xor w3, w3, w30
+        bn.xor w8, w8, w30
+        bn.xor w13, w13, w30
+        bn.xor w18, w18, w30
+        bn.xor w23, w23, w30
+        bn.rshi w30, w25, bn0 >> 64
+        bn.rshi w30, w25, w30 >> 193
+        bn.xor w30, w28, w30
+        bn.xor w4, w4, w30
+        bn.xor w9, w9, w30
+        bn.xor w14, w14, w30
+        bn.xor w19, w19, w30
+        bn.xor w24, w24, w30
+        /* RHO PI */
+        bn.mov w30, w1
+        bn.mov w25, w10
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w10, w30, w26 >> 193
+        bn.mov w30, w25
+        bn.mov w25, w7
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w7, w30, w26 >> 195
+        bn.mov w30, w25
+        bn.mov w25, w11
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w11, w30, w26 >> 198
+        bn.mov w30, w25
+        bn.mov w25, w17
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w17, w30, w26 >> 202
+        bn.mov w30, w25
+        bn.mov w25, w18
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w18, w30, w26 >> 207
+        bn.mov w30, w25
+        bn.mov w25, w3
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w3, w30, w26 >> 213
+        bn.mov w30, w25
+        bn.mov w25, w5
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w5, w30, w26 >> 220
+        bn.mov w30, w25
+        bn.mov w25, w16
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w16, w30, w26 >> 228
+        bn.mov w30, w25
+        bn.mov w25, w8
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w8, w30, w26 >> 237
+        bn.mov w30, w25
+        bn.mov w25, w21
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w21, w30, w26 >> 247
+        bn.mov w30, w25
+        bn.mov w25, w24
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w24, w30, w26 >> 194
+        bn.mov w30, w25
+        bn.mov w25, w4
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w4, w30, w26 >> 206
+        bn.mov w30, w25
+        bn.mov w25, w15
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w15, w30, w26 >> 219
+        bn.mov w30, w25
+        bn.mov w25, w23
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w23, w30, w26 >> 233
+        bn.mov w30, w25
+        bn.mov w25, w19
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w19, w30, w26 >> 248
+        bn.mov w30, w25
+        bn.mov w25, w13
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w13, w30, w26 >> 200
+        bn.mov w30, w25
+        bn.mov w25, w12
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w12, w30, w26 >> 217
+        bn.mov w30, w25
+        bn.mov w25, w2
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w2, w30, w26 >> 235
+        bn.mov w30, w25
+        bn.mov w25, w20
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w20, w30, w26 >> 254
+        bn.mov w30, w25
+        bn.mov w25, w14
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w14, w30, w26 >> 210
+        bn.mov w30, w25
+        bn.mov w25, w22
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w22, w30, w26 >> 231
+        bn.mov w30, w25
+        bn.mov w25, w9
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w9, w30, w26 >> 253
+        bn.mov w30, w25
+        bn.mov w25, w6
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w6, w30, w26 >> 212
+        bn.mov w30, w25
+        bn.mov w25, w1
+        bn.rshi w26, w30, bn0 >> 64
+        bn.rshi w1, w30, w26 >> 236
+        bn.mov w30, w25
+        /* CHI */
+        bn.mov w25, w0
+        bn.mov w26, w1
+        bn.mov w27, w2
+        bn.mov w28, w3
+        bn.mov w29, w4
+        bn.not w30, w26
+        bn.and w30, w30, w27
+        bn.xor w0, w0, w30
+        bn.not w30, w27
+        bn.and w30, w30, w28
+        bn.xor w1, w1, w30
+        bn.not w30, w28
+        bn.and w30, w30, w29
+        bn.xor w2, w2, w30
+        bn.not w30, w29
+        bn.and w30, w30, w25
+        bn.xor w3, w3, w30
+        bn.not w30, w25
+        bn.and w30, w30, w26
+        bn.xor w4, w4, w30
+        bn.mov w25, w5
+        bn.mov w26, w6
+        bn.mov w27, w7
+        bn.mov w28, w8
+        bn.mov w29, w9
+        bn.not w30, w26
+        bn.and w30, w30, w27
+        bn.xor w5, w5, w30
+        bn.not w30, w27
+        bn.and w30, w30, w28
+        bn.xor w6, w6, w30
+        bn.not w30, w28
+        bn.and w30, w30, w29
+        bn.xor w7, w7, w30
+        bn.not w30, w29
+        bn.and w30, w30, w25
+        bn.xor w8, w8, w30
+        bn.not w30, w25
+        bn.and w30, w30, w26
+        bn.xor w9, w9, w30
+        bn.mov w25, w10
+        bn.mov w26, w11
+        bn.mov w27, w12
+        bn.mov w28, w13
+        bn.mov w29, w14
+        bn.not w30, w26
+        bn.and w30, w30, w27
+        bn.xor w10, w10, w30
+        bn.not w30, w27
+        bn.and w30, w30, w28
+        bn.xor w11, w11, w30
+        bn.not w30, w28
+        bn.and w30, w30, w29
+        bn.xor w12, w12, w30
+        bn.not w30, w29
+        bn.and w30, w30, w25
+        bn.xor w13, w13, w30
+        bn.not w30, w25
+        bn.and w30, w30, w26
+        bn.xor w14, w14, w30
+        bn.mov w25, w15
+        bn.mov w26, w16
+        bn.mov w27, w17
+        bn.mov w28, w18
+        bn.mov w29, w19
+        bn.not w30, w26
+        bn.and w30, w30, w27
+        bn.xor w15, w15, w30
+        bn.not w30, w27
+        bn.and w30, w30, w28
+        bn.xor w16, w16, w30
+        bn.not w30, w28
+        bn.and w30, w30, w29
+        bn.xor w17, w17, w30
+        bn.not w30, w29
+        bn.and w30, w30, w25
+        bn.xor w18, w18, w30
+        bn.not w30, w25
+        bn.and w30, w30, w26
+        bn.xor w19, w19, w30
+        bn.mov w25, w20
+        bn.mov w26, w21
+        bn.mov w27, w22
+        bn.mov w28, w23
+        bn.mov w29, w24
+        bn.not w30, w26
+        bn.and w30, w30, w27
+        bn.xor w20, w20, w30
+        bn.not w30, w27
+        bn.and w30, w30, w28
+        bn.xor w21, w21, w30
+        bn.not w30, w28
+        bn.and w30, w30, w29
+        bn.xor w22, w22, w30
+        bn.not w30, w29
+        bn.and w30, w30, w25
+        bn.xor w23, w23, w30
+        bn.not w30, w25
+        bn.and w30, w30, w26
+        bn.xor w24, w24, w30
+        /* IOTA */
+        addi rc_addr, rc_addr, 32
+        bn.lid t0, 0(rc_addr)
+        bn.xor w0, w0, w30
+    ret
