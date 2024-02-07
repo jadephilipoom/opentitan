@@ -10,13 +10,14 @@
 run_sha3:
   /* Load stack pointer */
   la x2, stack_end
+
   la x10, context
-  li x11, 32 /* msglen */
+  li x11, 48 /* mdlen */
   jal x1, sha3_init
 
   la x10, context
   la x11, test_msg
-  li x12, 32
+  li x12, 208 /* msglen */
   jal x1, sha3_update
 
   la x10, context
@@ -26,6 +27,10 @@ run_sha3:
   ecall
 
 .section .data
+.balign 32
+test_dst:
+  .zero 256
+
 .global context
 context:
 .balign 32
@@ -85,26 +90,23 @@ rc:
 
 .balign 32
 test_msg:
-  .dword 0x6162638000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000000
-  .dword 0x0000000000000018
-
-.balign 32
-test_dst:
-  .zero 256
+  /* .dword 0x0D09DE907CCC2F9F
+  .dword 0xEAC118977ECD876B
+  .dword 0xE95D2DFC1811B26C
+  .dword 0x109C1EACB65D7EF9 */
+  .dword 0x4CAD9997EB8057E3
+  .dword 0xF33C68DB4D5D5377
+  .dword 0x4CCF27537167F33E
+  .dword 0x86D4CDBD9CED584A
+  .dword 0xA949D58901F869F6
+  .dword 0x5426A5512AA84F36
+  .dword 0xCE5DB9AAB31B72EC
+  .dword 0x6D8293FA6A6AA8B4
+  .dword 0xE3338F927E5123B9
+  .dword 0x83EF6056D450A8FB
+  .dword 0x98A9A2AFCC6A87B9
+  .dword 0x0A146E7C134B257A
+  .dword 0x48384169101E6921
 
   .zero 512
 stack_end:

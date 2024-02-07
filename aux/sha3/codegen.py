@@ -8,24 +8,41 @@ keccakf_rotc = [
 ]
 
 
-def gen_mem_to_state(state_start=0, mem_label="context", tmp_gpr="t0", mask=25, tmp=30):
+def gen_mem_to_state(state_start=0, mem_label="t1", tmp_gpr="t0", mask=25, tmp=30):
     state = list(range(state_start, state_start + 25))
     # TODO: This causes OOB read, better fix this at some point
     print(f"addi {tmp_gpr}, zero, {tmp}")
     for i in range(6):
         print(f"bn.lid {tmp_gpr}, 0({mem_label}++)")
         for j in range(4):
-            print(f"bn.and w{state[i * 4 + j]}, w{mask}, w{tmp} >> {j * 32}")
+            print(f"bn.and w{state[i * 4 + j]}, w{mask}, w{tmp} >> {j * 64}")
     # last separately
     print(f"bn.lid {tmp_gpr}, 0({mem_label}++)")
     print(f"bn.and w{state[24]}, w{mask}, w{tmp}")
 
 
+def gen_state_to_mem(state_start=0, mem_label="t1", tmp_gpr="t0", mask=25, tmp=30):
+    state = list(range(state_start, state_start + 25))
+    print(f"addi {tmp_gpr}, zero, {tmp}")
+    print(f"la {mem_label}, context")
+    for i in range(6):
+        for j in range(4):
+            print(f"bn.rshi w{tmp}, w{state[i * 4 + j]}, w{tmp} >> 64")
+        print(f"bn.sid {tmp_gpr}, 0({mem_label}++)")
+    # last separately
+    print(f"bn.lid {tmp_gpr}, 0({mem_label})")
+    print(f"bn.and w{tmp}, w{mask}, w{tmp}")
+    print(f"bn.or w{tmp}, w{state[24]}, w{tmp}")
+    print(f"bn.sid {tmp_gpr}, 0({mem_label}++)")
+
+
 def _ROTL64(in_reg, tmp_reg, amount, out_reg=-1):
     if out_reg == -1:
         out_reg = tmp_reg
-    print(f"bn.rshi w{tmp_reg}, w{in_reg}, bn0 >> 64")
-    print(f"bn.rshi w{out_reg}, w{in_reg}, w{tmp_reg} >> {256 - 64 + amount}")
+    print(f"bn.rshi w{tmp_reg}, w{in_reg}, bn0 >> {64}")
+    print(f"bn.rshi w{tmp_reg}, w{in_reg}, w{tmp_reg} >> {64 - amount}")
+    print(f"bn.rshi w{out_reg}, bn0, w{tmp_reg} >> {256 - 64}")
+
     # TODO: Maybe mask
 
 
@@ -34,7 +51,7 @@ def gen_theta(state_start=0, bc_start=25, tmp=30):
     state = list(range(state_start, state_start + 25)) 
     bc = list(range(bc_start, bc_start + 5))
     for i in range(5):
-        print(f"bn.xor w{bc[i]}, w{bc[i]}, w{state[i + 5]}")
+        print(f"bn.xor w{bc[i]}, w{state[i]}, w{state[i + 5]}")
         for off in [10, 15, 20]:
             print(f"bn.xor w{bc[i]}, w{bc[i]}, w{state[i + off]}")
 
@@ -79,8 +96,8 @@ def gen_iota(round=0, state_start=0, tmp=30):
     state = list(range(state_start, state_start + 25))
     print("/* IOTA */")
     # Load round constant
-    print("addi rc_addr, rc_addr, 32")  # RC is 64-bit
     print(f"bn.lid w{tmp}, {round*32}(rc_addr)")
+    print("addi rc_addr, rc_addr, 32")  # RC is 64-bit
     print(f"bn.xor w{state[0]}, w{state[0]}, w{tmp}")
 
 
@@ -92,8 +109,8 @@ def keccak_f():
         gen_iota()
 
 # gen_mem_to_state()
-
-gen_theta()
-gen_rho_pi()
-gen_chi()
-gen_iota()
+gen_state_to_mem()
+# gen_theta()
+# gen_rho_pi()
+# gen_chi()
+# gen_iota()

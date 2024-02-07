@@ -113,7 +113,9 @@ sha3_update:
     li a3, 0
     /* TODO: Write larger chunks at once, e.g. 4B or even 32B */
     /* Iterare over each input byte */
-    LOOP a2, 21
+    beq a2, zero, _sha3_update_skip_loop
+    li t6, 3
+    LOOP a2, 22
         /* get destination address */
         add t1, a0, t0 /* state[pt] */
         addi t0, t0, 1 /* pt++ */
@@ -128,7 +130,7 @@ sha3_update:
         /* get source address */
         add a4, a1, a3
         /* align source address */
-        and a5, a4, t4
+        and a5, a4, t5
         /* aligned load from destination */
         lw a5, 0(a5)
         /* Get lower two bits of source address */
@@ -157,7 +159,7 @@ _sha3_update_skip:
 
         /* Increment counter */
         addi a3, a3, 1
-
+_sha3_update_skip_loop:
     /* store j as pt */
     sw t0, 200(a0)
 
@@ -195,7 +197,7 @@ sha3_final:
     addi t5, zero, 0x06
     sll  t5, t5, t4
     xor  t3, t3, t5
-    sw t3, 200(a0)
+    sw t3, 0(t1)
 
     /* Load rsiz */
     lw t0, 204(a0)
@@ -212,7 +214,7 @@ sha3_final:
     addi t5, zero, 0x80
     sll  t5, t5, t4
     xor  t3, t3, t5
-    sw t3, 204(a0)
+    sw t3, 0(t1)
 
     jal x1, sha3_keccakf
 
@@ -225,7 +227,28 @@ sha3_final:
     LOOP t1, 4
         lw   t3, 0(t2)
         addi t2, t2, 4
-        sw   t3, 0(a1)
+
+        /* Change Endianness */
+        /* andi t5, t3, 0xFF
+        srli t3, t3, 8
+        slli t5, t5, 24
+        or   t6, zero, t5
+
+        andi t5, t3, 0xFF
+        srli t3, t3, 8
+        slli t5, t5, 16
+        or   t6, t6, t5
+
+        andi t5, t3, 0xFF
+        srli t3, t3, 8
+        slli t5, t5, 8
+        or   t6, t6, t5
+
+        andi t5, t3, 0xFF
+        srli t3, t3, 8
+        or   t6, t6, t5 */
+
+        sw   t3, 0(a1) /* t6 for endianness conversion */
         addi a1, a1, 4
     
     /* 2. Process the remaining mdlen % 4 bytes*/
@@ -281,62 +304,63 @@ sha3_keccakf:
     addi t0, zero, 30
     bn.lid t0, 0(t1++)
     bn.and w0, w25, w30 >> 0
-    bn.and w1, w25, w30 >> 32
-    bn.and w2, w25, w30 >> 64
-    bn.and w3, w25, w30 >> 96
+    bn.and w1, w25, w30 >> 64
+    bn.and w2, w25, w30 >> 128
+    bn.and w3, w25, w30 >> 192
     bn.lid t0, 0(t1++)
     bn.and w4, w25, w30 >> 0
-    bn.and w5, w25, w30 >> 32
-    bn.and w6, w25, w30 >> 64
-    bn.and w7, w25, w30 >> 96
+    bn.and w5, w25, w30 >> 64
+    bn.and w6, w25, w30 >> 128
+    bn.and w7, w25, w30 >> 192
     bn.lid t0, 0(t1++)
     bn.and w8, w25, w30 >> 0
-    bn.and w9, w25, w30 >> 32
-    bn.and w10, w25, w30 >> 64
-    bn.and w11, w25, w30 >> 96
+    bn.and w9, w25, w30 >> 64
+    bn.and w10, w25, w30 >> 128
+    bn.and w11, w25, w30 >> 192
     bn.lid t0, 0(t1++)
     bn.and w12, w25, w30 >> 0
-    bn.and w13, w25, w30 >> 32
-    bn.and w14, w25, w30 >> 64
-    bn.and w15, w25, w30 >> 96
+    bn.and w13, w25, w30 >> 64
+    bn.and w14, w25, w30 >> 128
+    bn.and w15, w25, w30 >> 192
     bn.lid t0, 0(t1++)
     bn.and w16, w25, w30 >> 0
-    bn.and w17, w25, w30 >> 32
-    bn.and w18, w25, w30 >> 64
-    bn.and w19, w25, w30 >> 96
+    bn.and w17, w25, w30 >> 64
+    bn.and w18, w25, w30 >> 128
+    bn.and w19, w25, w30 >> 192
     bn.lid t0, 0(t1++)
     bn.and w20, w25, w30 >> 0
-    bn.and w21, w25, w30 >> 32
-    bn.and w22, w25, w30 >> 64
-    bn.and w23, w25, w30 >> 96
+    bn.and w21, w25, w30 >> 64
+    bn.and w22, w25, w30 >> 128
+    bn.and w23, w25, w30 >> 192
     bn.lid t0, 0(t1++)
     bn.and w24, w25, w30
 
     la rc_addr, rc
-    LOOPI KECCAKF_ROUNDS, 260
+    LOOPI KECCAKF_ROUNDS, 289
         /* THETA */
-        bn.xor w25, w25, w5
+        bn.xor w25, w0, w5
         bn.xor w25, w25, w10
         bn.xor w25, w25, w15
         bn.xor w25, w25, w20
-        bn.xor w26, w26, w6
+        bn.xor w26, w1, w6
         bn.xor w26, w26, w11
         bn.xor w26, w26, w16
         bn.xor w26, w26, w21
-        bn.xor w27, w27, w7
+        bn.xor w27, w2, w7
         bn.xor w27, w27, w12
         bn.xor w27, w27, w17
         bn.xor w27, w27, w22
-        bn.xor w28, w28, w8
+        bn.xor w28, w3, w8
         bn.xor w28, w28, w13
         bn.xor w28, w28, w18
         bn.xor w28, w28, w23
-        bn.xor w29, w29, w9
+        bn.xor w29, w4, w9
         bn.xor w29, w29, w14
         bn.xor w29, w29, w19
         bn.xor w29, w29, w24
         bn.rshi w30, w26, bn0 >> 64
-        bn.rshi w30, w26, w30 >> 193
+        bn.rshi w30, w26, w30 >> 63
+        bn.rshi w30, bn0, w30 >> 192
         bn.xor w30, w29, w30
         bn.xor w0, w0, w30
         bn.xor w5, w5, w30
@@ -344,7 +368,8 @@ sha3_keccakf:
         bn.xor w15, w15, w30
         bn.xor w20, w20, w30
         bn.rshi w30, w27, bn0 >> 64
-        bn.rshi w30, w27, w30 >> 193
+        bn.rshi w30, w27, w30 >> 63
+        bn.rshi w30, bn0, w30 >> 192
         bn.xor w30, w25, w30
         bn.xor w1, w1, w30
         bn.xor w6, w6, w30
@@ -352,7 +377,8 @@ sha3_keccakf:
         bn.xor w16, w16, w30
         bn.xor w21, w21, w30
         bn.rshi w30, w28, bn0 >> 64
-        bn.rshi w30, w28, w30 >> 193
+        bn.rshi w30, w28, w30 >> 63
+        bn.rshi w30, bn0, w30 >> 192
         bn.xor w30, w26, w30
         bn.xor w2, w2, w30
         bn.xor w7, w7, w30
@@ -360,7 +386,8 @@ sha3_keccakf:
         bn.xor w17, w17, w30
         bn.xor w22, w22, w30
         bn.rshi w30, w29, bn0 >> 64
-        bn.rshi w30, w29, w30 >> 193
+        bn.rshi w30, w29, w30 >> 63
+        bn.rshi w30, bn0, w30 >> 192
         bn.xor w30, w27, w30
         bn.xor w3, w3, w30
         bn.xor w8, w8, w30
@@ -368,7 +395,8 @@ sha3_keccakf:
         bn.xor w18, w18, w30
         bn.xor w23, w23, w30
         bn.rshi w30, w25, bn0 >> 64
-        bn.rshi w30, w25, w30 >> 193
+        bn.rshi w30, w25, w30 >> 63
+        bn.rshi w30, bn0, w30 >> 192
         bn.xor w30, w28, w30
         bn.xor w4, w4, w30
         bn.xor w9, w9, w30
@@ -379,99 +407,123 @@ sha3_keccakf:
         bn.mov w30, w1
         bn.mov w25, w10
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w10, w30, w26 >> 193
+        bn.rshi w26, w30, w26 >> 63
+        bn.rshi w10, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w7
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w7, w30, w26 >> 195
+        bn.rshi w26, w30, w26 >> 61
+        bn.rshi w7, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w11
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w11, w30, w26 >> 198
+        bn.rshi w26, w30, w26 >> 58
+        bn.rshi w11, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w17
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w17, w30, w26 >> 202
+        bn.rshi w26, w30, w26 >> 54
+        bn.rshi w17, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w18
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w18, w30, w26 >> 207
+        bn.rshi w26, w30, w26 >> 49
+        bn.rshi w18, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w3
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w3, w30, w26 >> 213
+        bn.rshi w26, w30, w26 >> 43
+        bn.rshi w3, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w5
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w5, w30, w26 >> 220
+        bn.rshi w26, w30, w26 >> 36
+        bn.rshi w5, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w16
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w16, w30, w26 >> 228
+        bn.rshi w26, w30, w26 >> 28
+        bn.rshi w16, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w8
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w8, w30, w26 >> 237
+        bn.rshi w26, w30, w26 >> 19
+        bn.rshi w8, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w21
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w21, w30, w26 >> 247
+        bn.rshi w26, w30, w26 >> 9
+        bn.rshi w21, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w24
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w24, w30, w26 >> 194
+        bn.rshi w26, w30, w26 >> 62
+        bn.rshi w24, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w4
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w4, w30, w26 >> 206
+        bn.rshi w26, w30, w26 >> 50
+        bn.rshi w4, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w15
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w15, w30, w26 >> 219
+        bn.rshi w26, w30, w26 >> 37
+        bn.rshi w15, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w23
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w23, w30, w26 >> 233
+        bn.rshi w26, w30, w26 >> 23
+        bn.rshi w23, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w19
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w19, w30, w26 >> 248
+        bn.rshi w26, w30, w26 >> 8
+        bn.rshi w19, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w13
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w13, w30, w26 >> 200
+        bn.rshi w26, w30, w26 >> 56
+        bn.rshi w13, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w12
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w12, w30, w26 >> 217
+        bn.rshi w26, w30, w26 >> 39
+        bn.rshi w12, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w2
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w2, w30, w26 >> 235
+        bn.rshi w26, w30, w26 >> 21
+        bn.rshi w2, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w20
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w20, w30, w26 >> 254
+        bn.rshi w26, w30, w26 >> 2
+        bn.rshi w20, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w14
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w14, w30, w26 >> 210
+        bn.rshi w26, w30, w26 >> 46
+        bn.rshi w14, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w22
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w22, w30, w26 >> 231
+        bn.rshi w26, w30, w26 >> 25
+        bn.rshi w22, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w9
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w9, w30, w26 >> 253
+        bn.rshi w26, w30, w26 >> 3
+        bn.rshi w9, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w6
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w6, w30, w26 >> 212
+        bn.rshi w26, w30, w26 >> 44
+        bn.rshi w6, bn0, w26 >> 192
         bn.mov w30, w25
         bn.mov w25, w1
         bn.rshi w26, w30, bn0 >> 64
-        bn.rshi w1, w30, w26 >> 236
+        bn.rshi w26, w30, w26 >> 20
+        bn.rshi w1, bn0, w26 >> 192
         bn.mov w30, w25
         /* CHI */
         bn.mov w25, w0
@@ -575,7 +627,53 @@ sha3_keccakf:
         bn.and w30, w30, w26
         bn.xor w24, w24, w30
         /* IOTA */
-        addi rc_addr, rc_addr, 32
         bn.lid t0, 0(rc_addr)
+        addi rc_addr, rc_addr, 32
         bn.xor w0, w0, w30
+
+    addi t0, zero, 30
+    la t1, context
+    bn.rshi w30, w0, w30 >> 64
+    bn.rshi w30, w1, w30 >> 64
+    bn.rshi w30, w2, w30 >> 64
+    bn.rshi w30, w3, w30 >> 64
+    bn.sid t0, 0(t1++)
+    bn.rshi w30, w4, w30 >> 64
+    bn.rshi w30, w5, w30 >> 64
+    bn.rshi w30, w6, w30 >> 64
+    bn.rshi w30, w7, w30 >> 64
+    bn.sid t0, 0(t1++)
+    bn.rshi w30, w8, w30 >> 64
+    bn.rshi w30, w9, w30 >> 64
+    bn.rshi w30, w10, w30 >> 64
+    bn.rshi w30, w11, w30 >> 64
+    bn.sid t0, 0(t1++)
+    bn.rshi w30, w12, w30 >> 64
+    bn.rshi w30, w13, w30 >> 64
+    bn.rshi w30, w14, w30 >> 64
+    bn.rshi w30, w15, w30 >> 64
+    bn.sid t0, 0(t1++)
+    bn.rshi w30, w16, w30 >> 64
+    bn.rshi w30, w17, w30 >> 64
+    bn.rshi w30, w18, w30 >> 64
+    bn.rshi w30, w19, w30 >> 64
+    bn.sid t0, 0(t1++)
+    bn.rshi w30, w20, w30 >> 64
+    bn.rshi w30, w21, w30 >> 64
+    bn.rshi w30, w22, w30 >> 64
+    bn.rshi w30, w23, w30 >> 64
+    bn.sid t0, 0(t1++)
+
+    /* Only 64-bit remaining */
+    bn.lid t0, 0(t1)
+
+    /* Load coefficient mask for 64-bit 0xffffffffffffffff */
+    bn.addi w25, bn0, 1
+    bn.rshi w25, w25, bn0 >> 192
+    bn.subi w25, w25, 1
+    bn.not w25, w25
+    bn.and w30, w25, w30
+
+    bn.or w30, w24, w30
+    bn.sid t0, 0(t1++)
     ret
