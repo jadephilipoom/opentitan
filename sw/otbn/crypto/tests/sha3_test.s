@@ -71,6 +71,98 @@ run_sha3:
   la x11, test_dst_512
   jal x1, sha3_final
 
+/* SHAKE */
+
+/* SHAKE 128 */
+
+  /* SHAKE 128, 0 */
+  la x10, context
+  li x11, 16 /* mdlen */
+  jal x1, sha3_init
+
+  la x10, context
+  jal x1, shake_xof
+  
+  /* LOOPI 16, 4 */
+  .rept 16
+    la x10, context
+    la x11, test_dst_shake_128_0
+    li x12, 32
+
+    jal x1, shake_out
+  .endr
+
+  /* SHAKE 128, message */
+  la x10, context
+  li x11, 16 /* mdlen */
+  jal x1, sha3_init
+
+  la x10, context
+  la x11, test_msg_shake
+  li x12, 20
+
+  /* LOOPI 10, 2 */
+  .rept 10
+    jal x1, sha3_update
+  .endr
+    /* nop */
+
+  la x10, context
+  jal x1, shake_xof
+  
+  .rept 16
+    la x10, context
+    la x11, test_dst_shake_128_1
+    li x12, 32
+
+    jal x1, shake_out
+  .endr
+
+/* SHAKE 256 */
+
+  /* SHAKE 256, 0 */
+  la x10, context
+  li x11, 32 /* mdlen */
+  jal x1, sha3_init
+
+  la x10, context
+  jal x1, shake_xof
+  
+  /* LOOPI 16, 4 */
+  .rept 16
+    la x10, context
+    la x11, test_dst_shake_256_0
+    li x12, 32
+
+    jal x1, shake_out
+  .endr
+
+  /* SHAKE 256, message */
+  la x10, context
+  li x11, 32 /* mdlen */
+  jal x1, sha3_init
+
+  la x10, context
+  la x11, test_msg_shake
+  li x12, 20
+
+  /* LOOPI 10, 2 */
+  .rept 10
+    jal x1, sha3_update
+  .endr
+    /* nop */
+
+  la x10, context
+  jal x1, shake_xof
+  
+  .rept 16
+    la x10, context
+    la x11, test_dst_shake_256_1
+    li x12, 32
+
+    jal x1, shake_out
+  .endr
+
   ecall
 
 .section .data
@@ -90,6 +182,22 @@ test_dst_384:
 .balign 32
 test_dst_512:
   .zero 64
+
+.balign 32
+test_dst_shake_128_0:
+  .zero 32
+
+.balign 32
+test_dst_shake_128_1:
+  .zero 32
+
+.balign 32
+test_dst_shake_256_0:
+  .zero 32
+
+.balign 32
+test_dst_shake_256_1:
+  .zero 32
 
 .global context
 context:
@@ -208,6 +316,12 @@ test_msg_512_255:
   .dword 0xD778537833BFFF11
   .dword 0xB06BBEA5F666C29D
   .dword 0xB1AEEBCE2EA9E4
+
+.balign 32
+test_msg_shake:
+  .dword 0xA3A3A3A3A3A3A3A3
+  .dword 0xA3A3A3A3A3A3A3A3
+  .dword 0xA3A3A3A3
 
   .zero 512
 stack_end:

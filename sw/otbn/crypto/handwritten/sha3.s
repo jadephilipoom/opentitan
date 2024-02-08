@@ -166,9 +166,9 @@ _sha3_update_skip_loop:
     ret
 
 /**
- * sha3_update
+ * sha3_final
  *
- * Update state with additional data (absorb?)
+ * Finalize
  *
  * Flags: -
  *
@@ -227,27 +227,6 @@ sha3_final:
     LOOP t1, 4
         lw   t3, 0(t2)
         addi t2, t2, 4
-
-        /* Change Endianness */
-        /* andi t5, t3, 0xFF
-        srli t3, t3, 8
-        slli t5, t5, 24
-        or   t6, zero, t5
-
-        andi t5, t3, 0xFF
-        srli t3, t3, 8
-        slli t5, t5, 16
-        or   t6, t6, t5
-
-        andi t5, t3, 0xFF
-        srli t3, t3, 8
-        slli t5, t5, 8
-        or   t6, t6, t5
-
-        andi t5, t3, 0xFF
-        srli t3, t3, 8
-        or   t6, t6, t5 */
-
         sw   t3, 0(a1) /* t6 for endianness conversion */
         addi a1, a1, 4
     
@@ -676,4 +655,140 @@ sha3_keccakf:
 
     bn.or w30, w24, w30
     bn.sid t0, 0(t1++)
+    ret
+
+/**
+ * shake_xof
+ *
+ * Switch to SHAKE operation mode
+ *
+ * Flags: -
+ *
+ * @param[inout] a0: pointer to 212 bytes of memory for holding the context.
+                   32B aligned.
+ *
+ * clobbered registers: a0-a7, t0-t5
+ */
+.global shake_xof
+shake_xof:
+    /* Constants */
+    li   a2, 0xFFFFFFFC
+    
+    /* Load pt */
+    lw t0, 200(a0)
+    /* state[pt] */
+    add t0, a0, t0
+    /* Set low bits to zero */
+    and t1, t0, a2
+    /* Aligned load */
+    lw   t3, 0(t1)
+    /* Exgtract lower bits for exact offset */
+    andi t4, t0, 0x3
+    slli t4, t4, 3 /* byte -> bit */
+    addi t5, zero, 0x1F
+    sll  t5, t5, t4
+    xor  t3, t3, t5
+    sw t3, 0(t1)
+
+    /* Load rsiz */
+    lw t0, 204(a0)
+    addi t0, t0, -1 /* rsiz - 1 */ 
+    /* state[rsiz - 1] */
+    add t0, a0, t0
+    /* Set low bits to zero */
+    and t1, t0, a2
+    /* Aligned load */
+    lw   t3, 0(t1)
+    /* Exgtract lower bits for exact offset */
+    andi t4, t0, 0x3
+    slli t4, t4, 3 /* byte -> bit */
+    addi t5, zero, 0x80
+    sll  t5, t5, t4
+    xor  t3, t3, t5
+    sw t3, 0(t1)
+
+    jal x1, sha3_keccakf
+
+    sw zero, 200(a0)
+
+    ret
+
+/**
+ * shake_out
+ *
+ * Get SHAKE output
+ *
+ * Flags: -
+ *
+ * @param[in]    a2: desired output length
+ * @param[in]    a1: output pointer
+ * @param[inout] a0: pointer to 212 bytes of memory for holding the context.
+                   32B aligned.
+ *
+ * clobbered registers: a0-a7, t0-t5
+ */
+.global shake_out
+shake_out:
+    /* Load pt as j */
+    lw t0, 200(a0)
+    /* Constants */
+    li t5, 0xFFFFFFFC
+    li t6, 0xFF
+    li a7, 0
+    addi a7, a7, -1
+
+    /* Counter */
+    li a3, 0
+
+    beq a2, zero, _shake_out_skip_loop
+    LOOP a2, 26
+        /* Load rsiz */
+        lw t4, 204(a0)
+        sub t3, t0, t4
+        srli t3, t3, 31
+        bne t3, zero, _shake_out_skip
+
+        jal x1, sha3_keccakf
+        xor t0, t0, t0 /* j = 0 */
+
+_shake_out_skip:
+        /* Get source address */
+        add  t2, t0, a0
+        addi t0, t0, 1 /* j++ */
+
+        /* Align source address */
+        and t3, t2, t5
+        /* Aligned load */
+        lw t3, 0(t3)
+        /* Extract 2 low bits from address */
+        andi t2, t2, 0x3
+        slli t2, t2, 3 /* bits -> bytes */
+        srl t3, t3, t2
+        andi t3, t3, 0xFF
+
+        /* Get destination address */
+        add t2, a1, a3
+        addi a3, a3, 1 /* counter++ */
+        /* Align destination address */
+        and a6, t2, t5
+        /* Aligned load */
+        lw t4, 0(a6)
+        /* Extract 2 low bits from address */
+        andi a4, t2, 0x3
+        slli a4, a4, 3
+        /* Clear index for insertion */
+        sll a5, t6, a4
+        xor a5, a7, a5
+        and t4, t4, a5
+
+        /* Insert */ 
+        sll t3, t3, a4
+        or  t4, t4, t3
+
+        /* Aligned store to output */
+        sw t4, 0(a6)
+
+_shake_out_skip_loop:
+    /* store j as pt */
+    sw t0, 200(a0)
     ret
