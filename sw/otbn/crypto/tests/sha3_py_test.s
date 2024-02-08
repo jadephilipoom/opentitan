@@ -46,7 +46,7 @@ _SHAKE:
     addi x11, x18, 0  /* Copy back message address */
     addi x12, x9, 0   /* Copy back the absorb size */
     jal  x1, sha3_update
-    add  x18, x18, zero /* Advance message address */
+    add  x18, x18, x9 /* Advance message address */
 
   la x10, context
   jal x1, shake_xof
@@ -62,7 +62,7 @@ _SHAKE:
     addi x11, x9, 0  /* Copy back digest address */
     addi x12, x19, 0 /* Copy back squeeze size */
     jal x1, shake_out
-    add x9, x9, zero  /* Advance digest address */
+    add x9, x9, x19  /* Advance digest address */
 
 _END:
 

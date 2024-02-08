@@ -1101,3 +1101,13 @@ otbn_sim_py_test(
         ],
     sim_test_wrapper = "dilithiumpy_bench_otbn/run_dilithium.py",
 )
+
+otbn_sim_py_test(
+    name = "sha3_py_bench",
+    srcs = [
+    ],
+    deps = [
+        ":sha3_py_test",
+        ],
+    sim_test_wrapper = "keccak_bench_otbn/run_keccak.py",
+)
