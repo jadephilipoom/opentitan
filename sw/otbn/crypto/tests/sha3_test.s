@@ -83,14 +83,14 @@ run_sha3:
   la x10, context
   jal x1, shake_xof
   
-  /* LOOPI 16, 4 */
-  .rept 16
-    la x10, context
-    la x11, test_dst_shake_128_0
-    li x12, 32
-
+  la x8, context
+  la x9, test_dst_shake_128_0
+  LOOPI 16, 5
+    addi x10, x8, 0
+    addi x11, x9, 0
+    addi x12, zero, 32
     jal x1, shake_out
-  .endr
+    nop
 
   /* SHAKE 128, message */
   la x10, context
@@ -101,22 +101,21 @@ run_sha3:
   la x11, test_msg_shake
   li x12, 20
 
-  /* LOOPI 10, 2 */
-  .rept 10
+  LOOPI 10, 2
     jal x1, sha3_update
-  .endr
-    /* nop */
+    nop
 
   la x10, context
   jal x1, shake_xof
   
-  .rept 16
-    la x10, context
-    la x11, test_dst_shake_128_1
-    li x12, 32
-
+  la x8, context
+  la x9, test_dst_shake_128_1
+  LOOPI 16, 5
+    addi x10, x8, 0
+    addi x11, x9, 0
+    addi x12, zero, 32
     jal x1, shake_out
-  .endr
+    nop
 
 /* SHAKE 256 */
 
@@ -128,14 +127,14 @@ run_sha3:
   la x10, context
   jal x1, shake_xof
   
-  /* LOOPI 16, 4 */
-  .rept 16
-    la x10, context
-    la x11, test_dst_shake_256_0
-    li x12, 32
-
+  la x8, context
+  la x9, test_dst_shake_256_0
+  LOOPI 16, 5
+    addi x10, x8, 0
+    addi x11, x9, 0
+    addi x12, zero, 32
     jal x1, shake_out
-  .endr
+    nop
 
   /* SHAKE 256, message */
   la x10, context
@@ -146,22 +145,21 @@ run_sha3:
   la x11, test_msg_shake
   li x12, 20
 
-  /* LOOPI 10, 2 */
-  .rept 10
+  LOOPI 10, 2
     jal x1, sha3_update
-  .endr
-    /* nop */
+    nop
 
   la x10, context
   jal x1, shake_xof
   
-  .rept 16
-    la x10, context
-    la x11, test_dst_shake_256_1
-    li x12, 32
-
+  la x8, context
+  la x9, test_dst_shake_256_1
+  LOOPI 16, 5
+    addi x10, x8, 0
+    addi x11, x9, 0
+    addi x12, zero, 32
     jal x1, shake_out
-  .endr
+    nop
 
   ecall
 
