@@ -304,6 +304,32 @@ opentitan_test(
     ],
 )
 
+opentitan_test(
+    name = "personalize_benchmark_functest",
+    srcs = ["personalize_benchmark_functest.c"],
+    deps = [
+        ":flash_info_fields",
+        ":personalize",
+        "//hw/ip/flash_ctrl/data:flash_ctrl_regs",
+        "//hw/ip/lc_ctrl/data:lc_ctrl_regs",
+        "//hw/ip/otp_ctrl/data:otp_ctrl_regs",
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/base:status",
+        "//sw/device/lib/dif:flash_ctrl",
+        "//sw/device/lib/dif:lc_ctrl",
+        "//sw/device/lib/dif:otp_ctrl",
+        "//sw/device/lib/dif:rstmgr",
+        "//sw/device/lib/testing:rstmgr_testutils",
+        "//sw/device/lib/testing:profile",
+        "//sw/device/lib/testing/json:command",
+        "//sw/device/lib/testing/json:provisioning_data",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/lib/testing/test_framework:ujson_ottf",
+        "//sw/device/silicon_creator/lib:attestation",
+        "//sw/device/silicon_creator/lib/drivers:retention_sram",
+    ],
+)
+
 cc_library(
     name = "ast_program",
     srcs = ["ast_program.c"],
