@@ -5,6 +5,7 @@
 load("//rules:linker.bzl", "ld_library")
 load(
     "//rules/opentitan:defs.bzl",
+    "EARLGREY_TEST_ENVS",
     "OPENTITAN_CPU",
     "cw310_params",
     "opentitan_test",
@@ -304,25 +305,45 @@ opentitan_test(
     ],
 )
 
+# Bazel doesn't natively allow including .c files, so here we declare
+# personalize.c as a header to work around it.
+cc_library(
+    name = "personalize_c",
+    hdrs = ["personalize.c"],
+)
+
 opentitan_test(
     name = "personalize_benchmark_functest",
     srcs = ["personalize_benchmark_functest.c"],
+    exec_env = EARLGREY_TEST_ENVS,
     deps = [
         ":flash_info_fields",
         ":personalize",
+        ":personalize_c",
+        ":util",
         "//hw/ip/flash_ctrl/data:flash_ctrl_regs",
         "//hw/ip/lc_ctrl/data:lc_ctrl_regs",
         "//hw/ip/otp_ctrl/data:otp_ctrl_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/base:multibits",
         "//sw/device/lib/base:status",
+        "//sw/device/lib/crypto/drivers:entropy",
+        "//sw/device/lib/crypto/impl:aes",
+        "//sw/device/lib/crypto/impl:ecc",
+        "//sw/device/lib/crypto/impl:hash",
+        "//sw/device/lib/crypto/impl:keyblob",
+        "//sw/device/lib/crypto/include:datatypes",
         "//sw/device/lib/dif:flash_ctrl",
         "//sw/device/lib/dif:lc_ctrl",
         "//sw/device/lib/dif:otp_ctrl",
         "//sw/device/lib/dif:rstmgr",
-        "//sw/device/lib/testing:rstmgr_testutils",
+        "//sw/device/lib/testing:flash_ctrl_testutils",
+        "//sw/device/lib/testing:lc_ctrl_testutils",
+        "//sw/device/lib/testing:otp_ctrl_testutils",
         "//sw/device/lib/testing:profile",
         "//sw/device/lib/testing/json:command",
         "//sw/device/lib/testing/json:provisioning_data",
+        "//sw/device/lib/testing/test_framework:check",
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/lib/testing/test_framework:ujson_ottf",
         "//sw/device/silicon_creator/lib:attestation",
