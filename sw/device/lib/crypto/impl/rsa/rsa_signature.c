@@ -7,6 +7,7 @@
 #include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/base/hardened_memory.h"
 #include "sw/device/lib/base/math.h"
+#include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
 #include "sw/device/lib/crypto/impl/rsa/rsa_modexp.h"
 #include "sw/device/lib/crypto/impl/rsa/rsa_padding.h"
@@ -167,6 +168,13 @@ status_t rsa_signature_generate_2048_finalize(rsa_2048_int_t *signature) {
 
 status_t rsa_signature_verify_2048_start(
     const rsa_2048_public_key_t *public_key, const rsa_2048_int_t *signature) {
+  // Reject the signature if it is too large (n <= sig): RFC 8017, section
+  // 5.2.2, step 1.
+  if (memrcmp(public_key->n.data, signature->data,
+              sizeof(public_key->n.data)) <= 0) {
+    return OTCRYPTO_BAD_ARGS;
+  }
+
   // Start computing (sig ^ e) mod n with a variable-time exponentiation.
   return rsa_modexp_vartime_2048_start(signature, public_key->e,
                                        &public_key->n);
@@ -235,6 +243,13 @@ status_t rsa_signature_generate_3072_finalize(rsa_3072_int_t *signature) {
 
 status_t rsa_signature_verify_3072_start(
     const rsa_3072_public_key_t *public_key, const rsa_3072_int_t *signature) {
+  // Reject the signature if it is too large (n <= sig): RFC 8017, section
+  // 5.2.2, step 1.
+  if (memrcmp(public_key->n.data, signature->data,
+              sizeof(public_key->n.data)) <= 0) {
+    return OTCRYPTO_BAD_ARGS;
+  }
+
   // Start computing (sig ^ e) mod n with a variable-time exponentiation.
   return rsa_modexp_vartime_3072_start(signature, public_key->e,
                                        &public_key->n);
@@ -261,6 +276,13 @@ status_t rsa_signature_generate_4096_finalize(rsa_4096_int_t *signature) {
 
 status_t rsa_signature_verify_4096_start(
     const rsa_4096_public_key_t *public_key, const rsa_4096_int_t *signature) {
+  // Reject the signature if it is too large (n <= sig): RFC 8017, section
+  // 5.2.2, step 1.
+  if (memrcmp(public_key->n.data, signature->data,
+              sizeof(public_key->n.data)) <= 0) {
+    return OTCRYPTO_BAD_ARGS;
+  }
+
   // Start computing (sig ^ e) mod n with a variable-time exponentiation.
   return rsa_modexp_vartime_4096_start(signature, public_key->e,
                                        &public_key->n);

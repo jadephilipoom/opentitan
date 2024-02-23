@@ -7,6 +7,7 @@
 #include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/base/hardened_memory.h"
 #include "sw/device/lib/base/math.h"
+#include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
 #include "sw/device/lib/crypto/impl/rsa/rsa_modexp.h"
 #include "sw/device/lib/crypto/impl/rsa/rsa_padding.h"
@@ -39,6 +40,12 @@ status_t rsa_encrypt_2048_finalize(rsa_2048_int_t *ciphertext) {
 
 status_t rsa_decrypt_2048_start(const rsa_2048_private_key_t *private_key,
                                 const rsa_2048_int_t *ciphertext) {
+  // Reject the ciphertext if it is too large (n <= c): RFC 8017, section
+  // 5.1.2, step 1.
+  if (memrcmp(private_key->n.data, ciphertext->data,
+              sizeof(private_key->n.data)) <= 0) {
+    return OTCRYPTO_BAD_ARGS;
+  }
   // Start computing (ciphertext ^ d) mod n.
   return rsa_modexp_consttime_2048_start(ciphertext, &private_key->d,
                                          &private_key->n);
@@ -124,6 +131,12 @@ status_t rsa_encrypt_3072_finalize(rsa_3072_int_t *ciphertext) {
 
 status_t rsa_decrypt_3072_start(const rsa_3072_private_key_t *private_key,
                                 const rsa_3072_int_t *ciphertext) {
+  // Reject the ciphertext if it is too large (n <= c): RFC 8017, section
+  // 5.1.2, step 1.
+  if (memrcmp(private_key->n.data, ciphertext->data,
+              sizeof(private_key->n.data)) <= 0) {
+    return OTCRYPTO_BAD_ARGS;
+  }
   // Start computing (ciphertext ^ d) mod n.
   return rsa_modexp_consttime_3072_start(ciphertext, &private_key->d,
                                          &private_key->n);
@@ -151,6 +164,12 @@ status_t rsa_encrypt_4096_finalize(rsa_4096_int_t *ciphertext) {
 
 status_t rsa_decrypt_4096_start(const rsa_4096_private_key_t *private_key,
                                 const rsa_4096_int_t *ciphertext) {
+  // Reject the ciphertext if it is too large (n <= c): RFC 8017, section
+  // 5.1.2, step 1.
+  if (memrcmp(private_key->n.data, ciphertext->data,
+              sizeof(private_key->n.data)) <= 0) {
+    return OTCRYPTO_BAD_ARGS;
+  }
   // Start computing (ciphertext ^ d) mod n.
   return rsa_modexp_consttime_4096_start(ciphertext, &private_key->d,
                                          &private_key->n);
