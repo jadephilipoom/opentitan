@@ -22,28 +22,10 @@ OTTF_DEFINE_TEST_CONFIG();
 // Test P256 public key taken from
 // sw/otbn/crypto/tests/p256_ecdsa_verify_test.s
 static ecc_p256_public_key_t host_pk = {
-        .x =
-            {
-                0xbfa8c334,
-                0x9773b7b3,
-                0xf36b0689,
-                0x6ec0c0b2,
-                0xdb6c8bf3,
-                0x1628ce58,
-                0xfacdc546,
-                0xb5511a6a
-            },
-        .y =
-            {
-                0x9e008c2e,
-                0xa8707058,
-                0xab9c6924,
-                0x7f7a11d0,
-                0xb53a17fa,
-                0x43dd09ea,
-                0x1f31c143,
-                0x42a1c697
-            },
+    .x = {0xbfa8c334, 0x9773b7b3, 0xf36b0689, 0x6ec0c0b2, 0xdb6c8bf3,
+          0x1628ce58, 0xfacdc546, 0xb5511a6a},
+    .y = {0x9e008c2e, 0xa8707058, 0xab9c6924, 0x7f7a11d0, 0xb53a17fa,
+          0x43dd09ea, 0x1f31c143, 0x42a1c697},
 };
 
 /**
@@ -71,7 +53,8 @@ static status_t peripheral_handles_init(void) {
 
 status_t benchmark_personalize_device_secret1(void) {
   uint64_t t_start = profile_start();
-  // For this test, we can directly call the function from the `personalize` lib.
+  // For this test, we can directly call the function from the `personalize`
+  // lib.
   TRY(manuf_personalize_device_secret1(&lc_ctrl, &otp_ctrl));
   profile_end_and_print(t_start, "SECRET1 personalization");
   return OK_STATUS();
@@ -85,8 +68,7 @@ status_t benchmark_personalize_device_secrets(void) {
   // OTP, and plus some benchmark start/end points.
 
   uint64_t t_start = profile_start();
-  // Generate AES encryption key and IV for exporting the RMA unlock token.
-  // AES key (i.e., ECDH shared secret).
+
   uint32_t aes_key_buf[keyblob_num_words(kRmaUnlockTokenAesKeyConfig)];
   otcrypto_blinded_key_t token_aes_key = {
       .config = kRmaUnlockTokenAesKeyConfig,
@@ -94,20 +76,13 @@ status_t benchmark_personalize_device_secrets(void) {
       .keyblob = aes_key_buf,
   };
 
-  // Re-initialize the entropy complex in continous mode. This also configures
-  // the entropy_src health checks in FIPS mode.
-  TRY(entropy_complex_init());
-  
   otcrypto_unblinded_key_t pk_host = {
       .key_mode = kOtcryptoKeyModeEcdh,
       .key_length = sizeof(host_pk),
       .key = (uint32_t *)&host_pk,
       .checksum = 0,
   };
-  profile_end_and_print(t_start, "Initialization");
 
-
-  t_start = profile_start();
   // ECDH device private key.
   uint32_t sk_device_keyblob[keyblob_num_words(kEcdhPrivateKeyConfig)];
   otcrypto_blinded_key_t sk_device = {
@@ -124,12 +99,25 @@ status_t benchmark_personalize_device_secrets(void) {
       .key = (uint32_t *)&wrapped_token.device_pk,
       .checksum = 0,
   };
+  profile_end_and_print(t_start, "Buffer initialization");
+
+  // Re-initialize the entropy complex in continous mode. This also configures
+  // the entropy_src health checks in FIPS mode.
+  t_start = profile_start();
+  TRY(entropy_complex_init());
+  profile_end_and_print(t_start, "Entropy complex initialization");
+
+  // BEGIN code from gen_rma_unlock_token_aes_key()
+
+  t_start = profile_start();
   TRY(otcrypto_ecdh_keygen(&kCurveP256, &sk_device, &pk_device));
   profile_end_and_print(t_start, "ECDH key generation");
 
   t_start = profile_start();
   TRY(otcrypto_ecdh(&sk_device, &pk_host, &kCurveP256, &token_aes_key));
   profile_end_and_print(t_start, "ECDH key exchange");
+
+  // END code from gen_rma_unlock_token_aes_key()
 
   t_start = profile_start();
   // Provision secret Creator / Owner key seeds in flash.
@@ -154,24 +142,30 @@ status_t benchmark_personalize_device_secrets(void) {
                                        kAttestationSeedWords));
   profile_end_and_print(t_start, "Creator/Owner/attestation seed generation");
 
+  /// BEGIN code from otp_partition_secret2_configure()
+
   t_start = profile_start();
-  // Provision the OTP SECRET2 partition.
-  // Code below is expanded from otp_partition_secret2_configure, minus the
-  // final writes to OTP.
   TRY(entropy_csrng_instantiate(/*disable_trng_input=*/kHardenedBoolFalse,
                                 /*seed_material=*/NULL));
+  profile_end_and_print(t_start, "Entropy instantiate for SECRET2");
 
+  t_start = profile_start();
   // Generate and hash RMA unlock token.
   TRY(entropy_csrng_generate(/*seed_material=*/NULL, wrapped_token.data,
                              kRmaUnlockTokenSizeIn32BitWords,
                              /*fips_check*/ kHardenedBoolTrue));
+  profile_end_and_print(t_start, "Generate RMA token");
+
+  t_start = profile_start();
   TRY(entropy_csrng_reseed(/*disable_trng_input=*/kHardenedBoolFalse,
                            /*seed_material=*/NULL));
+  profile_end_and_print(t_start, "Entropy reseed");
+
+  t_start = profile_start();
   uint64_t hashed_wrapped_token[kRmaUnlockTokenSizeIn64BitWords];
-  TRY(manuf_util_hash_lc_transition_token(wrapped_token.data,
-                                          kRmaUnlockTokenSizeInBytes,
-                                          hashed_wrapped_token));
-  profile_end_and_print(t_start, "Generate RMA token");
+  TRY(manuf_util_hash_lc_transition_token(
+      wrapped_token.data, kRmaUnlockTokenSizeInBytes, hashed_wrapped_token));
+  profile_end_and_print(t_start, "Hash RMA token");
 
   t_start = profile_start();
   // Generate RootKey shares.
@@ -179,22 +173,31 @@ status_t benchmark_personalize_device_secrets(void) {
   TRY(entropy_csrng_generate(/*seed_material=*/NULL, (uint32_t *)share0,
                              kRootKeyShareSizeIn32BitWords,
                              /*fips_check*/ kHardenedBoolTrue));
+  profile_end_and_print(t_start, "Generate RootKey share 0");
+
+  t_start = profile_start();
   TRY(entropy_csrng_reseed(/*disable_trng_input=*/kHardenedBoolFalse,
                            /*seed_material=*/NULL));
+  profile_end_and_print(t_start, "Entropy reseed");
 
+  t_start = profile_start();
   uint64_t share1[kRootKeyShareSizeIn64BitWords];
   TRY(entropy_csrng_generate(/*seed_material=*/NULL, (uint32_t *)share1,
                              kRootKeyShareSizeIn32BitWords,
                              /*fips_check*/ kHardenedBoolTrue));
+  profile_end_and_print(t_start, "Generate RootKey share 1");
+
+  t_start = profile_start();
   TRY(entropy_csrng_uninstantiate());
 
   TRY(shares_check(share0, share1, kRootKeyShareSizeIn64BitWords));
-  profile_end_and_print(t_start, "Generate RootKey");
+  profile_end_and_print(t_start, "Entropy uninstantiate and share check");
+
+  /// END code from otp_partition_secret2_configure()
 
   t_start = profile_start();
   // Encrypt the RMA unlock token with AES.
-  TRY(encrypt_rma_unlock_token(&token_aes_key,
-                               &wrapped_token));
+  TRY(encrypt_rma_unlock_token(&token_aes_key, &wrapped_token));
   profile_end_and_print(t_start, "Encrypt RMA token");
 
   return OK_STATUS();
