@@ -6,7 +6,12 @@ load(
     "//rules:certificates.bzl",
     "certificate_template",
 )
-load("//rules:opentitan.bzl", "OPENTITAN_CPU")
+load(
+    "//rules/opentitan:defs.bzl",
+    "EARLGREY_TEST_ENVS",
+    "OPENTITAN_CPU",
+    "opentitan_test",
+)
 
 package(default_visibility = ["//visibility:public"])
 
@@ -73,5 +78,22 @@ cc_library(
         "//sw/device/silicon_creator/lib/drivers:keymgr",
         "//sw/device/silicon_creator/lib/drivers:lifecycle",
         "//sw/otbn/crypto:boot",
+    ],
+)
+
+opentitan_test(
+    name = "dice_benchmark_functest",
+    srcs = ["dice_benchmark_functest.c"],
+    exec_env = EARLGREY_TEST_ENVS,
+    deps = [
+	":dice",
+        "//sw/device/lib/base:status",
+        "//sw/device/lib/testing/json:provisioning_data",
+        "//sw/device/silicon_creator/lib:otbn_boot_services",
+        "//sw/device/lib/crypto/drivers:entropy",
+        "//sw/device/lib/testing:profile",
+        "//sw/otbn/crypto:boot",
+        "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_main",
     ],
 )
