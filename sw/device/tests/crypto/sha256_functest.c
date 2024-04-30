@@ -7,6 +7,7 @@
 #include "sw/device/lib/crypto/include/datatypes.h"
 #include "sw/device/lib/crypto/include/hash.h"
 #include "sw/device/lib/runtime/log.h"
+#include "sw/device/lib/testing/profile.h"
 #include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ottf_main.h"
 
@@ -62,7 +63,9 @@ static status_t run_test(otcrypto_const_byte_buf_t msg,
       .len = kHmacDigestNumWords,
       .mode = kOtcryptoHashModeSha256,
   };
+  uint64_t t_start = profile_start();
   TRY(otcrypto_hash(msg, digest_buf));
+  profile_end_and_print(t_start, "SHA256");
   TRY_CHECK_ARRAYS_EQ(act_digest, exp_digest, kHmacDigestNumWords);
   return OK_STATUS();
 }
@@ -100,6 +103,32 @@ static status_t empty_test(void) {
   otcrypto_const_byte_buf_t msg_buf = {
       .data = NULL,
       .len = 0,
+  };
+  return run_test(msg_buf, exp_digest);
+}
+
+/**
+ * Test with a long message.
+ *
+ * SHA256(<4kB of the byte 0xaa>)
+ *   = 0xd6d599d3b3f6b617e686f862179d97e1fbb3ac63cded47d01cf24e7effd04c2b
+ */
+static status_t long_test(void) {
+  unsigned char msg_data[4000];
+  memset(msg_data, 0xaa, sizeof(msg_data));
+  otcrypto_const_byte_buf_t msg_buf = {
+      .data = msg_data,
+      .len = sizeof(msg_data),
+  };
+  const uint32_t exp_digest[] = {
+	  0xd399d5d6,
+	  0x17b6f6b3,
+	  0x62f886e6,
+	  0xe1979d17,
+	  0x63acb3fb,
+	  0xd047edcd,
+	  0x7e4ef21c,
+	  0x2b4cd0ff
   };
   return run_test(msg_buf, exp_digest);
 }
@@ -174,6 +203,7 @@ bool test_main(void) {
   CHECK_STATUS_OK(entropy_complex_init());
   EXECUTE_TEST(test_result, simple_test);
   EXECUTE_TEST(test_result, empty_test);
+  EXECUTE_TEST(test_result, long_test);
   EXECUTE_TEST(test_result, one_update_streaming_test);
   EXECUTE_TEST(test_result, multiple_update_streaming_test);
   return status_ok(test_result);
