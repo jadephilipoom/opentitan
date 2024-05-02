@@ -126,7 +126,7 @@ pip_wheel = repository_rule(
             doc = "If True, suppress printing stdout/stderr to the terminal.",
         ),
         "timeout": attr.int(
-            default = 300,
+            default = 1200,
             doc = "Timeout (in seconds) on the rule's execution duration.",
         ),
         "_gen_requirements_script": attr.label(
