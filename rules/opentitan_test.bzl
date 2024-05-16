@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 load(
-    "@//rules:opentitan.bzl",
+    "@lowrisc_opentitan//rules:opentitan.bzl",
     "RSA_ONLY_KEY_STRUCTS",
     "opentitan_flash_binary",
     "opentitan_rom_binary",

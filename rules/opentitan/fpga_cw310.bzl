@@ -252,7 +252,7 @@ def cw310_params(
     if bitstream and (rom or otp):
         fail("Cannot use rom or otp with bitstream.")
     if not bitstream:
-        bitstream = "@//hw/bitstream/universal:splice"
+        bitstream = "@lowrisc_opentitan//hw/bitstream/universal:splice"
 
     # Clear bitstream after the test if it changes the OTP.
     post_test_harness = "//sw/host/opentitantool" if changes_otp else None
