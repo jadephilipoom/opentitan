@@ -11,7 +11,7 @@ def openocd_repos(local = None):
         local = local,
         url = "https://sourceforge.net/projects/openocd/files/openocd/{version}/openocd-{version}.tar.gz".format(version = OPENOCD_VERSION),
         strip_prefix = "openocd-" + OPENOCD_VERSION,
-        build_file = "//third_party/openocd:BUILD.openocd.bazel",
+        build_file = "@lowrisc_opentitan//third_party/openocd:BUILD.openocd.bazel",
         sha256 = "bb367fd19ab96a65ee5b269b60326d9f36bca1c64d9865cc36985d3651aba563",
         # See Issue(#18087)
         patches = [

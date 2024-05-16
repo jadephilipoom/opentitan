@@ -1041,7 +1041,7 @@ def crate_repositories():
             "-p2",
         ],
         patches = [
-            "@//third_party/rust/patches:cryptoki-vendor-defined-mechanism-type.patch",
+            "@lowrisc_opentitan//third_party/rust/patches:cryptoki-vendor-defined-mechanism-type.patch",
         ],
         sha256 = "95d9fb68c88020896fa3741a10e41f206b2ace927724170a753a3f2ba5f77c2b",
         type = "tar.gz",
@@ -1777,7 +1777,7 @@ def crate_repositories():
             "-p1",
         ],
         patches = [
-            "@//third_party/rust/patches:libudev-sys-0.1.4.patch",
+            "@lowrisc_opentitan//third_party/rust/patches:libudev-sys-0.1.4.patch",
         ],
         sha256 = "3c8469b4a23b962c1396b9b451dda50ef5b283e8dd309d69033475fa9b334324",
         type = "tar.gz",
@@ -1883,7 +1883,7 @@ def crate_repositories():
             "-p1",
         ],
         patches = [
-            "@//third_party/rust/patches:mdbook-landing-page-links.patch",
+            "@lowrisc_opentitan//third_party/rust/patches:mdbook-landing-page-links.patch",
         ],
         sha256 = "c55eb7c4dad20cc5bc15181c2aaf43d5689d5c3e0b80b50cc4cf0b7fe72a26d9",
         type = "tar.gz",
@@ -2339,7 +2339,7 @@ def crate_repositories():
             "-p2",
         ],
         patches = [
-            "@//third_party/rust/patches:pqcrypto-sphincsplus-includedir.patch",
+            "@lowrisc_opentitan//third_party/rust/patches:pqcrypto-sphincsplus-includedir.patch",
         ],
         sha256 = "1b1ac9adfc6a5f52ca8dc4fef14a808386975e3ff82145ce0a21cbc3c5632946",
         type = "tar.gz",

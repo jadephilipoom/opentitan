@@ -42,17 +42,17 @@ crates_vendor(
     annotations = {
         "libudev-sys": [crate.annotation(
             patch_args = ["-p1"],
-            patches = ["@//third_party/rust/patches:libudev-sys-0.1.4.patch"],
+            patches = ["@lowrisc_opentitan//third_party/rust/patches:libudev-sys-0.1.4.patch"],
         )],
         "mdbook": [crate.annotation(
             gen_binaries = True,
             patch_args = ["-p1"],
-            patches = ["@//third_party/rust/patches:mdbook-landing-page-links.patch"],
+            patches = ["@lowrisc_opentitan//third_party/rust/patches:mdbook-landing-page-links.patch"],
         )],
         "cryptoki": [crate.annotation(
             patch_args = ["-p2"],
             patches = [
-                "@//third_party/rust/patches:cryptoki-vendor-defined-mechanism-type.patch",
+                "@lowrisc_opentitan//third_party/rust/patches:cryptoki-vendor-defined-mechanism-type.patch",
             ],
         )],
         "cryptoki-sys": [crate.annotation(
@@ -71,7 +71,7 @@ crates_vendor(
                 "PKG_CONFIG_PATH": "$(OPENSSL_PKG_CONFIG_PATH)",
                 "OPENSSL_STATIC": "1",
             },
-            build_script_toolchains = ["@//third_party/rust:openssl_pkg_config_path"],
+            build_script_toolchains = ["@lowrisc_opentitan//third_party/rust:openssl_pkg_config_path"],
         )],
         "pqcrypto-internals": [crate.annotation(
             additive_build_file_content = """
@@ -105,7 +105,7 @@ crates_vendor(
             },
             patch_args = ["-p2"],
             patches = [
-                "@//third_party/rust/patches:pqcrypto-sphincsplus-includedir.patch",
+                "@lowrisc_opentitan//third_party/rust/patches:pqcrypto-sphincsplus-includedir.patch",
             ],
         )],
     },

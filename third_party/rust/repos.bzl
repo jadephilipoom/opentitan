@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-load("//rules:repo.bzl", "http_archive_or_local")
+load("@lowrisc_opentitan//rules:repo.bzl", "http_archive_or_local")
 
 _CLANG_BUILD_FILE = """\
 load("@rules_cc//cc:defs.bzl", "cc_import")
