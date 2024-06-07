@@ -11,10 +11,6 @@
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/hash.h"
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/thash.h"
 
-// TODO: remove
-#include "sw/device/silicon_creator/lib/drivers/hmac.h"
-#include "sw/device/silicon_creator/lib/sigverify/sphincsplus/sha2.h"
-
 OTTF_DEFINE_TEST_CONFIG();
 
 // Test message. Size should always be a multiple of kSpxNWords.
