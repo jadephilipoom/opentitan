@@ -47,8 +47,8 @@ py_binary(
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_hardcoded_header",
-    hjson = "//sw/device/tests/crypto/testvectors:sphincsplus_shake_128s_simple_testvectors_hardcoded",
+    name = "sphincsplus_sha2_128s_simple_testvectors_hardcoded_header",
+    hjson = "//sw/device/tests/crypto/testvectors:sphincsplus_sha2_128s_simple_testvectors_hardcoded",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
@@ -68,7 +68,7 @@ opentitan_test(
         timeout = "eternal",
     ),
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_hardcoded_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_hardcoded_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -101,71 +101,71 @@ opentitan_test(
 # space overflow with the full set.
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat0_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat0.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat0_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat0.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat1_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat1.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat1_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat1.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat2_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat2.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat2_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat2.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat3_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat3.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat3_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat3.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat4_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat4.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat4_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat4.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat5_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat5.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat5_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat5.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat6_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat6.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat6_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat6.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat7_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat7.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat7_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat7.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat8_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat8.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat8_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat8.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
 
 autogen_cryptotest_header(
-    name = "sphincsplus_shake_128s_simple_testvectors_kat9_header",
-    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_shake_128s_simple_testvectors_kat9.hjson",
+    name = "sphincsplus_sha2_128s_simple_testvectors_kat9_header",
+    hjson = "//sw/device/tests/crypto/testvectors/sphincsplus_kat:sphincsplus_sha2_128s_simple_testvectors_kat9.hjson",
     template = ":sphincsplus_testvectors.h.tpl",
     tool = ":sphincsplus_set_testvectors",
 )
@@ -178,7 +178,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat0_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat0_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -195,7 +195,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat1_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat1_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -212,7 +212,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat2_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat2_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -229,7 +229,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat3_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat3_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -246,7 +246,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat4_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat4_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -263,7 +263,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat5_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat5_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -280,7 +280,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat6_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat6_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -297,7 +297,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat7_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat7_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -314,7 +314,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat8_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat8_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
@@ -331,7 +331,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw310_test_rom": None,
     },
     deps = [
-        ":sphincsplus_shake_128s_simple_testvectors_kat9_header",
+        ":sphincsplus_sha2_128s_simple_testvectors_kat9_header",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/testing:profile",
