@@ -52,10 +52,10 @@ void spx_utils_compute_root(const uint32_t *leaf, uint32_t leaf_idx,
     // Pick the right or left neighbor, depending on parity of the node.
     uint32_t *hash_dst = (leaf_idx & 1) ? buffer_second : buffer;
     uint32_t *auth_dst = (leaf_idx & 1) ? buffer : buffer_second;
-    memcpy(auth_dst, auth_path, kSpxN);
-    auth_path += kSpxNWords;
 
     thash(buffer, /*inblocks=*/2, ctx, addr, hash_dst);
+    memcpy(auth_dst, auth_path, kSpxN);
+    auth_path += kSpxNWords;
   }
 
   // The last iteration is exceptional; we do not copy an auth_path node.
