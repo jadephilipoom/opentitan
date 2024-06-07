@@ -27,6 +27,11 @@ filegroup(
 )
 
 filegroup(
+    name = "sphincsplus_sha2_128s_simple_testvectors_hardcoded",
+    srcs = ["sphincsplus_sha2_128s_simple_hardcoded.hjson"],
+)
+
+filegroup(
     name = "kdf_testvectors_random",
     srcs = ["kdf_testvectors_random.hjson"],
 )
