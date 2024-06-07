@@ -49,7 +49,7 @@ enum {
   /**
    * Whether SHA-512 is required.
    */
-  kSpxSha512 = false,
+  kSpxSha512 = 0,
   /**
    * Number of bytes in a hypertree address (for clarity).
    */
