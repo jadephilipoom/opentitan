@@ -21,7 +21,12 @@ package(default_visibility = ["//visibility:public"])
 opentitan_test(
     name = "fors_test",
     srcs = ["fors_test.c"],
-    exec_env = EARLGREY_TEST_ENVS,
+    exec_env = dicts.add(
+        EARLGREY_TEST_ENVS,
+        {
+            "//hw/top_earlgrey:fpga_cw310_test_rom": None,
+        },
+    ),
     verilator = verilator_params(
         timeout = "long",
     ),
@@ -33,6 +38,30 @@ opentitan_test(
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/silicon_creator/lib/sigverify/sphincsplus:context",
         "//sw/device/silicon_creator/lib/sigverify/sphincsplus:fors",
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:hash",
+    ],
+)
+
+opentitan_test(
+    name = "thash_sha2_simple_test",
+    srcs = ["thash_sha2_simple_test.c"],
+    exec_env = dicts.add(
+        EARLGREY_TEST_ENVS,
+        {
+            "//hw/top_earlgrey:fpga_cw310_test_rom": None,
+        },
+    ),
+    verilator = verilator_params(
+        timeout = "long",
+    ),
+    deps = [
+        "//sw/device/lib/base:memory",
+        "//sw/device/lib/runtime:ibex",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:profile",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:context",
+        "//sw/device/silicon_creator/lib/sigverify/sphincsplus:thash",
         "//sw/device/silicon_creator/lib/sigverify/sphincsplus:hash",
     ],
 )
