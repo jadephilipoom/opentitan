@@ -1,9 +1,6 @@
 // Copyright lowRISC contributors (OpenTitan project).
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
-//
-// Derived from code in the SPHINCS+ reference implementation (CC0 license):
-// https://github.com/sphincs/sphincsplus/blob/ed15dd78658f63288c7492c00260d86154b84637/ref/hash_shake.c
 
 #include "sw/device/lib/base/memory.h"
 #include "sw/device/silicon_creator/lib/drivers/hmac.h"

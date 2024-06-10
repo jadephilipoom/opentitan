@@ -61,7 +61,7 @@ rom_error_t spx_hash_message(const uint32_t *R, const uint32_t *pk,
   uint32_t seed[kSpxDigestWords + (2 * kSpxNWords)] = {0};
   // H_msg: MGF1-SHA256(R || PK.seed || SHA256(R || PK.seed || PK.root || M))
   memcpy(seed, R, kSpxN);
-  memcpy(seed, pk, kSpxN);
+  memcpy(&seed[kSpxNWords], pk, kSpxN);
   hmac_sha256_init_endian(/*big_endian=*/true);
   hmac_sha256_update_words(R, kSpxNWords);
   hmac_sha256_update_words(pk, kSpxPkWords);
@@ -71,7 +71,7 @@ rom_error_t spx_hash_message(const uint32_t *R, const uint32_t *pk,
   hmac_sha256_final_truncated(&seed[2 * kSpxNWords], kSpxDigestWords);
 
   uint32_t buf[kSpxDigestWords] = {0};
-  mgf1_sha256(buf, ARRAYSIZE(seed), ARRAYSIZE(buf), buf);
+  mgf1_sha256(seed, ARRAYSIZE(seed), ARRAYSIZE(buf), buf);
 
   unsigned char *bufp = (unsigned char *)buf;
   memcpy(digest, bufp, kSpxForsMsgBytes);
