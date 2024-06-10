@@ -109,7 +109,12 @@ opentitan_test(
 opentitan_test(
     name = "wots_test",
     srcs = ["wots_test.c"],
-    exec_env = EARLGREY_TEST_ENVS,
+    exec_env = dicts.add(
+        EARLGREY_TEST_ENVS,
+        {
+            "//hw/top_earlgrey:fpga_cw310_test_rom": None,
+        },
+    ),
     verilator = verilator_params(
         timeout = "long",
     ),
