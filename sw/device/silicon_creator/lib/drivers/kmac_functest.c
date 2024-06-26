@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "sw/device/lib/base/abs_mmio.h"
+#include "sw/device/lib/runtime/ibex.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/runtime/print.h"
 #include "sw/device/lib/testing/entropy_testutils.h"
@@ -18,6 +20,13 @@
 #include "kmac_regs.h"
 
 OTTF_DEFINE_TEST_CONFIG();
+
+enum {
+  /**
+   * Base address of the KMAC hardware MMIO interface.
+   */
+  kBase = TOP_EARLGREY_KMAC_BASE_ADDR,
+};
 
 /**
  * Test data: short message with short output.
@@ -75,6 +84,106 @@ rom_error_t shake256_test(size_t input_len, const char *input,
   return kErrorOk;
 }
 
+/**
+ * Reads only the low half of Ibex's 64-bit cycle counter.
+ *
+ * @returns Current value of Ibex's mcycle register.
+ */
+static inline uint32_t mcycle_read(void) {
+  uint32_t t_start = 0;
+  asm volatile("  csrr %0, mcycle;" : "=r"(t_start) :);
+  return t_start;
+}
+
+/**
+ * Issue `process` command to KMAC and time the cycles until `squeeze` state.
+ *
+ * Cycle count may not be accurate if Ibex has run for more than 2^32 cycles;
+ * the caller should check with `ibex_mcycle_read()` after calling this
+ * function.
+ *
+ * @returns number of cycles until the `squeeze` state.
+ */
+static uint32_t process_profile(void) {
+  // Issue process command and start profile.
+  uint32_t cmd =
+      bitfield_field32_write(0, KMAC_CMD_CMD_FIELD, KMAC_CMD_CMD_VALUE_PROCESS);
+  uint32_t t_start = mcycle_read();
+  abs_mmio_write32(kBase + KMAC_CMD_REG_OFFSET, cmd);
+
+  // Poll until we're in the `squeeze` state.
+  bool squeeze_bit = false;
+  uint32_t t_end;
+  do {
+    uint32_t status = abs_mmio_read32(kBase + KMAC_STATUS_REG_OFFSET);
+    t_end = mcycle_read();
+    squeeze_bit = bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT);
+  } while (!squeeze_bit);
+
+  return t_end - t_start;
+}
+
+/**
+ * Issue `run` command to KMAC and time the cycles until `squeeze` state.
+ *
+ * Cycle count may not be accurate if Ibex has run for more than 2^32 cycles;
+ * the caller should check with `ibex_mcycle_read()` after calling this
+ * function.
+ *
+ * @returns number of cycles until the `squeeze` state.
+ */
+static uint32_t run_profile(void) {
+  // Issue process command and start profile.
+  uint32_t cmd =
+      bitfield_field32_write(0, KMAC_CMD_CMD_FIELD, KMAC_CMD_CMD_VALUE_RUN);
+  // Read the `mcycle` register (low half of Ibex's 64-bit cycle counter).
+  uint32_t t_start = mcycle_read();
+  abs_mmio_write32(kBase + KMAC_CMD_REG_OFFSET, cmd);
+
+  // Poll until we're in the `squeeze` state.
+  bool squeeze_bit = false;
+  uint32_t t_end;
+  do {
+    uint32_t status = abs_mmio_read32(kBase + KMAC_STATUS_REG_OFFSET);
+    t_end = mcycle_read();
+    squeeze_bit = bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT);
+  } while (!squeeze_bit);
+
+  return t_end - t_start;
+}
+
+rom_error_t shake256_profile_test(size_t input_len, const char *input) {
+  // Start the KMAC block and send the input.
+  RETURN_IF_ERROR(kmac_shake256_start());
+  kmac_shake256_absorb((unsigned char *)input, input_len);
+
+  // Run one `process` command and a sequence of `run` commands, with profiling
+  // printouts.
+  uint32_t run_cycles[10] = {0};
+  uint32_t process_cycles = process_profile();
+  for (size_t i = 0; i < ARRAYSIZE(run_cycles); i++) {
+    run_cycles[i] = run_profile();
+  }
+
+  // Read Ibex's full 64-bit cycle counter and make sure it's below 2^32;
+  // otherwise the profiling calculations might have been messed up.
+  uint64_t ibex_cycles = ibex_mcycle_read();
+  CHECK(ibex_cycles <= UINT32_MAX);
+
+  // Clean up by finishing the operation on the KMAC block.
+  RETURN_IF_ERROR(kmac_shake256_squeeze_end(NULL, 0));
+
+  // Print results.
+  LOG_INFO("SHAKE256 process with input length %d took %u cycles.", input_len,
+           (uint32_t)process_cycles);
+  for (size_t i = 0; i < ARRAYSIZE(run_cycles); i++) {
+    CHECK(run_cycles[i] <= UINT32_MAX);
+    LOG_INFO("SHAKE256 run %02d took %u cycles.", i, (uint32_t)run_cycles[i]);
+  }
+
+  return kErrorOk;
+}
+
 rom_error_t kmac_shake256_test(void) {
   // Configure KMAC to run SHAKE-256.
   RETURN_IF_ERROR(kmac_shake256_configure());
@@ -85,6 +194,11 @@ rom_error_t kmac_shake256_test(void) {
 
   // Test with long input, short output.
   RETURN_IF_ERROR(shake256_test(long_msg_len, long_msg, 1, long_msg_digest));
+
+  // Profiling tests
+  RETURN_IF_ERROR(shake256_profile_test(0, NULL));
+  RETURN_IF_ERROR(shake256_profile_test(short_msg_len, short_msg));
+  RETURN_IF_ERROR(shake256_profile_test(long_msg_len, long_msg));
 
   // Test with long input, long output.
   RETURN_IF_ERROR(shake256_test(long_msg_len, long_msg,
