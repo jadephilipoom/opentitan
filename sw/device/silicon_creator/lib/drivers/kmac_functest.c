@@ -26,14 +26,6 @@ enum {
    * Base address of the KMAC hardware MMIO interface.
    */
   kBase = TOP_EARLGREY_KMAC_BASE_ADDR,
-  /**
-   * Address of the KMAC command register. 
-   */
-  kCommandReg = kBase + KMAC_CMD_REG_OFFSET,
-  /**
-   * Address of the KMAC status register. 
-   */
-  kStatusReg = kBase + KMAC_STATUS_REG_OFFSET,
 };
 
 /**
@@ -101,17 +93,6 @@ rom_error_t shake256_test(size_t input_len, const char *input,
 }
 
 /**
- * Reads only the low half of Ibex's 64-bit cycle counter.
- *
- * @returns Current value of Ibex's mcycle register.
- */
-static inline uint32_t mcycle_read(void) {
-  uint32_t t_start = 0;
-  asm volatile("  csrr %0, mcycle;" : "=r"(t_start) :);
-  return t_start;
-}
-
-/**
  * Issue `process` command to KMAC and time the cycles until `squeeze` state.
  *
  * Cycle count may not be accurate if Ibex has run for more than 2^32 cycles;
@@ -120,20 +101,28 @@ static inline uint32_t mcycle_read(void) {
  *
  * @returns number of cycles until the `squeeze` state.
  */
-static uint32_t __attribute__ ((noinline)) process_profile(void) {
-  // Issue process command and start profile.
+static uint32_t process_profile(void) {
+  // Construct the register value for the "process" command.
   uint32_t cmd =
       bitfield_field32_write(0, KMAC_CMD_CMD_FIELD, KMAC_CMD_CMD_VALUE_PROCESS);
-  uint32_t t_start = mcycle_read();
-  abs_mmio_write32(kBase + KMAC_CMD_REG_OFFSET, cmd);
 
-  // Poll until we're in the `squeeze` state.
-  uint32_t status;
-  uint32_t t_end;
-  do {
-    status = abs_mmio_read32(kBase + KMAC_STATUS_REG_OFFSET);
-    t_end = mcycle_read();
-  } while (!bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT));
+  // Read Ibex's mcycle register, issue a process command, and then poll the
+  // status register until the squeeze bit is 1. Do this in inline assembly so
+  // the compiler doesn't reorder things.
+  uint32_t t_start = 0;
+  uint32_t t_end = 0;
+  uint32_t status = 0;
+  uint32_t status_masked = 0;
+  asm volatile(
+      "csrr %0, mcycle;"
+      "sw %6, %5(%4);"
+      "1:"
+      "  lw %2, %7(%4);"
+      "  csrr %1, mcycle;"
+      "  andi %3, %2, %8;"
+      "  beqz %3, 1b;"
+      :"=r"(t_start),"=r"(t_end),"+r"(status),"+r"(status_masked)
+      :"r"(kBase),"i"(KMAC_CMD_REG_OFFSET),"r"(cmd),"i"(KMAC_STATUS_REG_OFFSET),"i"(1 << KMAC_STATUS_SHA3_SQUEEZE_BIT));
 
   return t_end - t_start;
 }
@@ -148,64 +137,29 @@ static uint32_t __attribute__ ((noinline)) process_profile(void) {
  * @returns number of cycles until the `squeeze` state.
  */
 static uint32_t run_profile(void) {
-  // Construct the "process" command.
+  // Construct the register value for the "run" command.
   uint32_t cmd =
       bitfield_field32_write(0, KMAC_CMD_CMD_FIELD, KMAC_CMD_CMD_VALUE_RUN);
-/*
-  // Read the `mcycle` register (low half of Ibex's 64-bit cycle counter).
-  uint32_t t_start = mcycle_read();
-  abs_mmio_write32(kBase + KMAC_CMD_REG_OFFSET, cmd);
-*/
 
-  uint32_t t_start;
+  // Read Ibex's mcycle register, issue a run command, and then poll the
+  // status register until the squeeze bit is 1. Do this in inline assembly so
+  // the compiler doesn't reorder things.
+  uint32_t t_start = 0;
+  uint32_t t_end = 0;
+  uint32_t status = 0;
+  uint32_t status_masked = 0;
   asm volatile(
       "csrr %0, mcycle;"
-      "sw %3, %2(%1);"
-      : "=r"(t_start)
-      :"r"(kBase),"i"(KMAC_CMD_REG_OFFSET),"r"(cmd));
+      "sw %6, %5(%4);"
+      "1:"
+      "  lw %2, %7(%4);"
+      "  csrr %1, mcycle;"
+      "  andi %3, %2, %8;"
+      "  beqz %3, 1b;"
+      :"=r"(t_start),"=r"(t_end),"+r"(status),"+r"(status_masked)
+      :"r"(kBase),"i"(KMAC_CMD_REG_OFFSET),"r"(cmd),"i"(KMAC_STATUS_REG_OFFSET),"i"(1 << KMAC_STATUS_SHA3_SQUEEZE_BIT));
 
-  // Poll until we're in the `squeeze` state.
-  uint32_t status;
-  uint32_t t_end;
-  do {
-    status = abs_mmio_read32(kBase + KMAC_STATUS_REG_OFFSET);
-    t_end = mcycle_read();
-  } while (!bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT));
   return t_end - t_start;
-
-/*
-mcycle_read():
-/proc/self/cwd/sw/device/silicon_creator/lib/drivers/kmac_functest.c:102
-  asm volatile("  csrr %0, mcycle;" : "=r"(t_start) :);
-20000c04:           b0002573            csrr    a0,mcycle
-20000c08:           411205b7            lui     a1,0x41120
-20000c0c:           03100613            li      a2,49
-abs_mmio_write32():
-/proc/self/cwd/./sw/device/lib/base/abs_mmio.h:83
-  *((volatile uint32_t *)addr) = value;
-20000c10:           cd90                        sw      a2,24(a1)
-
-abs_mmio_read32():
-/proc/self/cwd/./sw/device/lib/base/abs_mmio.h:73
-  return *((volatile uint32_t *)addr);
-20000c12:       /-> 4dd0                        lw      a2,28(a1)
-bitfield_bit32_read():
-/proc/self/cwd/./sw/device/lib/base/bitfield.h:122
-20000c14:       |   00467693            andi    a3,a2,4
-mcycle_read():
-/proc/self/cwd/sw/device/silicon_creator/lib/drivers/kmac_functest.c:102
-20000c18:       |   b0002673            csrr    a2,mcycle
-run_profile():
-/proc/self/cwd/sw/device/silicon_creator/lib/drivers/kmac_functest.c:156
-  } while (!bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT));
-20000c1c:       \-- dafd                        beqz    a3,20000c12 <run_profile+0xe>
-/proc/self/cwd/sw/device/silicon_creator/lib/drivers/kmac_functest.c:158
-  return t_end - t_start;
-20000c1e:           40a60533            sub     a0,a2,a0
-20000c22:           8082                        ret
-20000c24:           c0001073            unimp
-20000c28:           c0001073            unimp
-*/
 }
 
 rom_error_t shake256_profile_test(size_t input_len, const char *input) {
