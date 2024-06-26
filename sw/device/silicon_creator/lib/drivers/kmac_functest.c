@@ -26,6 +26,14 @@ enum {
    * Base address of the KMAC hardware MMIO interface.
    */
   kBase = TOP_EARLGREY_KMAC_BASE_ADDR,
+  /**
+   * Address of the KMAC command register. 
+   */
+  kCommandReg = kBase + KMAC_CMD_REG_OFFSET,
+  /**
+   * Address of the KMAC status register. 
+   */
+  kStatusReg = kBase + KMAC_STATUS_REG_OFFSET,
 };
 
 /**
@@ -60,6 +68,14 @@ static const uint32_t long_msg_digest[75] = {
     0x4c2f5eb7, 0x1358ac89, 0x0f9c5541, 0xfc98c30f, 0x15395844, 0x21e7e2d2,
     0x422b1325, 0xc1f9f225, 0x8951c775,
 };
+
+/**
+ * Test data: message that is exactly one byte short of a SHAKE256 block.
+ *
+ * Since SHAKE256 has 4 bits of padding, this should theoretically minimize the
+ * padding needed.
+ */
+static const char one_block_msg[135] = {0};
 
 rom_error_t shake256_test(size_t input_len, const char *input,
                           size_t output_len, const uint32_t *exp_output) {
@@ -104,7 +120,7 @@ static inline uint32_t mcycle_read(void) {
  *
  * @returns number of cycles until the `squeeze` state.
  */
-static uint32_t process_profile(void) {
+static uint32_t __attribute__ ((noinline)) process_profile(void) {
   // Issue process command and start profile.
   uint32_t cmd =
       bitfield_field32_write(0, KMAC_CMD_CMD_FIELD, KMAC_CMD_CMD_VALUE_PROCESS);
@@ -112,13 +128,12 @@ static uint32_t process_profile(void) {
   abs_mmio_write32(kBase + KMAC_CMD_REG_OFFSET, cmd);
 
   // Poll until we're in the `squeeze` state.
-  bool squeeze_bit = false;
+  uint32_t status;
   uint32_t t_end;
   do {
-    uint32_t status = abs_mmio_read32(kBase + KMAC_STATUS_REG_OFFSET);
+    status = abs_mmio_read32(kBase + KMAC_STATUS_REG_OFFSET);
     t_end = mcycle_read();
-    squeeze_bit = bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT);
-  } while (!squeeze_bit);
+  } while (!bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT));
 
   return t_end - t_start;
 }
@@ -133,23 +148,64 @@ static uint32_t process_profile(void) {
  * @returns number of cycles until the `squeeze` state.
  */
 static uint32_t run_profile(void) {
-  // Issue process command and start profile.
+  // Construct the "process" command.
   uint32_t cmd =
       bitfield_field32_write(0, KMAC_CMD_CMD_FIELD, KMAC_CMD_CMD_VALUE_RUN);
+/*
   // Read the `mcycle` register (low half of Ibex's 64-bit cycle counter).
   uint32_t t_start = mcycle_read();
   abs_mmio_write32(kBase + KMAC_CMD_REG_OFFSET, cmd);
+*/
+
+  uint32_t t_start;
+  asm volatile(
+      "csrr %0, mcycle;"
+      "sw %3, %2(%1);"
+      : "=r"(t_start)
+      :"r"(kBase),"i"(KMAC_CMD_REG_OFFSET),"r"(cmd));
 
   // Poll until we're in the `squeeze` state.
-  bool squeeze_bit = false;
+  uint32_t status;
   uint32_t t_end;
   do {
-    uint32_t status = abs_mmio_read32(kBase + KMAC_STATUS_REG_OFFSET);
+    status = abs_mmio_read32(kBase + KMAC_STATUS_REG_OFFSET);
     t_end = mcycle_read();
-    squeeze_bit = bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT);
-  } while (!squeeze_bit);
-
+  } while (!bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT));
   return t_end - t_start;
+
+/*
+mcycle_read():
+/proc/self/cwd/sw/device/silicon_creator/lib/drivers/kmac_functest.c:102
+  asm volatile("  csrr %0, mcycle;" : "=r"(t_start) :);
+20000c04:           b0002573            csrr    a0,mcycle
+20000c08:           411205b7            lui     a1,0x41120
+20000c0c:           03100613            li      a2,49
+abs_mmio_write32():
+/proc/self/cwd/./sw/device/lib/base/abs_mmio.h:83
+  *((volatile uint32_t *)addr) = value;
+20000c10:           cd90                        sw      a2,24(a1)
+
+abs_mmio_read32():
+/proc/self/cwd/./sw/device/lib/base/abs_mmio.h:73
+  return *((volatile uint32_t *)addr);
+20000c12:       /-> 4dd0                        lw      a2,28(a1)
+bitfield_bit32_read():
+/proc/self/cwd/./sw/device/lib/base/bitfield.h:122
+20000c14:       |   00467693            andi    a3,a2,4
+mcycle_read():
+/proc/self/cwd/sw/device/silicon_creator/lib/drivers/kmac_functest.c:102
+20000c18:       |   b0002673            csrr    a2,mcycle
+run_profile():
+/proc/self/cwd/sw/device/silicon_creator/lib/drivers/kmac_functest.c:156
+  } while (!bitfield_bit32_read(status, KMAC_STATUS_SHA3_SQUEEZE_BIT));
+20000c1c:       \-- dafd                        beqz    a3,20000c12 <run_profile+0xe>
+/proc/self/cwd/sw/device/silicon_creator/lib/drivers/kmac_functest.c:158
+  return t_end - t_start;
+20000c1e:           40a60533            sub     a0,a2,a0
+20000c22:           8082                        ret
+20000c24:           c0001073            unimp
+20000c28:           c0001073            unimp
+*/
 }
 
 rom_error_t shake256_profile_test(size_t input_len, const char *input) {
@@ -199,6 +255,7 @@ rom_error_t kmac_shake256_test(void) {
   RETURN_IF_ERROR(shake256_profile_test(0, NULL));
   RETURN_IF_ERROR(shake256_profile_test(short_msg_len, short_msg));
   RETURN_IF_ERROR(shake256_profile_test(long_msg_len, long_msg));
+  RETURN_IF_ERROR(shake256_profile_test(sizeof(one_block_msg), one_block_msg));
 
   // Test with long input, long output.
   RETURN_IF_ERROR(shake256_test(long_msg_len, long_msg,
