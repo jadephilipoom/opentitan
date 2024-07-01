@@ -361,31 +361,65 @@ class KmacBlock:
     _STATUS_SQUEEZE = 'SQUEEZE'
     _STRENGTH_128 = 0x0
     _STRENGTH_256 = 0x2
+
+    # Message FIFO size in bytes. See:
+    # https://github.com/lowRISC/opentitan/blob/1b56f197b49d5f597867561d0a153d2e7a985909/hw/ip/kmac/rtl/kmac_pkg.sv#L37
+    # https://github.com/lowRISC/opentitan/blob/1b56f197b49d5f597867561d0a153d2e7a985909/hw/ip/kmac/rtl/sha3_pkg.sv#L52
+    _MSG_FIFO_SIZE_BYTES = 10 * 8
+
+    # Rate at which the Keccak core absorbs data from the message FIFO
+    # (bytes/cycle). See:
+    # https://github.com/lowRISC/opentitan/blob/1b56f197b49d5f597867561d0a153d2e7a985909/hw/ip/kmac/rtl/keccak_round.sv#L50
+    _MSG_FIFO_ABSORB_BYTES_PER_CYCLE = 8
+
+    # Cycles for a Keccak round. See:
+    # https://opentitan.org/book/hw/ip/kmac/doc/theory_of_operation.html#keccak-round
+    _KECCAK_CYCLES_PER_ROUND = 4
+    _KECCAK_NUM_ROUNDS = 24
+
+    # Number of bytes that can be sent to KMAC per cycle over the application
+    # interface.
+    _APP_INTF_BYTES_PER_CYCLE = 8
+
+    # FIFO within OTBN that waits to send message data over the application
+    # interface. Without this we'd have to stall on every message WSR write
+    # while we wait to send data to KMAC.
+    _APP_INTF_FIFO_SIZE_BYTES = 64
+
     def __init__(self):
+        self._reset()
+
+    def _reset(self) -> None:
         self._status = self._STATUS_IDLE
-        self._cycles_until_ready = None
+        self._core_cycles_remaining = None
         self._state = None
         self._rate_bytes = None
         self._read_offset = 0
+        self._msg_fifo = bytes()
+        self._app_intf_fifo = bytes()
+        self._core_pending_bytes = 0
+        self._msg_len = 0
+        self._pending_process = False
 
     def issue_cmd(self, value: int) -> None:
         '''Issue a command to the KMAC block.
 
-        The lowest 5 bits are the command code to issue. For `start`, the next
-        two bits indicate the strength. All other bits are ignored. 
+        The lowest 6 bits are the command code to issue. For `start`, the next
+        two bits indicate the strength. All other bits are ignored.
         '''
         cmd = value & 0x1f
         if cmd == self._CMD_START:
             strength = (value >> 5) & 3
             self.start(strength)
-        elif cmd == self._CMD_PROCESS:
-            self.process()
-        elif cmd == self._CMD_RUN:
-            self.run()
         elif cmd == self._CMD_DONE:
             self.done()
         else:
             raise ValueError(f'KMAC: Invalid command: {hex(cmd)}')
+
+    def message_done(self) -> None:
+        '''Indicate that the message input is done.'''
+        # Don't issue the `process` command yet; wait for FIFOs to clear.
+        self._pending_process = True
 
     def is_idle(self) -> bool:
         return self._status == self._STATUS_IDLE
@@ -397,7 +431,7 @@ class KmacBlock:
         return self._status == self._STATUS_SQUEEZE
 
     def digest_ready(self) -> bool:
-        return self.is_squeezing() and (self._cycles_until_ready == 0)
+        return self.is_squeezing() and (self._core_cycles_remaining == 0)
 
     def start(self, strength: int) -> None:
         '''Starts a SHAKE hashing operation.'''
@@ -414,21 +448,38 @@ class KmacBlock:
         else:
             raise ValueError(f'Invalid strength: {strength}.')
 
+        # Important assumption: since we send data to the core in fixed-size
+        # chunks, we need to make sure the chunk size divides the rate.
+        assert self._rate_bytes % self._MSG_FIFO_ABSORB_BYTES_PER_CYCLE == 0
+
+    def msg_fifo_bytes_available(self) -> int:
+        return self._MSG_FIFO_SIZE_BYTES - len(self._msg_fifo)
+
+    def app_intf_fifo_bytes_available(self) -> int:
+        return self._APP_INTF_FIFO_SIZE_BYTES - len(self._app_intf_fifo)
+
     def write(self, msg: bytes) -> None:
-        '''Appends new message data to an ongoing hashing operation.'''
+        '''Appends new message data to an ongoing hashing operation.
+
+        Check `app_intf_fifo_bytes_available` to ensure there is enough space
+        in the FIFO before attempting to write.
+        '''
         if not self.is_absorbing():
             raise ValueError(f'KMAC: Cannot write in {self._status} status.')
+        if len(msg) > self.app_intf_fifo_bytes_available():
+            raise ValueError('KMAC: Not enough space available in message FIFO.')
         # import sys
         # print(f"absorb Kmac: {msg.hex()}", file=sys.stderr)
-        self._state.update(msg)
+        self._app_intf_fifo += msg
+        self._msg_len += len(msg)
 
     def _start_keccak_core(self) -> None:
-        # Timing estimate is based on:
-        #   * 4 cycles per round x 24 rounds for Keccak (see KMAC docs) 
-        #   * 5 cycles of estimated communication overhead 
-        self._cycles_until_ready = (24*4) + 5
+        self._core_cycles_remaining = self._KECCAK_NUM_ROUNDS * self._KECCAK_CYCLES_PER_ROUND
 
-    def process(self) -> None:
+    def _core_is_busy(self) -> None:
+        return self._core_cycles_remaining is not None and self._core_cycles_remaining > 0
+
+    def _process(self) -> None:
         '''Issues a `process` command to the KMAC block.
 
         Signals to the hardware that the message is done and it should compute
@@ -440,7 +491,6 @@ class KmacBlock:
             raise ValueError('KMAC: Cannot issue `process` command in '
                              f'{self._status} status.')
         self._status = self._STATUS_SQUEEZE
-        self._start_keccak_core()
 
     def run(self) -> None:
         '''Issues a `run` command to the KMAC block.
@@ -462,15 +512,45 @@ class KmacBlock:
         if not self.is_squeezing():
             raise ValueError('KMAC: Cannot issue `done` command in '
                              f'{self._status} status.')
-        self._status = self._STATUS_IDLE
-        self._cycles_until_ready = None
-        self._state = None
-        self._rate_bytes = None
-        self._read_offset = 0
+        self._reset()
 
     def step(self) -> None:
-        if self.is_squeezing() and self._cycles_until_ready > 0:
-            self._cycles_until_ready -= 1
+        if self.is_idle():
+            return
+
+        core_available = self._rate_bytes - self._core_pending_bytes
+        absorb_rate = self._MSG_FIFO_ABSORB_BYTES_PER_CYCLE
+        if core_available >= absorb_rate:
+            if len(self._msg_fifo) >= absorb_rate:
+                # Absorb a new chunk of the message.
+                self._core_pending_bytes += absorb_rate
+                self._state.update(self._msg_fifo[:absorb_rate])
+                self._msg_fifo = self._msg_fifo[absorb_rate:]
+            elif self._pending_process and not self._app_intf_fifo:
+                # Push the remainder of the message (if present) plus some
+                # padding. We model the timing of pushing the padding but not
+                # the padding itself, since the SHA3 library does that for us.
+                self._core_pending_bytes += absorb_rate
+                if len(self._msg_fifo) > 0:
+                  self._state.update(self._msg_fifo)
+                  self._msg_fifo = bytes()
+        if self.msg_fifo_bytes_available() >= self._APP_INTF_BYTES_PER_CYCLE:
+            # Pass data from the application interface FIFO to the message FIFO.
+            nbytes = min(len(self._app_intf_fifo), self._APP_INTF_BYTES_PER_CYCLE)
+            self._msg_fifo += self._app_intf_fifo[:nbytes]
+            self._app_intf_fifo = self._app_intf_fifo[nbytes:]
+
+        # Either step the core or check if we can start it.
+        if self._core_is_busy():
+            self._core_cycles_remaining -= 1
+        elif self._core_pending_bytes == self._rate_bytes:
+            self._start_keccak_core()
+            self._core_pending_bytes = 0
+            if self._pending_process and not self._app_intf_fifo and not self._msg_fifo:
+                # Just finished padding; send the process command.
+                self._process()
+                self._pending_process = False
+
 
     def max_read_bytes(self) -> int:
         '''Returns the maximum readable bytes before a `run` command.'''
@@ -489,11 +569,16 @@ class KmacBlock:
 
 class KeccakMsgWSR(WSR):
     '''Keccak message WSR: sends data to the KMAC hardware block.
-    
+
     Reads from this register always return 0.
 
     When KMAC is in the "absorb" state, writes to this register will trigger
-    writes to KMAC's message FIFO. Otherwise, writes will be ignored. 
+    writes to KMAC's message FIFO. Otherwise, writes will be ignored.
+
+    KMAC can only receive about 64 bits of data per cycle via the hardware
+    application interface. If there is not enough space in the internal FIFO to
+    hold the data from a new write, the instruction stalls while it waits for
+    space to become available.
     '''
     def __init__(self, name: str, kmac: KmacBlock):
         super().__init__(name)
@@ -512,15 +597,19 @@ class KeccakMsgWSR(WSR):
         return 0
 
     def write_unsigned(self, value: int) -> None:
+        assert self.is_ready()
         assert 0 <= value < (1 << 256)
         if self._kmac.is_absorbing():
             self._next_value = value
             self._pending_write = True
 
+    def is_ready(self) -> bool:
+        '''Indicates if there is enough space in the FIFO to receive a write.'''
+        return self._kmac.app_intf_fifo_bytes_available() >= self._next_write_len
+
     def commit(self) -> None:
         if self._pending_write:
             value_bytes = int.to_bytes(self._next_value, byteorder='little', length=32)
-
             self._kmac.write(value_bytes[:self._next_write_len])
             self._next_write_len = 32
         super().commit()
@@ -534,7 +623,7 @@ class KeccakDigestWSR(WSR):
     '''Keccak digest WSR: recieves data from the KMAC hardware block.
 
     This register is not writeable; writes are always discarded.
-    
+
     If KMAC is in the "idle" state, reads always return 0. When KMAC is in the
     "absorb" state, reading from this register will issue a `process` command;
     KMAC will move into the "squeeze" state and begin computing the digest.
@@ -591,7 +680,7 @@ class KeccakDigestWSR(WSR):
         elif self._next_pending_request:
             if self._kmac.is_absorbing():
                 self._digest_bytes = bytes()
-                self._kmac.process()
+                self._kmac.message_done()
                 self._waiting_for_digest = True
             elif self._kmac.is_squeezing():
                 if self._kmac.max_read_bytes() >= 32:

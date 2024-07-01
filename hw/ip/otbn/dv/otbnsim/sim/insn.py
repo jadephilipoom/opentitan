@@ -319,7 +319,7 @@ class LW(OTBNInsn):
         if result is None:
             state.stop_at_end_of_cycle(ErrBits.DMEM_INTG_VIOLATION)
             return
-    
+
         if DEBUG_MEM:
             print(f"\t{format(result, '08x')}", file=sys.stderr)
 
@@ -1145,7 +1145,7 @@ class BNOR(OTBNInsn):
         a = state.wdrs.get_reg(self.wrs1).read_unsigned()
         b = state.wdrs.get_reg(self.wrs2).read_unsigned()
         b_shifted = logical_byte_shift(b, self.shift_type, self.shift_bytes)
-        
+
         result = a | b_shifted
 
         if DEBUG_ARITH:
@@ -1591,10 +1591,15 @@ class BNWSRW(OTBNInsn):
         self.wsr = op_vals['wsr']
         self.wrs = op_vals['wrs']
 
-    def execute(self, state: OTBNState) -> None:
+    def execute(self, state: OTBNState) -> Optional[Iterator[None]]:
         val = state.wdrs.get_reg(self.wrs).read_unsigned()
         if DEBUG_KMAC or DEBUG_ARITH:
             eprint(f"write WSR: {format(val, '064x')}")
+        if self.wsr == 0x8:
+            # A write the the Keccak message register. If the internal FIFO is
+            # full, the write may have to wait.
+            while not state.wsrs.KeccakMsg.is_ready():
+                yield
         state.wsrs.write_at_idx(self.wsr, val)
 
 
