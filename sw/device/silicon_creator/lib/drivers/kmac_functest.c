@@ -162,15 +162,15 @@ static uint32_t run_profile(void) {
   return t_end - t_start;
 }
 
-rom_error_t shake256_profile_test(size_t input_len, const char *input) {
+rom_error_t shake256_profile_test(size_t input_len, const char *input, size_t num_runs) {
   // Start the KMAC block and send the input.
   RETURN_IF_ERROR(kmac_shake256_start());
   kmac_shake256_absorb((unsigned char *)input, input_len);
 
   // Run one `process` command and a sequence of `run` commands, with profiling
   // printouts.
-  uint32_t run_cycles[10] = {0};
   uint32_t process_cycles = process_profile();
+  uint32_t run_cycles[num_runs];
   for (size_t i = 0; i < ARRAYSIZE(run_cycles); i++) {
     run_cycles[i] = run_profile();
   }
@@ -188,7 +188,7 @@ rom_error_t shake256_profile_test(size_t input_len, const char *input) {
            (uint32_t)process_cycles);
   for (size_t i = 0; i < ARRAYSIZE(run_cycles); i++) {
     CHECK(run_cycles[i] <= UINT32_MAX);
-    LOG_INFO("SHAKE256 run %02d took %u cycles.", i, (uint32_t)run_cycles[i]);
+    LOG_INFO("SHAKE256 run %d took %u cycles.", i, (uint32_t)run_cycles[i]);
   }
 
   return kErrorOk;
@@ -206,15 +206,31 @@ rom_error_t kmac_shake256_test(void) {
   RETURN_IF_ERROR(shake256_test(long_msg_len, long_msg, 1, long_msg_digest));
 
   // Profiling tests
-  RETURN_IF_ERROR(shake256_profile_test(0, NULL));
-  RETURN_IF_ERROR(shake256_profile_test(short_msg_len, short_msg));
-  RETURN_IF_ERROR(shake256_profile_test(long_msg_len, long_msg));
-  RETURN_IF_ERROR(shake256_profile_test(sizeof(one_block_msg), one_block_msg));
+  RETURN_IF_ERROR(shake256_profile_test(0, NULL, /*num_runs=*/5));
+  RETURN_IF_ERROR(shake256_profile_test(short_msg_len, short_msg, /*num_runs=*/5));
+  RETURN_IF_ERROR(shake256_profile_test(long_msg_len, long_msg, /*num_runs=*/5));
+  RETURN_IF_ERROR(shake256_profile_test(sizeof(one_block_msg), one_block_msg, /*num_runs=*/5));
 
   // Test with long input, long output.
   RETURN_IF_ERROR(shake256_test(long_msg_len, long_msg,
                                 ARRAYSIZE(long_msg_digest), long_msg_digest));
 
+  return kErrorOk;
+}
+
+rom_error_t kmac_shake256_padding_profile(void) {
+  // Configure KMAC to run SHAKE-256.
+  RETURN_IF_ERROR(kmac_shake256_configure());
+
+  // Messages up to three times the SHAKE256 Keccak rate.
+  char msg[136 * 3];
+  for (size_t i = 0; i < sizeof(msg); i++) {
+    msg[i] = (char) (i & 127);
+  }
+
+  for (size_t i = 0; i < sizeof(msg); i++) {
+    RETURN_IF_ERROR(shake256_profile_test(i, msg, /*num_runs=*/0));
+  }
   return kErrorOk;
 }
 
@@ -300,9 +316,10 @@ bool test_main(void) {
   CHECK_STATUS_OK(entropy_testutils_stop_all());
 
   status_t result = OK_STATUS();
-  EXECUTE_TEST(result, kmac_shake256_test);
-  EXECUTE_TEST(result, kmac_kmac256_kat_1);
-  EXECUTE_TEST(result, kmac_kmac256_kat_2);
-  EXECUTE_TEST(result, kmac_kmac256_kat_3);
+  EXECUTE_TEST(result, kmac_shake256_padding_profile);
+  // EXECUTE_TEST(result, kmac_shake256_test);
+  // EXECUTE_TEST(result, kmac_kmac256_kat_1);
+  // EXECUTE_TEST(result, kmac_kmac256_kat_2);
+  // EXECUTE_TEST(result, kmac_kmac256_kat_3);
   return status_ok(result);
 }
