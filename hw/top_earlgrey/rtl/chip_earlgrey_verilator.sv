@@ -502,6 +502,10 @@ module chip_earlgrey_verilator (
   top_earlgrey #(
     .PinmuxAonTargetCfg(PinmuxTargetCfg),
     .SecAesAllowForcingMasks(1'b1),
+    .KmacEnMasking(0),
+    .KmacSwKeyMasked(1),
+    .KeymgrKmacEnMasking(0),
+    .SecKmacCmdDelay(0),
     .SramCtrlMainInstrExec(1),
     .SramCtrlRetAonInstrExec(0)
   ) top_earlgrey (
