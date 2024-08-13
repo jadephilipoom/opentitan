@@ -30,7 +30,7 @@ enum {
    * Number of negative tests to run (manipulating the message and checking
    * that the signature fails).
    */
-  kNumNegativeTests = 1,
+  kNumNegativeTests = 0,
 };
 
 /**

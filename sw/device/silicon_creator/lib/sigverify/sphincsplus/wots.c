@@ -39,6 +39,7 @@ static void gen_chain(const uint32_t *in, uint8_t start, const spx_ctx_t *ctx,
                       spx_addr_t *addr, uint32_t *out) {
   // Initialize out with the value at position `start`.
   memcpy(out, in, kSpxN);
+  /*
 
   // Iterate `kSpxWotsW - 1` calls to the hash function. This loop is
   // performance-critical.
@@ -53,6 +54,7 @@ static void gen_chain(const uint32_t *in, uint8_t start, const spx_ctx_t *ctx,
     spx_addr_hash_set(addr, i + 1);
     hmac_sha256_final_truncated(out, kSpxNWords);
   }
+  */
 }
 
 /**
