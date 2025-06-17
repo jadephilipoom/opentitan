@@ -223,11 +223,7 @@ opentitan_test(
     name = "verify_test_kat0",
     srcs = ["verify_test.c"],
     exec_env = dicts.add(
-        dicts.omit(
-            EARLGREY_TEST_ENVS,
-            # Test set is too large for Verilator.
-            ["//hw/top_earlgrey:sim_verilator"],
-        ),
+        EARLGREY_TEST_ENVS,
         {
             "//hw/top_earlgrey:fpga_cw310_test_rom": None,
         },
