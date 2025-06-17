@@ -23,23 +23,23 @@
 
 enum {
   /**
-   * Hash output length in bytes.
+   * Hash output length in bytes - n in FIPS 205.
    */
   kSpxN = 16,
   /**
-   * Height of the hypertree.
+   * Height of the hypertree - h in FIPS 205.
    */
   kSpxFullHeight = 63,
   /**
-   * Number of subtree layers.
+   * Number of subtree layers - d in FIPS 205.
    */
   kSpxD = 7,
   /**
-   * FORS tree dimension (height).
+   * FORS tree dimension (height) - a in FIPS 205.
    */
   kSpxForsHeight = 12,
   /**
-   * FORS tree dimension (number of trees).
+   * FORS tree dimension (number of trees) - k in FIPS 205.
    */
   kSpxForsTrees = 14,
   /**
@@ -55,7 +55,7 @@ enum {
    */
   kSpxAddrBytes = 32,
   /**
-   * Bit-length of the Winternitz parameter.
+   * Bit-length of the Winternitz parameter - lgw in FIPS 205.
    */
   kSpxWotsLogW = 4,
   /**
