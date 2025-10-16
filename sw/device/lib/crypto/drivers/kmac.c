@@ -753,6 +753,8 @@ status_t kmac_squeeze_end(size_t digest_wordlen, hardened_bool_t read_masked,
   size_t nblocks = digest_wordlen / keccak_rate_words;
   HARDENED_TRY(
       kmac_squeeze_blocks(nblocks, read_masked, digest_share0, digest_share1));
+  digest_share0 += nblocks * keccak_rate_words;
+  digest_share1 += nblocks * keccak_rate_words;
 
   size_t remaining_words = digest_wordlen % keccak_rate_words;
   HARDENED_TRY(
