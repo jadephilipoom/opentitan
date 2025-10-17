@@ -272,7 +272,7 @@ cc_library(
     # is set.
     defines = select({
         ":crypto_status_debug": ["OTCRYPTO_STATUS_DEBUG"],
-        "//conditions:default": [],
+        "//conditions:default": ["OTCRYPTO_STATUS_DEBUG"],
     }),
     deps = [
         "//sw/device/lib/base:status",
