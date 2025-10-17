@@ -343,6 +343,8 @@ cc_library(
     deps = [
         ":status",
         "//sw/device/lib/crypto/impl/mlkem:mlkem_native",
+        "//sw/device/lib/crypto/impl:integrity",
+        "//sw/device/lib/crypto/impl:keyblob",
         "//sw/device/lib/crypto/include:datatypes",
     ],
 )

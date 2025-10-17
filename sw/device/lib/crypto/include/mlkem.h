@@ -33,28 +33,28 @@ enum {
 };
 
 OT_WARN_UNUSED_RESULT
-otcrypto_status_t otcrypto_mlkem512_keygen(otcrypto_byte_buf_t public_key,
-                                           otcrypto_byte_buf_t secret_key);
+otcrypto_status_t otcrypto_mlkem512_keygen(otcrypto_unblinded_key_t *public_key,
+                                           otcrypto_blinded_key_t *secret_key);
 
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem512_keygen_derand(
-    otcrypto_const_byte_buf_t randomness, otcrypto_byte_buf_t public_key,
-    otcrypto_byte_buf_t secret_key);
+    otcrypto_const_byte_buf_t randomness, otcrypto_unblinded_key_t *public_key,
+    otcrypto_blinded_key_t *secret_key);
 
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem512_encapsulate(
-    otcrypto_const_byte_buf_t public_key, otcrypto_byte_buf_t ciphertext,
-    otcrypto_byte_buf_t shared_secret);
+    const otcrypto_unblinded_key_t *public_key, otcrypto_byte_buf_t ciphertext,
+    const otcrypto_blinded_key_t *shared_secret);
 
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem512_encapsulate_derand(
-    otcrypto_const_byte_buf_t public_key, otcrypto_const_byte_buf_t randomness,
-    otcrypto_byte_buf_t ciphertext, otcrypto_byte_buf_t shared_secret);
+    const otcrypto_unblinded_key_t *public_key, otcrypto_const_byte_buf_t randomness,
+    otcrypto_byte_buf_t ciphertext, const otcrypto_blinded_key_t *shared_secret);
 
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem512_decapsulate(
-    otcrypto_const_byte_buf_t secret_key, otcrypto_const_byte_buf_t ciphertext,
-    otcrypto_byte_buf_t shared_secret);
+    const otcrypto_blinded_key_t *secret_key, otcrypto_const_byte_buf_t ciphertext,
+    otcrypto_blinded_key_t *shared_secret);
 
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem768_keygen(otcrypto_byte_buf_t public_key,
