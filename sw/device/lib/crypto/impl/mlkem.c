@@ -47,15 +47,24 @@ otcrypto_status_t otcrypto_mlkem512_keygen_derand(
     return OTCRYPTO_BAD_ARGS;
   }
 
-  // Unmask the key for the underlying implementation.
+  // Destination buffer for the unmasked key.
   uint32_t sk[ceil_div(MLKEM512_SECRETKEYBYTES, sizeof(uint32_t))];
-  HARDENED_TRY(keyblob_key_unmask(secret_key, ARRAYSIZE(sk), sk));
 
   int result = mlkem512_keypair_derand((unsigned char *)public_key->key, (unsigned char *)sk,
                                        randomness.data);
   if (result != 0) {
     return OTCRYPTO_FATAL_ERR;
   }
+
+  // Write the unmasked secret key into the two shares of the keyblob.
+  uint32_t *share0;
+  uint32_t *share1;
+  HARDENED_TRY(keyblob_to_shares(secret_key, &share0, &share1));
+  memcpy(share0, sk, sizeof(sk));
+  memset(share1, 0, sizeof(sk));
+
+  public_key->checksum = integrity_unblinded_checksum(public_key);
+  secret_key->checksum = integrity_blinded_checksum(secret_key);
 
   return OTCRYPTO_OK;
 }
