@@ -40,12 +40,6 @@ otcrypto_status_t otcrypto_mlkem512_keygen_derand(
   if (secret_key->config.hw_backed != kHardenedBoolFalse) {
     return OTCRYPTO_NOT_IMPLEMENTED;
   }
-  if (integrity_unblinded_key_check(public_key) != kHardenedBoolTrue) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (integrity_blinded_key_check(secret_key) != kHardenedBoolTrue) {
-    return OTCRYPTO_BAD_ARGS;
-  }
 
   // Destination buffer for the unmasked key.
   uint32_t sk[ceil_div(MLKEM512_SECRETKEYBYTES, sizeof(uint32_t))];
@@ -126,117 +120,35 @@ otcrypto_status_t otcrypto_mlkem512_encapsulate_derand(
 
 otcrypto_status_t otcrypto_mlkem512_keygen(otcrypto_unblinded_key_t *public_key,
                                            otcrypto_blinded_key_t *secret_key) {
-  if (public_key->key_length != MLKEM512_PUBLICKEYBYTES) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (public_key->key_mode != kOtcryptoKeyModeMlkem512) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (secret_key->config.key_length != MLKEM512_SECRETKEYBYTES) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (secret_key->config.key_mode != kOtcryptoKeyModeMlkem512) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (secret_key->config.security_level == kOtcryptoKeySecurityLevelHigh) {
-    // Reject high-security keys; the underlying implementation is not masked
-    // against power side channels.
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (secret_key->config.hw_backed != kHardenedBoolFalse) {
-    return OTCRYPTO_NOT_IMPLEMENTED;
-  }
-
-  uint8_t randomness[2 * MLKEM512_BYTES];
   HARDENED_TRY(entropy_complex_check());
+
+  uint32_t randomness[ceil_div(2 * MLKEM512_BYTES, sizeof(uint32_t))];
   HARDENED_TRY(entropy_csrng_instantiate(
       /*disable_trng_input=*/kHardenedBoolFalse, &kEntropyEmptySeed));
   HARDENED_TRY(entropy_csrng_generate(
-      &kEntropyEmptySeed, (uint32_t *)randomness, sizeof(randomness) / 4,
+      &kEntropyEmptySeed, randomness, ARRAYSIZE(randomness),
       /*fips_check=*/kHardenedBoolTrue));
   HARDENED_TRY(entropy_csrng_uninstantiate());
 
-  // Destination buffer for the unmasked key.
-  uint32_t sk[ceil_div(MLKEM512_SECRETKEYBYTES, sizeof(uint32_t))];
-
-  int result =
-      mlkem512_keypair_derand((unsigned char *)public_key->key, (unsigned char *)sk, randomness);
-  if (result != 0) {
-    return OTCRYPTO_FATAL_ERR;
-  }
-
-  // Write the unmasked secret key into the two shares of the keyblob.
-  uint32_t *share0;
-  uint32_t *share1;
-  HARDENED_TRY(keyblob_to_shares(secret_key, &share0, &share1));
-  memcpy(share0, sk, sizeof(sk));
-  memset(share1, 0, sizeof(sk));
-
-  public_key->checksum = integrity_unblinded_checksum(public_key);
-  secret_key->checksum = integrity_blinded_checksum(secret_key);
-
-  return OTCRYPTO_OK;
+  otcrypto_const_byte_buf_t randomness_buf = { .data = (unsigned char *)randomness, .len = sizeof(randomness) };
+  return otcrypto_mlkem512_keygen_derand(randomness_buf, public_key, secret_key);
 }
 
 otcrypto_status_t otcrypto_mlkem512_encapsulate(
     const otcrypto_unblinded_key_t *public_key, otcrypto_byte_buf_t ciphertext,
     otcrypto_blinded_key_t *shared_secret) {
-  if (public_key->key_length != MLKEM512_PUBLICKEYBYTES) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (public_key->key_mode != kOtcryptoKeyModeMlkem512) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (ciphertext.len != MLKEM512_CIPHERTEXTBYTES) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (shared_secret->config.key_length != MLKEM512_BYTES) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (shared_secret->config.hw_backed != kHardenedBoolFalse) {
-    // Shared secret cannot be a hardware-backed key.
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (shared_secret->config.security_level == kOtcryptoKeySecurityLevelHigh) {
-    // Reject high-security keys; the underlying implementation is not masked
-    // against power side channels.
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (integrity_unblinded_key_check(public_key) != kHardenedBoolTrue) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (integrity_blinded_key_check(shared_secret) != kHardenedBoolTrue) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-
-  uint8_t randomness[MLKEM512_BYTES];
   HARDENED_TRY(entropy_complex_check());
+
+  uint32_t randomness[ceil_div(MLKEM512_BYTES, sizeof(uint32_t))];
   HARDENED_TRY(entropy_csrng_instantiate(
       /*disable_trng_input=*/kHardenedBoolFalse, &kEntropyEmptySeed));
   HARDENED_TRY(entropy_csrng_generate(
-      &kEntropyEmptySeed, (uint32_t *)randomness, sizeof(randomness) / 4,
+      &kEntropyEmptySeed, randomness, ARRAYSIZE(randomness),
       /*fips_check=*/kHardenedBoolTrue));
   HARDENED_TRY(entropy_csrng_uninstantiate());
 
-  // Destination buffer for the shared secret.
-  uint32_t ss[ceil_div(MLKEM512_BYTES, sizeof(uint32_t))];
-
-  int result = mlkem512_enc_derand(ciphertext.data, (unsigned char *)ss,
-                                   (unsigned char *)public_key->key, randomness);
-  if (result != 0) {
-    return OTCRYPTO_FATAL_ERR;
-  }
-  
-  // Write the unmasked secret key into the two shares of the keyblob.
-  uint32_t *share0;
-  uint32_t *share1;
-  HARDENED_TRY(keyblob_to_shares(shared_secret, &share0, &share1));
-  memcpy(share0, ss, sizeof(ss));
-  memset(share1, 0, sizeof(ss));
-
-  shared_secret->checksum = integrity_blinded_checksum(shared_secret);
-
-  return OTCRYPTO_OK;
+  otcrypto_const_byte_buf_t randomness_buf = { .data = (unsigned char *)randomness, .len = sizeof(randomness) };
+  return otcrypto_mlkem512_encapsulate_derand(public_key, randomness_buf, ciphertext, shared_secret);
 }
 
 otcrypto_status_t otcrypto_mlkem512_decapsulate(
@@ -313,12 +225,6 @@ otcrypto_status_t otcrypto_mlkem768_keygen_derand(
   }
   if (secret_key->config.hw_backed != kHardenedBoolFalse) {
     return OTCRYPTO_NOT_IMPLEMENTED;
-  }
-  if (integrity_unblinded_key_check(public_key) != kHardenedBoolTrue) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (integrity_blinded_key_check(secret_key) != kHardenedBoolTrue) {
-    return OTCRYPTO_BAD_ARGS;
   }
 
   // Destination buffer for the unmasked key.
@@ -421,12 +327,12 @@ otcrypto_status_t otcrypto_mlkem768_keygen(otcrypto_unblinded_key_t *public_key,
     return OTCRYPTO_NOT_IMPLEMENTED;
   }
 
-  uint8_t randomness[2 * MLKEM768_BYTES];
+  uint32_t randomness[ceil_div(2 * MLKEM768_BYTES, sizeof(uint32_t))];
   HARDENED_TRY(entropy_complex_check());
   HARDENED_TRY(entropy_csrng_instantiate(
       /*disable_trng_input=*/kHardenedBoolFalse, &kEntropyEmptySeed));
   HARDENED_TRY(entropy_csrng_generate(
-      &kEntropyEmptySeed, (uint32_t *)randomness, sizeof(randomness) / 4,
+      &kEntropyEmptySeed, randomness, ARRAYSIZE(randomness),
       /*fips_check=*/kHardenedBoolTrue));
   HARDENED_TRY(entropy_csrng_uninstantiate());
 
@@ -434,7 +340,7 @@ otcrypto_status_t otcrypto_mlkem768_keygen(otcrypto_unblinded_key_t *public_key,
   uint32_t sk[ceil_div(MLKEM768_SECRETKEYBYTES, sizeof(uint32_t))];
 
   int result =
-      mlkem768_keypair_derand((unsigned char *)public_key->key, (unsigned char *)sk, randomness);
+      mlkem768_keypair_derand((unsigned char *)public_key->key, (unsigned char *)sk, (unsigned char *)randomness);
   if (result != 0) {
     return OTCRYPTO_FATAL_ERR;
   }
@@ -483,12 +389,12 @@ otcrypto_status_t otcrypto_mlkem768_encapsulate(
     return OTCRYPTO_BAD_ARGS;
   }
 
-  uint8_t randomness[MLKEM768_BYTES];
+  uint32_t randomness[ceil_div(MLKEM768_BYTES, sizeof(uint32_t))];
   HARDENED_TRY(entropy_complex_check());
   HARDENED_TRY(entropy_csrng_instantiate(
       /*disable_trng_input=*/kHardenedBoolFalse, &kEntropyEmptySeed));
   HARDENED_TRY(entropy_csrng_generate(
-      &kEntropyEmptySeed, (uint32_t *)randomness, sizeof(randomness) / 4,
+      &kEntropyEmptySeed, randomness, ARRAYSIZE(randomness),
       /*fips_check=*/kHardenedBoolTrue));
   HARDENED_TRY(entropy_csrng_uninstantiate());
 
@@ -496,7 +402,7 @@ otcrypto_status_t otcrypto_mlkem768_encapsulate(
   uint32_t ss[ceil_div(MLKEM768_BYTES, sizeof(uint32_t))];
 
   int result = mlkem768_enc_derand(ciphertext.data, (unsigned char *)ss,
-                                   (unsigned char *)public_key->key, randomness);
+                                   (unsigned char *)public_key->key, (unsigned char *)randomness);
   if (result != 0) {
     return OTCRYPTO_FATAL_ERR;
   }
@@ -587,12 +493,6 @@ otcrypto_status_t otcrypto_mlkem1024_keygen_derand(
   }
   if (secret_key->config.hw_backed != kHardenedBoolFalse) {
     return OTCRYPTO_NOT_IMPLEMENTED;
-  }
-  if (integrity_unblinded_key_check(public_key) != kHardenedBoolTrue) {
-    return OTCRYPTO_BAD_ARGS;
-  }
-  if (integrity_blinded_key_check(secret_key) != kHardenedBoolTrue) {
-    return OTCRYPTO_BAD_ARGS;
   }
 
   // Destination buffer for the unmasked key.
@@ -695,12 +595,12 @@ otcrypto_status_t otcrypto_mlkem1024_keygen(otcrypto_unblinded_key_t *public_key
     return OTCRYPTO_NOT_IMPLEMENTED;
   }
 
-  uint8_t randomness[2 * MLKEM1024_BYTES];
+  uint32_t randomness[ceil_div(2 * MLKEM1024_BYTES, sizeof(uint32_t))];
   HARDENED_TRY(entropy_complex_check());
   HARDENED_TRY(entropy_csrng_instantiate(
       /*disable_trng_input=*/kHardenedBoolFalse, &kEntropyEmptySeed));
   HARDENED_TRY(entropy_csrng_generate(
-      &kEntropyEmptySeed, (uint32_t *)randomness, sizeof(randomness) / 4,
+      &kEntropyEmptySeed, randomness, ARRAYSIZE(randomness),
       /*fips_check=*/kHardenedBoolTrue));
   HARDENED_TRY(entropy_csrng_uninstantiate());
 
@@ -708,7 +608,7 @@ otcrypto_status_t otcrypto_mlkem1024_keygen(otcrypto_unblinded_key_t *public_key
   uint32_t sk[ceil_div(MLKEM1024_SECRETKEYBYTES, sizeof(uint32_t))];
 
   int result =
-      mlkem1024_keypair_derand((unsigned char *)public_key->key, (unsigned char *)sk, randomness);
+      mlkem1024_keypair_derand((unsigned char *)public_key->key, (unsigned char *)sk, (unsigned char *)randomness);
   if (result != 0) {
     return OTCRYPTO_FATAL_ERR;
   }
@@ -757,12 +657,12 @@ otcrypto_status_t otcrypto_mlkem1024_encapsulate(
     return OTCRYPTO_BAD_ARGS;
   }
 
-  uint8_t randomness[MLKEM1024_BYTES];
+  uint32_t randomness[ceil_div(MLKEM1024_BYTES, sizeof(uint32_t))];
   HARDENED_TRY(entropy_complex_check());
   HARDENED_TRY(entropy_csrng_instantiate(
       /*disable_trng_input=*/kHardenedBoolFalse, &kEntropyEmptySeed));
   HARDENED_TRY(entropy_csrng_generate(
-      &kEntropyEmptySeed, (uint32_t *)randomness, sizeof(randomness) / 4,
+      &kEntropyEmptySeed, randomness, ARRAYSIZE(randomness),
       /*fips_check=*/kHardenedBoolTrue));
   HARDENED_TRY(entropy_csrng_uninstantiate());
 
@@ -770,7 +670,7 @@ otcrypto_status_t otcrypto_mlkem1024_encapsulate(
   uint32_t ss[ceil_div(MLKEM1024_BYTES, sizeof(uint32_t))];
 
   int result = mlkem1024_enc_derand(ciphertext.data, (unsigned char *)ss,
-                                   (unsigned char *)public_key->key, randomness);
+                                   (unsigned char *)public_key->key, (unsigned char *)randomness);
   if (result != 0) {
     return OTCRYPTO_FATAL_ERR;
   }
