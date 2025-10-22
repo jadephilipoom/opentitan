@@ -86,7 +86,7 @@ otcrypto_status_t otcrypto_mlkem512_keygen_derand(
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem512_encapsulate(
     const otcrypto_unblinded_key_t *public_key, otcrypto_byte_buf_t ciphertext,
-    const otcrypto_blinded_key_t *shared_secret);
+    otcrypto_blinded_key_t *shared_secret);
 
 /**
  * Generates ciphertext and shared secret for the given public key.
@@ -182,7 +182,7 @@ otcrypto_status_t otcrypto_mlkem768_keygen_derand(
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem768_encapsulate(
     const otcrypto_unblinded_key_t *public_key, otcrypto_byte_buf_t ciphertext,
-    const otcrypto_blinded_key_t *shared_secret);
+    otcrypto_blinded_key_t *shared_secret);
 
 /**
  * Generates ciphertext and shared secret for the given public key.
@@ -276,7 +276,7 @@ otcrypto_status_t otcrypto_mlkem1024_keygen_derand(
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem1024_encapsulate(
     const otcrypto_unblinded_key_t *public_key, otcrypto_byte_buf_t ciphertext,
-    const otcrypto_blinded_key_t *shared_secret);
+    otcrypto_blinded_key_t *shared_secret);
 
 /**
  * Generates ciphertext and shared secret for the given public key.
