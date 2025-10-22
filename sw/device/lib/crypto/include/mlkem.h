@@ -32,10 +32,37 @@ enum {
   kOtcryptoMlkem1024KeygenSeedBytes = 64,
 };
 
+/**
+ * Generates a fresh random ML-KEM key pair.
+ *
+ * The caller should allocate and partially populate the key structs, including
+ * populating the key configuration and allocating space for the keyblob and
+ * public key data. The key modes should both indicate ML-KEM-512. The key
+ * blob for the private key should have a length of 2x
+ * ceil(kOtCryptoMlkem512SecretKeybytes / sizeof(uint32_t)) = 816 words.
+ *
+ * @param[out] pk public key dest, len >= `kOtcryptoMlKemPublicKeyBytes`.
+ * @param[out] sk secret key dest, unmasked len `kOtcryptoMlKemSecretKeyBytes`.
+ * @return Status code (OK or error).
+ */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem512_keygen(otcrypto_unblinded_key_t *public_key,
                                            otcrypto_blinded_key_t *secret_key);
 
+/**
+ * Generates an ML-KEM key pair based on caller-provided randomness.
+ *
+ * The caller should allocate and partially populate the key structs, including
+ * populating the key configuration and allocating space for the keyblob and
+ * public key data. The key modes should both indicate ML-KEM-512. The key
+ * blob for the private key should have a length of 2x
+ * ceil(kOtCryptoMlkem512SecretKeybytes / sizeof(uint32_t)) = 816 words.
+ *
+ * @param randomness, len `kOtcryptoMlkem512KeygenSeedBytes`.
+ * @param[out] pk public key dest, len >= `kOtcryptoMlKemPublicKeyBytes`.
+ * @param[out] sk secret key dest, unmasked len `kOtcryptoMlKemSecretKeyBytes`.
+ * @return Status code (OK or error).
+ */
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem512_keygen_derand(
     otcrypto_const_byte_buf_t randomness, otcrypto_unblinded_key_t *public_key,
@@ -49,7 +76,7 @@ otcrypto_status_t otcrypto_mlkem512_encapsulate(
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem512_encapsulate_derand(
     const otcrypto_unblinded_key_t *public_key, otcrypto_const_byte_buf_t randomness,
-    otcrypto_byte_buf_t ciphertext, const otcrypto_blinded_key_t *shared_secret);
+    otcrypto_byte_buf_t ciphertext, otcrypto_blinded_key_t *shared_secret);
 
 OT_WARN_UNUSED_RESULT
 otcrypto_status_t otcrypto_mlkem512_decapsulate(

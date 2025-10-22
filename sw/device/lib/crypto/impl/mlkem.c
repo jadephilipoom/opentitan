@@ -71,7 +71,7 @@ otcrypto_status_t otcrypto_mlkem512_keygen_derand(
 
 otcrypto_status_t otcrypto_mlkem512_encapsulate_derand(
     const otcrypto_unblinded_key_t *public_key, otcrypto_const_byte_buf_t randomness,
-    otcrypto_byte_buf_t ciphertext, const otcrypto_blinded_key_t *shared_secret) {
+    otcrypto_byte_buf_t ciphertext, otcrypto_blinded_key_t *shared_secret) {
   if (public_key->key_length != MLKEM512_PUBLICKEYBYTES) {
     return OTCRYPTO_BAD_ARGS;
   }
@@ -103,15 +103,23 @@ otcrypto_status_t otcrypto_mlkem512_encapsulate_derand(
     return OTCRYPTO_BAD_ARGS;
   }
 
-  // Unmask the secret for the underlying implementation.
+  // Destination buffer for the shared secret.
   uint32_t ss[ceil_div(MLKEM512_BYTES, sizeof(uint32_t))];
-  HARDENED_TRY(keyblob_key_unmask(shared_secret, ARRAYSIZE(ss), ss));
 
   int result = mlkem512_enc_derand(ciphertext.data, (unsigned char *)ss,
                                    (unsigned char *)public_key->key, randomness.data);
   if (result != 0) {
     return OTCRYPTO_FATAL_ERR;
   }
+
+  // Write the unmasked secret key into the two shares of the keyblob.
+  uint32_t *share0;
+  uint32_t *share1;
+  HARDENED_TRY(keyblob_to_shares(shared_secret, &share0, &share1));
+  memcpy(share0, ss, sizeof(ss));
+  memset(share1, 0, sizeof(ss));
+
+  shared_secret->checksum = integrity_blinded_checksum(shared_secret);
 
   return OTCRYPTO_OK;
 }
